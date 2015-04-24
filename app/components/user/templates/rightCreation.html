@@ -1,0 +1,64 @@
+<!--
+ Copyright 2014 Jérôme Gasperi
+
+ Licensed under the Apache License, version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ License for the specific language governing permissions and limitations
+ under the License.
+-->
+
+<div ng-show="showCreation">
+    <form novalidate class="simple-form">
+        <h3 style="text-align: center;">
+
+        </h3>
+        <fieldset>
+            <legend>{{'collection_and_feature'| translate}}</legend>
+            <label>{{'choose_collection'| translate}}
+                <select ng-model="feature.collection" ng-options="name for (name, collection) in collections"></select>
+            </label>
+            <label>{{'feature_id'| translate}}
+                <input type="text" ng-model="feature.id">
+            </label>
+        </fieldset>
+        <fieldset>
+            <legend>{{'visualize'| translate}}</legend>
+            <input type="radio" ng-model="feature.visualize" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.visualize" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+        <fieldset>
+            <legend>{{'download'| translate}}</legend>
+            <input type="radio" ng-model="feature.download" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.download" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+        <fieldset class="advanced-right">
+            <legend>{{'search'| translate}}</legend>
+            <input type="radio" ng-model="feature.search" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.search" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+        <fieldset class="advanced-right">
+            <legend>{{'canpost'| translate}}</legend>
+            <input type="radio" ng-model="feature.canpost" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.canpost" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+        <fieldset class="advanced-right">
+            <legend>{{'canput'| translate}}</legend>
+            <input type="radio" ng-model="feature.canput" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.canput" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+        <fieldset class="advanced-right">
+            <legend>{{'candelete'| translate}}</legend>
+            <input type="radio" ng-model="feature.candelete" value=1 > {{'true'| translate}}<br/>
+            <input type="radio" ng-model="feature.candelete" value=0 > {{'false'| translate}}<br/>
+        </fieldset>
+    </form>
+    <br />
+    <a class="button expand" ng-click="addAdvancedRight()">{{'save'| translate}}</a>
+</div>

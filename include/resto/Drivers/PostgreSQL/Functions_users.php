@@ -66,7 +66,7 @@ class Functions_users {
             RestoLogUtil::httpError(404);
         }
         
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)). '\'' : '');
+        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)). '\'' : '');
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         if (count($results) === 0) {
@@ -112,14 +112,19 @@ class Functions_users {
         $values = "'" . pg_escape_string($email) . "',";
         $values .= "'" . (isset($profile['password']) ? RestoUtil::encrypt($profile['password']) : str_repeat('*', 40)) . "',";
         $values .= "'" . (isset($profile['groupname']) ? pg_escape_string($profile['groupname']) : 'default') . "',";
-        foreach (array_values(array('username', 'givenname', 'lastname')) as $field) {
-            $values .= (isset($profile[$field]) ? "'". $profile[$field] . "'" : 'NULL') . ",";
-        }
+        foreach ( array_values ( array (
+				'username', 'givenname', 'lastname',
+				'organization', 'nationality', 'domain',
+				'use', 'country', 'ip',	'adress', 
+        		'numtel', 'numfax' 
+		) ) as $field ) {
+			$values .= (isset ( $profile [$field] ) ? "'" . $profile [$field] . "'" : 'NULL') . ",";
+		}
         $values .= "'" . pg_escape_string(RestoUtil::encrypt($email . microtime())) . "',";
         $values .= $profile['activated'] . ',now()';
         
         // TODO change to pg_fetch_assoc ?
-        $results = $this->dbDriver->query('INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode');
+        $results = $this->dbDriver->query('INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode');
         return pg_fetch_array($results);
         
     }

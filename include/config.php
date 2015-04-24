@@ -116,7 +116,7 @@ return array(
         /*
          * Database host - if not specified connect through socket instead of TCP/IP
          */
-        //'host' => 'localhost',
+        'host' => 'localhost',
         
         /*
          * Database port
@@ -157,6 +157,15 @@ return array(
      * Modules
      */
     'modules' => array(
+    		
+    	/*
+    	 * Administration
+    	 */
+    	'Administration' => array(
+    			'activate' => true,
+    			'route' => 'administration',
+    			'options' => array()
+    	),
         
         /*
          * OAuth authentication module

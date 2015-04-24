@@ -355,7 +355,7 @@ class RestoRoutePOST extends RestoRoute {
          * users/{userid}/orders
          */
         else if (isset($segments[2]) && $segments[2] === 'orders') {
-            return $this->POST_userOrders($segments[1], $data);
+            return $this->POST_userOrders($segments[1]);
         }
         
         /*
@@ -390,22 +390,31 @@ class RestoRoutePOST extends RestoRoute {
                 'username' => isset($data['username']) ? $data['username'] : null,
                 'givenname' => isset($data['givenname']) ? $data['givenname'] : null,
                 'lastname' => isset($data['lastname']) ? $data['lastname'] : null,
+                'organization' => isset($data['organization']) ? $data['organization'] : null,
+                'nationality' => isset($data['nationality']) ? $data['nationality'] : null,
+                'domain' => isset($data['domain']) ? $data['domain'] : null,
+                'use' => isset($data['use']) ? $data['use'] : null,
+                'country' => isset($data['country']) ? $data['country'] : null,
+                'ip' => isset($data['ip']) ? $data['ip'] : null,
+                'adress' => isset($data['adress']) ? $data['adress'] : null,
+                'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
+                'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
                 'activated' => 0
             ))
         );
         if (isset($userInfo)) {
             $activationLink = $this->context->baseUrl . '/api/users/' . $userInfo['userid'] . '/activate?act=' . $userInfo['activationcode'] . $redirect;
-            if (!$this->sendMail(array(
-                        'to' => $data['email'],
-                        'senderName' => $this->context->mail['senderName'],
-                        'senderEmail' => $this->context->mail['senderEmail'],
-                        'subject' => $this->context->dictionary->translate('activationSubject', $this->context->title),
-                        'message' => $this->context->dictionary->translate('activationMessage', $this->context->title, $activationLink)
-                    ))) {
-                RestoLogUtil::httpError(3001);
-            }
+//             if (!$this->sendMail(array(
+//                         'to' => $data['email'],
+//                         'senderName' => $this->context->mail['senderName'],
+//                         'senderEmail' => $this->context->mail['senderEmail'],
+//                         'subject' => $this->context->dictionary->translate('activationSubject', $this->context->title),
+//                         'message' => $this->context->dictionary->translate('activationMessage', $this->context->title, $activationLink)
+//                     ))) {
+//                 RestoLogUtil::httpError(3001);
+//             }
         } else {
-            RestoLogUtil::httpError(500, 'Database connection error');
+            RestoLogUtil::httpError(500, 'Database connection error 1');
         }
 
         return RestoLogUtil::success('User ' . $data['email'] . ' created');
@@ -445,15 +454,14 @@ class RestoRoutePOST extends RestoRoute {
      *    users/{userid}/orders                         |  Send an order for {userid}
      * 
      * @param string $emailOrId
-     * @param array $data
      * @throws Exception
      */
-    private function POST_userOrders($emailOrId, $data) {
+    private function POST_userOrders($emailOrId) {
         
         /*
          * Order can only be modified by its owner or by admin
          */
-        $order = $this->getAuthorizedUser($emailOrId)->placeOrder($data);
+        $order = $this->getAuthorizedUser($emailOrId)->placeOrder();
         if ($order) {
             return RestoLogUtil::success('Place order', array(
                 'order' => $order

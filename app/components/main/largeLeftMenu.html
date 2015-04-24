@@ -1,0 +1,29 @@
+<!--
+ Copyright 2014 Jérôme Gasperi
+
+ Licensed under the Apache License, version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ License for the specific language governing permissions and limitations
+ under the License.
+-->
+
+<div class="show-for-large-up leftMenu">
+    <h3 style="color: white;">RESTo</h3>
+    <div ng-show="profile" class="ng-hide">
+        <a ng-class="{true:'clickedRight', false:''}[showHome === true]" href="#home" class="button">{{'home'| translate}}</a>
+        <a ng-class="{true:'clickedRight', false:''}[showHistory === true]" href="#history" class="button">{{'history'| translate}}</a>
+        <a ng-class="{true:'clickedRight', false:''}[showCollections === true]" href="#collections" class="button">{{'collections'| translate}}</a>
+        <a ng-class="{true:'clickedRight', false:''}[showStats === true]" href="#stats" class="button">{{'stats'| translate}}</a>
+        <a ng-class="{true:'clickedRight', false:''}[showUsers === true]" href="#users" class="button">{{'users'| translate}}</a>
+        <a ng-show="showUser" ng-class="{true:'clickedRight', false:''}[showUser === true]" class="ng-hide button disabled">{{'user'| translate}}</a>
+    </div>
+    <a ng-click="startSignIn()" class="button ng-hide" ng-show="!profile" >{{'login'| translate}}</a>
+    <a ng-click="logout()" ng-show="profile" class="button ng-hide alert bottomAlign" >{{'logout'| translate}}</a>
+</div>

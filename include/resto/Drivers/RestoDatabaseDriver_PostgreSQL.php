@@ -308,6 +308,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->userExists($params['email']);
             
+            /*
+             * True if the user reaches his download limitation
+             */
+            case parent::USER_LIMIT:
+            	$usersFunctions = new Functions_users($this);
+            	return $usersFunctions->hasUserReachedLimitation($params['userprofile'], $params['size']);
+                
             default:
                 return null;
         }

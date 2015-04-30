@@ -46,9 +46,9 @@ class RestoRights{
         ),
         'default' => array(
             'search' => 1,
-            'visualize' => 0,
-            'download' => 0,
-            'post' => 0,
+            'visualize' => 1,
+            'download' => 1,
+            'post' => 1,
             'put' => 0,
             'delete' => 0
         ),

@@ -615,6 +615,11 @@ class RestoRouteGET extends RestoRoute {
         $user = $this->getAuthorizedUser($emailOrId);
 
         /*
+         * Check if the user hasn't exceed his download volume limit
+         */
+        $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
+        
+        /*
          * Special case of metalink for single order
          */
         if (isset($orderid)) {

@@ -255,7 +255,9 @@ CREATE TABLE usermanagement.users (
     ip                  TEXT,
     adress              TEXT,
     numtel              TEXT,
-    numfax              TEXT
+    numfax              TEXT,
+    instantdownloadvolume	INTEGER,
+    weeklydownloadvolume	INTEGER
 );
 CREATE INDEX idx_email_users ON usermanagement.users (email);
 CREATE INDEX idx_groupname_users ON usermanagement.users (groupname);

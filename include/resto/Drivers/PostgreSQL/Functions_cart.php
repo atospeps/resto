@@ -82,6 +82,8 @@ class Functions_cart{
         }
         
         $query = 'SELECT orderid, querytime, items FROM usermanagement.orders WHERE email=\'' . pg_escape_string($identifier) . '\'' . (isset($orderId) ? ' AND orderid=\'' . pg_escape_string($orderId) . '\'' : '');
+
+        error_log($query);
         $results = $this->dbDriver->query($query);
         while ($result = pg_fetch_assoc($results)) {
             $items[] = array(

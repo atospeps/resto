@@ -300,11 +300,14 @@ class RestoRouteGET extends RestoRoute {
             if ($this->context->dbDriver->execute(RestoDatabaseDriver::ACTIVATE_USER, array('userid' => $userid, 'activationCode' => $this->context->query['act']))) {
 
                 /*
-                 * Redirect to a human readable page...
+                 * Close database handler and redirect to a human readable page...
                  */
                 if (isset($this->context->query['redirect'])) {
+                    if (isset($this->context->dbDriver)) {
+                        $this->context->dbDriver->closeDbh();
+                    }
                     header('Location: ' . $this->context->query['redirect']);
-                    return null;
+                    exit();
                 }
                 /*
                  * ...or return json stream otherwise
@@ -501,6 +504,7 @@ class RestoRouteGET extends RestoRoute {
             return $this->GET_userSignatures($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
         
+        return RestoLogUtil::httpError(404);
     }
 
     /**

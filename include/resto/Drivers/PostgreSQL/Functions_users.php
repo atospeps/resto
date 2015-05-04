@@ -65,8 +65,8 @@ class Functions_users {
         if (!isset($identifier) || !$identifier || $identifier === 'unregistered') {
             RestoLogUtil::httpError(404);
         }
-        
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)). '\'' : '');
+
+        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         if (count($results) === 0) {
@@ -116,7 +116,8 @@ class Functions_users {
 				'username', 'givenname', 'lastname',
 				'organization', 'nationality', 'domain',
 				'use', 'country', 'ip',	'adress', 
-        		'numtel', 'numfax' 
+        		'numtel', 'numfax',	'instantdownloadvolume',
+				'weeklydownloadvolume' 
 		) ) as $field ) {
 			$values .= (isset ( $profile [$field] ) ? "'" . $profile [$field] . "'" : 'NULL') . ",";
 		}
@@ -124,7 +125,7 @@ class Functions_users {
         $values .= $profile['activated'] . ',now()';
         
         // TODO change to pg_fetch_assoc ?
-        $results = $this->dbDriver->query('INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode');
+		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,instantdownloadvolume,weeklydownloadvolume,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
         return pg_fetch_array($results);
         
     }
@@ -266,18 +267,13 @@ class Functions_users {
     }
     
     /**
-     * Return true if the user reaches his download limit
-     * if he downloads specific products
+     * Return true if the user reaches his weekly download limit
+     * for a size download equals to $size.
      *
      * @param array $userprofile
      * @param integer $size
      */
-    public function hasUserReachedLimitation($userprofile, $size) {
-        if ($size > $userprofile['instantdownloadvolume']) {
-            echo "User reaches his instant download limitation, you can't download !";
-            return true;
-        }
-        
+    public function hasUserReachedWeekLimitation($userprofile, $size) {
         // Retrieves and count all downloaded features by user in the last 7 days
         $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
         $query = 'SELECT resourceid FROM usermanagement.history  WHERE querytime > \'' . $timestamp . '\' AND service=\'download\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\'';
@@ -301,10 +297,9 @@ class Functions_users {
         }
         
         if ($totalsize + $size > $userprofile['weeklydownloadvolume']) {
-            echo "User reaches his weekly download limitation, you can't download !";
-            return true;
+             return true;
         }
-        
+
         return false;
     }
 }

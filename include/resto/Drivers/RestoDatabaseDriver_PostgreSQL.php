@@ -320,7 +320,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::USER_LIMIT:
             	$usersFunctions = new Functions_users($this);
-            	return $usersFunctions->hasUserReachedLimitation($params['userprofile'], $params['size']);
+            	return $usersFunctions->hasUserReachedWeekLimitation($params['userprofile'], $params['size']);
                 
             default:
                 return null;

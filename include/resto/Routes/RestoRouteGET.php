@@ -427,8 +427,7 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_featureDownload($collection, $feature) {
         $featureProp = $feature->toArray();
-        $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 0;
-
+        $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 900;
         /*
          * User do not have right to download product
          */
@@ -447,10 +446,16 @@ class RestoRouteGET extends RestoRoute {
             );
         }
         /*
-         * Or user has reached his download limit.
+         * Or the user has reached his instant download limit
          */
-        else if ($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
-        	return RestoLogUtil::error('User has reached his download limit, cannot place order');
+        else if ($size > $this->user->profile['instantdownloadvolume']) {
+            return RestoLogUtil::error("You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
+        }        
+        /*
+         * Or the user has reached his weekly download limit.
+         */
+        else if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
+            return RestoLogUtil::error("You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
         }
         /*
          * Rights + license signed = download and exit

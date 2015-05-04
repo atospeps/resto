@@ -463,13 +463,16 @@ class RestoRoutePOST extends RestoRoute {
          * Order can only be modified by its owner or by admin
          */
         $order = $this->getAuthorizedUser($emailOrId)->placeOrder();
-
-        /*
-         * Check if the user hasn't exceed his download volume limit
-         */
-        $this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => 990));
         
         if ($order) {
+        	$size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $order));
+        	/*
+        	 * Check if the user hasn't exceed his download volume limit
+        	 */
+        	if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
+        		return RestoLogUtil::error('User has reached his download limit, cannot place order');
+        	}
+        	
             return RestoLogUtil::success('Place order', array(
                 'order' => $order
             ));

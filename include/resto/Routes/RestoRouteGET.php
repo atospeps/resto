@@ -426,6 +426,8 @@ class RestoRouteGET extends RestoRoute {
      * @return type
      */
     private function GET_featureDownload($collection, $feature) {
+        $featureProp = $feature->toArray();
+        $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 0;
 
         /*
          * User do not have right to download product
@@ -443,6 +445,12 @@ class RestoRouteGET extends RestoRoute {
                 'license' => $collection->getLicense(),
                 'ErrorCode' => 3002
             );
+        }
+        /*
+         * Or user has reached his download limit.
+         */
+        else if ($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
+        	return RestoLogUtil::error('User has reached his download limit, cannot place order');
         }
         /*
          * Rights + license signed = download and exit

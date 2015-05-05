@@ -135,6 +135,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::ORDERS:
                 $cartFunctions = new Functions_cart($this);
                 return $cartFunctions->getOrders($params['email'], isset($params['orderId']) ? $params['orderId'] : null);
+            
+            /*
+             * Get order size
+             */    
+            case parent::ORDER_SIZE:
+                $cartFunctions = new Functions_cart($this);
+                return $cartFunctions->getOrderSize($params['order']);
                 
             /*
              * Get rights
@@ -308,6 +315,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->userExists($params['email']);
             
+            /*
+             * True if the user reaches his download limitation
+             */
+            case parent::USER_LIMIT:
+            	$usersFunctions = new Functions_users($this);
+            	return $usersFunctions->hasUserReachedWeekLimitation($params['userprofile'], $params['size']);
+                
             default:
                 return null;
         }

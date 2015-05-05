@@ -426,7 +426,8 @@ class RestoRouteGET extends RestoRoute {
      * @return type
      */
     private function GET_featureDownload($collection, $feature) {
-
+        $featureProp = $feature->toArray();
+        $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 900;
         /*
          * User do not have right to download product
          */
@@ -443,6 +444,18 @@ class RestoRouteGET extends RestoRoute {
                 'license' => $collection->getLicense(),
                 'ErrorCode' => 3002
             );
+        }
+        /*
+         * Or the user has reached his instant download limit
+         */
+        else if ($size > $this->user->profile['instantdownloadvolume']) {
+            return RestoLogUtil::error("You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
+        }        
+        /*
+         * Or the user has reached his weekly download limit.
+         */
+        else if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
+            return RestoLogUtil::error("You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
         }
         /*
          * Rights + license signed = download and exit
@@ -618,6 +631,11 @@ class RestoRouteGET extends RestoRoute {
          */
         $user = $this->getAuthorizedUser($emailOrId);
 
+        /*
+         * Check if the user hasn't exceed his download volume limit
+         */
+        $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
+        
         /*
          * Special case of metalink for single order
          */

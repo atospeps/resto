@@ -65,8 +65,8 @@ class Functions_users {
         if (!isset($identifier) || !$identifier || $identifier === 'unregistered') {
             RestoLogUtil::httpError(404);
         }
-        
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)). '\'' : '');
+
+        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         if (count($results) === 0) {
@@ -116,7 +116,8 @@ class Functions_users {
 				'username', 'givenname', 'lastname',
 				'organization', 'nationality', 'domain',
 				'use', 'country', 'ip',	'adress', 
-        		'numtel', 'numfax' 
+        		'numtel', 'numfax',	'instantdownloadvolume',
+				'weeklydownloadvolume' 
 		) ) as $field ) {
 			$values .= (isset ( $profile [$field] ) ? "'" . $profile [$field] . "'" : 'NULL') . ",";
 		}
@@ -124,7 +125,7 @@ class Functions_users {
         $values .= $profile['activated'] . ',now()';
         
         // TODO change to pg_fetch_assoc ?
-        $results = $this->dbDriver->query('INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode');
+		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,instantdownloadvolume,weeklydownloadvolume,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
         return pg_fetch_array($results);
         
     }
@@ -265,4 +266,40 @@ class Functions_users {
         return ctype_digit($identifier) ? 'userid=' . $identifier : 'email=\'' . pg_escape_string($identifier) . '\'';
     }
     
+    /**
+     * Return true if the user reaches his weekly download limit
+     * for a size download equals to $size.
+     *
+     * @param array $userprofile
+     * @param integer $size
+     */
+    public function hasUserReachedWeekLimitation($userprofile, $size) {
+        // Retrieves and count all downloaded features by user in the last 7 days
+        $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
+        $query = 'SELECT resourceid FROM usermanagement.history  WHERE querytime > \'' . $timestamp . '\' AND service=\'download\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\'';
+        $results = pg_fetch_all($this->dbDriver->query($query));
+        $features = array ();
+        foreach ($results as $item) {
+            $id = $item['resourceid'];
+            if ($features[$id]) {
+                $features[$id] += 1;
+            } else {
+                $features[$id] = 1;
+            }
+        }
+        
+        // Compute the total size of this features
+        $totalsize = 0;
+        foreach ($features as $key => $value) {
+            $query = 'SELECT resource_size FROM resto.features  WHERE identifier=\'' . pg_escape_string($key) . '\'';
+            $results = pg_fetch_all($this->dbDriver->query($query));
+            $totalsize += $results[0]['resource_size'] * $value;
+        }
+        
+        if ($totalsize + $size > $userprofile['weeklydownloadvolume']) {
+             return true;
+        }
+
+        return false;
+    }
 }

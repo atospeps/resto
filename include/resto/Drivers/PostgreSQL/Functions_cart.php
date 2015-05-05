@@ -82,6 +82,8 @@ class Functions_cart{
         }
         
         $query = 'SELECT orderid, querytime, items FROM usermanagement.orders WHERE email=\'' . pg_escape_string($identifier) . '\'' . (isset($orderId) ? ' AND orderid=\'' . pg_escape_string($orderId) . '\'' : '');
+
+        error_log($query);
         $results = $this->dbDriver->query($query);
         while ($result = pg_fetch_assoc($results)) {
             $items[] = array(
@@ -342,5 +344,22 @@ class Functions_cart{
         }
         return false;
     }
+	
+	/**
+	 * Return the total size of an order
+	 *
+	 * @param array $userprofile    
+	 * @param integer $size        	
+	 */
+	public function getOrderSize($order) {
+		// Compute the total size of features
+		$totalsize = 0;
+		foreach($order['items'] as $feature) {
+			$query = 'SELECT resource_size FROM resto.features  WHERE identifier=\'' . pg_escape_string($feature["id"]) . '\'';
+			$results = pg_fetch_all($this->dbDriver->query($query));
+			$totalsize += $results[0]['resource_size'];
+		}
+		return $totalsize;
+	}
     
 }

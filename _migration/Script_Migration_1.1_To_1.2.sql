@@ -17,3 +17,7 @@ ALTER TABLE usermanagement.users ADD COLUMN adress text;
 ALTER TABLE usermanagement.users ADD COLUMN numtel text;
 
 ALTER TABLE usermanagement.users ADD COLUMN numfax text;
+
+ALTER TABLE usermanagement.users ADD COLUMN instantdownloadvolume integer;
+
+ALTER TABLE usermanagement.users ADD COLUMN weeklydownloadvolume integer;

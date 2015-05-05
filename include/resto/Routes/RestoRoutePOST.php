@@ -223,7 +223,6 @@ class RestoRoutePOST extends RestoRoute {
      * @return type
      */
     private function POST_apiUsersSignLicense($userid, $data) {
-        
         /*
          * Only user can sign its license
          */
@@ -399,20 +398,22 @@ class RestoRoutePOST extends RestoRoute {
                 'adress' => isset($data['adress']) ? $data['adress'] : null,
                 'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
                 'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
+                'instantdownloadvolume' => isset($data['instantdownloadvolume']) ? $data['instantdownloadvolume'] : null,
+                'weeklydownloadvolume' => isset($data['weeklydownloadvolume']) ? $data['weeklydownloadvolume'] : null,
                 'activated' => 0
             ))
         );
         if (isset($userInfo)) {
             $activationLink = $this->context->baseUrl . '/api/users/' . $userInfo['userid'] . '/activate?act=' . $userInfo['activationcode'] . $redirect;
-//             if (!$this->sendMail(array(
-//                         'to' => $data['email'],
-//                         'senderName' => $this->context->mail['senderName'],
-//                         'senderEmail' => $this->context->mail['senderEmail'],
-//                         'subject' => $this->context->dictionary->translate('activationSubject', $this->context->title),
-//                         'message' => $this->context->dictionary->translate('activationMessage', $this->context->title, $activationLink)
-//                     ))) {
-//                 RestoLogUtil::httpError(3001);
-//             }
+            if (!$this->sendMail(array(
+                        'to' => $data['email'],
+                        'senderName' => $this->context->mail['senderName'],
+                        'senderEmail' => $this->context->mail['senderEmail'],
+                        'subject' => $this->context->dictionary->translate('activationSubject', $this->context->title),
+                        'message' => $this->context->dictionary->translate('activationMessage', $this->context->title, $activationLink)
+                    ))) {
+                RestoLogUtil::httpError(3001);
+            }
         } else {
             RestoLogUtil::httpError(500, 'Database connection error 1');
         }
@@ -471,7 +472,19 @@ class RestoRoutePOST extends RestoRoute {
          * Order can only be modified by its owner or by admin
          */
         $order = $this->getAuthorizedUser($emailOrId)->placeOrder();
+        
         if ($order) {
+        	$size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $order));
+        	/*
+        	 * Check if the user hasn't exceed his download volume limit
+        	 */
+        	if ($size > $this->user->profile['instantdownloadvolume']) {
+        	    return RestoLogUtil::error("You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
+        	}
+        	if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
+        		return RestoLogUtil::error("You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
+        	}
+        	
             return RestoLogUtil::success('Place order', array(
                 'order' => $order
             ));

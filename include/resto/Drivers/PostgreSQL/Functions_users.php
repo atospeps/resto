@@ -156,6 +156,12 @@ class Functions_users {
         if (isset($profile['activated'])) {
             $values[] = 'activated=' . $profile['activated'];
         }
+        if (isset($profile['instantdownloadvolume'])) {
+            $values[] = 'instantdownloadvolume=' . $profile['instantdownloadvolume'];
+        }
+        if (isset($profile['weeklydownloadvolume'])) {
+            $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
+        }
         
         $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
         

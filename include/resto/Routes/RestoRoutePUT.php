@@ -34,6 +34,7 @@ class RestoRoutePUT extends RestoRoute {
      *    collections/{collection}                      |  Update {collection}
      *    collections/{collection}/{feature}            |  Update {feature}
      *    
+     *    users/{userid}                                |  Update {userid} information
      *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
      *    
      * @param array $segments
@@ -120,27 +121,60 @@ class RestoRoutePUT extends RestoRoute {
      * 
      * Process HTTP PUT request on users
      * 
+     *    users/{userid}                                |  Update {userid}
      *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
      * 
      * @param array $segments
      * @param array $data
      */
     private function PUT_users($segments, $data) {
-        
+        /*
+         * users/{userid}
+         */
+    	if (!isset($segments[2])) {
+            return $this->PUT_userProfile($segments[1], $data);
+    	}
+    	
         /*
          * Mandatory {itemid}
          */
-        if (!isset($segments[3])) {
-            RestoLogUtil::httpError(404);
-        }
-        
-        if ($segments[2] === 'cart') {
+        if ($segments[2] === 'cart' && isset($segments[3])) {
             return $this->PUT_userCart($segments[1], $segments[3], $data);
         }
-        else {
-            RestoLogUtil::httpError(404);
-        }
         
+        /*
+         * If no route is found.
+         */
+        RestoLogUtil::httpError(404);
+        
+        
+    }
+    
+    /**
+     * Process HTTP PUT request on user
+     * 
+     *    users/{userid}                                |  Update {userid}
+     * 
+     * @param string $emailOrId
+     * @param array $data
+     */
+    private function PUT_userProfile($emailOrId, $data) {
+    	echo "Update user \n";
+    	/*
+    	 * User can only be modified by admin
+    	 */
+    	$user = $this->user;
+    	$userid = $this->userid($emailOrId);
+	    if ($user->profile['groupname'] !== 'admin') {
+	        RestoLogUtil::httpError(403);
+	    } else if(isset($data['instantdownloadvolume']) && isset($data['weeklydownloadvolume'])) {
+	    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => array('email' => $emailOrId,
+	    			 'instantdownloadvolume' => $data['instantdownloadvolume'],
+	    			 'weeklydownloadvolume' => $data['weeklydownloadvolume'])))) {
+	    	    return RestoLogUtil::success('User updated');
+	    	}
+    	}
+        RestoLogUtil::httpError(400);
     }
     
     

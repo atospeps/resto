@@ -48,12 +48,12 @@ class RestoRoutePOST extends RestoRoute {
     public function route($segments) {
         
         /*
-         * Input data is mandatory for POST request
+         * Input data for POST request
          */
         $data = RestoUtil::readInputData($this->context->uploadDirectory);
-        if (!is_array($data) || count($data) === 0) {
+        /*if (!is_array($data) || count($data) === 0) {
             RestoLogUtil::httpError(400);
-        }
+        }*/
 
         switch($segments[0]) {
             case 'api':
@@ -231,7 +231,7 @@ class RestoRoutePOST extends RestoRoute {
             RestoLogUtil::httpError(403);
         }
 
-        if ($this->user->signLicense($data[0], true)) {
+        if (isset($data['collection']) && $this->user->signLicense($data['collection'], true)) {
             return RestoLogUtil::success('License signed');
         }
         else {
@@ -425,9 +425,18 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Cart can only be modified by its owner or by admin
          */
-        $items = $this->getAuthorizedUser($emailOrId)->addToCart($data, true);
+        $user = $this->getAuthorizedUser($emailOrId);
         
-        if ($items) {
+        /*
+         * Remove items first
+         */
+        $clear = isset($this->context->query['_clear']) ? filter_var($this->context->query['_clear'], FILTER_VALIDATE_BOOLEAN) : false;
+        if ($clear) {
+            $user->clearCart(true);
+        }
+        $items = $user->addToCart($data, true);
+        
+        if ($items !== false) {
             return RestoLogUtil::success('Add items to cart', array(
                 'items' => $items
             ));

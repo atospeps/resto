@@ -408,7 +408,7 @@ services.factory('_RIGHTS', ['$http', 'CONFIG',
 
                 $http({
                     method: 'POST',
-                    url: CONFIG.restoURL + CONFIG.administrationEndpoint + 'users/' + params['userid'] + "/rights/delete",
+                    url: CONFIG.restoURL + CONFIG.administrationEndpoint + '/users/' + params['userid'] + "/rights/delete",
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     transformRequest: function(obj) {
                         var str = [];

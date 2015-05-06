@@ -50,6 +50,7 @@
  *    |  GET     users                                         |  List all users
  *    |  POST    users                                         |  Add a user
  *    |  GET     users/{userid}                                |  Show {userid} information
+      |  PUT     users/{userid}                                |  Update {userid} information
  *    |  GET     users/{userid}/cart                           |  Show {userid} cart
  *    |  POST    users/{userid}/cart                           |  Add new item in {userid} cart
  *    |  PUT     users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart

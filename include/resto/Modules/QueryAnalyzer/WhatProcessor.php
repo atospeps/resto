@@ -42,14 +42,21 @@ class WhatProcessor {
      */
     private $extractor;
     
+    /*
+     * Minimal percentage for quantity
+     */
+    private $minimalQuantity;
+    
     /**
      * Constructor
      * 
      * @param QueryManager $queryManager
+     * @param Array $options
      */
-    public function __construct($queryManager) {
+    public function __construct($queryManager, $options) {
         $this->queryManager = $queryManager;
         $this->extractor = new WhatExtractor($this->queryManager);
+        $this->minimalQuantity = isset($options['minimalQuantity']) ? $options['minimalQuantity'] : 25;
     }
     
     /**
@@ -256,7 +263,7 @@ class WhatProcessor {
         $quantity = $this->extractor->extractQuantity($startPosition + $delta, $this->queryManager->getEndPosition($startPosition + $delta), false);
         if (isset($quantity)) {
             $this->addToResult(array(
-                $quantity['key'] => $with ? ']50' : 0
+                $quantity['key'] => $with ? ']' . $this->minimalQuantity : 0
             ));
             $endPosition = $quantity['endPosition'];
         }

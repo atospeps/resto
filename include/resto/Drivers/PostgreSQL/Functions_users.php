@@ -72,7 +72,9 @@ class Functions_users {
         if (count($results) === 0) {
             RestoLogUtil::httpError(404);
         }
-        
+
+        $results[0]['instantdownloadvolume'] = (integer) $results[0]['instantdownloadvolume'];
+        $results[0]['weeklydownloadvolume'] = (integer) $results[0]['weeklydownloadvolume'];
         $results[0]['activated'] = (integer) $results[0]['activated'];
         
         return $results[0];
@@ -142,7 +144,7 @@ class Functions_users {
         if (!is_array($profile) || !isset($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
-
+        
         /*
          * Only password, groupname and activated fields can be updated
          */
@@ -162,9 +164,9 @@ class Functions_users {
         if (isset($profile['weeklydownloadvolume'])) {
             $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
         }
-        
-        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
-        
+
+        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE ' . $this->useridOrEmailFilter(pg_escape_string(trim(strtolower($profile['email'])))) . ' RETURNING userid'));
+
         return count($results) === 1 ? $results[0]['userid'] : null;
         
     }

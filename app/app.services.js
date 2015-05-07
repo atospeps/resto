@@ -220,7 +220,7 @@ services.factory('_USERS', ['$http', 'CONFIG',
                 if (keyword) {
                     url = url + '&keyword=' + keyword;
                 }
-
+                
                 $http.get(url)
                         .success(
                                 function(data, status, headers, config) {
@@ -373,7 +373,15 @@ services.factory('_USER', ['$http', 'CONFIG',
                         .error(function() {
                             alert('error - get signatures');
                         });
-            }
+            },
+            updateProfile: function(userid, data, callback, error) {
+                $http.put(CONFIG.restoURL + '/users/' + userid, data)
+                .success(function(data, status, headers, config) {
+                		callback();
+                    }).error(function(data) {
+                		error(data);
+                });
+    }
         };
     }]);
 

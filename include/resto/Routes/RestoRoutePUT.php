@@ -159,7 +159,6 @@ class RestoRoutePUT extends RestoRoute {
      * @param array $data
      */
     private function PUT_userProfile($emailOrId, $data) {
-    	echo "Update user \n";
     	/*
     	 * User can only be modified by admin
     	 */

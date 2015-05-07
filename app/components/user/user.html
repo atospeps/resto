@@ -50,7 +50,8 @@
         <div class="user content">
             <div style="text-align: center;">
                 <ul class="button-group">
-                    <li><a ng-class="{true:'clicked', false:''}[showProfile === true]" class="button small" ng-click="goToProfile()">{{'rights'| translate}}</a></li>
+                    <li><a ng-class="{true:'clicked', false:''}[showProfile === true]" class="button small" ng-click="goToProfile()">{{'profile'| translate}}</a></li>
+                    <li><a ng-class="{true:'clicked', false:''}[showRights === true]" class="button small" ng-click="goToRights()">{{'rights'| translate}}</a></li>
                     <li><a ng-class="{true:'clicked', false:''}[showHistory === true]" class="button small" ng-click="goToHistory()" >{{'history'| translate}}</a></li>
                     <li><a ng-class="{true:'clicked', false:''}[showSignatures === true]" class="button small" ng-click="goToSignatures()" >{{'signatures'| translate}}</a></li>
                     <li><a ng-show="showCreation" ng-class="{true:'clicked', false:''}[showCreation === true]" class="ng-hide button small disabled">{{'create_right'| translate}}</a></li>

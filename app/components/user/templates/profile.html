@@ -14,49 +14,23 @@
  under the License.
 -->
 
-<ul ng-show="showProfile" class="ng-hide small-block-grid-1 large-block-grid-1">
-    <li>
-        <ul class="small-block-grid-2 large-block-grid-2">
-            <li><a class="button expand [tiny small large]" ng-click="displayAdvancedRights()">{{showAdvancedRights ? 'hide_details' : 'show_details'| translate}}</a></li>
-            <li><a class="button expand [tiny small large]" ng-click="goToAdvancedRights()">{{'create_advanced_right'| translate}}</a></li>
-        </ul>
-    </li>
-    <li ng-repeat="(name, collection) in rights" ng-if="name!='*'">
-        <fieldset>
-            <legend>{{name}}</legend>
-            <ul class="small-block-grid-2 medium-block-grid-2 large-block-grid-2">
-                <li><a class="button expand" ng-class="{ success : collection.download === 1, alert : collection.download === 0, disabled : name === '*'}" ng-click="setRight(name, 'download', collection.download)">{{'download' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.download]"></i></a></li>
-                <li><a class="button expand" ng-class="{ success : collection.visualize === 1, alert : collection.visualize === 0, disabled : name === '*'}" ng-click="setRight(name, 'visualize', collection.visualize)">{{'visualize' | translate}} <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.visualize]"></i></a></li>
-                <li><a class="button expand ng-hide" ng-show="showAdvancedRights" ng-class="{ success : collection.search === 1, alert : collection.search === 0, disabled : name === '*'}" ng-click="setRight(name, 'search', collection.search)">{{'search' | translate}} <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.search]"></i></a></li>
-                <li><a class="button expand ng-hide" ng-show="showAdvancedRights" ng-class="{ success : collection.post === 1, alert : collection.post === 0, disabled : name === '*'}" ng-click="setRight(name, 'canpost', collection.post)">{{'post' | translate}} <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.post]"></i></a></li>
-                <li><a class="button expand ng-hide" ng-show="showAdvancedRights" ng-class="{ success : collection.put === 1, alert : collection.put === 0, disabled : name === '*'}" ng-click="setRight(name, 'canput', collection.put)">{{'put' | translate}} <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.put]"></i></a></li>
-                <li><a class="button expand ng-hide" ng-show="showAdvancedRights" ng-class="{ success : collection.delete === 1, alert : collection.delete === 0, disabled : name === '*'}" ng-click="setRight(name, 'candelete', collection.delete)">{{'Delete' | translate}} <i ng-class="{1:'fi-check', 0:'fi-x'}[collection.delete]"></i></a></li>
-            </ul>
-            <a class="delete_right button alert" ng-click="deleteRights(name)">{{'reset' | translate}}</a>
-            <div>
-                <ul class="small-block-grid-1 large-block-grid-1">
-                    <li ng-repeat="(featureid, right) in collection.features">
-                        <fieldset>
-                            <legend>{{featureid}}</legend>
-                            <ul class="small-block-grid-2 large-block-grid-2">
-                                <li>
-                                    <ul class="small-block-grid-1 large-block-grid-2">
-                                        <li><a class="button expand disabled" ng-class="{ success : right.download === 1, alert : right.download === 0}">{{'download' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.download]"></i></a></li>
-                                        <li><a class="button expand disabled" ng-class="{ success : right.visualize === 1, alert : right.visualize === 0}">{{'visualize' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.visualize]"></i></a></li>
-                                        <li class="ng-hide" ng-show="showAdvancedRights"><a class="button expand disabled ng-hide" ng-show="showAdvancedRights" ng-class="{ success : right.search === 1, alert : right.search === 0}">{{'search' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.search]"></i></a></li>
-                                        <li class="ng-hide" ng-show="showAdvancedRights"><a class="button expand disabled ng-hide" ng-show="showAdvancedRights" ng-class="{ success : right.post === 1, alert : right.post === 0}">{{'post' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.post]"></i></a></li>
-                                        <li class="ng-hide" ng-show="showAdvancedRights"><a class="button expand disabled ng-hide" ng-show="showAdvancedRights" ng-class="{ success : right.put === 1, alert : right.put === 0}">{{'put' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.put]"></i></a></li>
-                                        <li class="ng-hide" ng-show="showAdvancedRights"><a class="button expand disabled ng-hide" ng-show="showAdvancedRights" ng-class="{ success : right.delete === 1, alert : right.delete === 0}">{{'Delete' | translate}}  <i ng-class="{1:'fi-check', 0:'fi-x'}[right.delete]"></i></a></li>
-                                    </ul>    
-                                </li>
-                                <li>
-                                    <a class="delete_right button alert" ng-click="deleteAdvancedRight(name, featureid)"><i class="fi-trash"></i></a>
-                                </li>
-                            </ul>
-                        </fieldset>
-                    </li>
-                </ul>
-            </div>
-        </fieldset>
-    </li>
-</ul>
+<div ng-show="showProfile" class="profileWrapper">
+	<div class="profileProperty">
+		<span>{{'instant download limit size'| translate}}</span>
+		<input class="profileInput" type="number" name="instantLimitDownloadSize" ng-model="selectedUser.instantdownloadvolume" required>
+	</div>
+	
+	<div class="profileProperty">
+		<span>{{'weekly download limit size'| translate}}</span>
+		<input class="profileInput" type="number" name="weeklyLimitDownloadSize" ng-model="selectedUser.weeklydownloadvolume" required>
+	</div>
+	
+	<button ng-click="saveProfile()">
+		Save profile
+	</button>
+	
+	<div class="logMessage">
+		<span class="successLog">{{successMessage}}</span>
+		<span class="errorLog">{{errorMessage}}</span>
+	</div>
+</div>

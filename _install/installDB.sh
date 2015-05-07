@@ -252,7 +252,6 @@ CREATE TABLE usermanagement.users (
     domain              TEXT,
     use                 TEXT,
     country             TEXT,
-    ip                  TEXT,
     adress              TEXT,
     numtel              TEXT,
     numfax              TEXT,

@@ -512,7 +512,6 @@ class Administration extends RestoModule {
 	                'domain' => isset($data['domain']) ? $data['domain'] : null,
 	                'use' => isset($data['use']) ? $data['use'] : null,
 	                'country' => isset($data['country']) ? $data['country'] : null,
-	                'ip' => isset($data['ip']) ? $data['ip'] : null,
 	                'adress' => isset($data['adress']) ? $data['adress'] : null,
 	                'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
 	                'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
@@ -863,7 +862,7 @@ class Administration extends RestoModule {
     public function getUsersProfiles($keyword = null, $min = 0, $number = 50) {
 
         try {
-            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' LIMIT ' . $number . ' OFFSET ' . $min);
+            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' LIMIT ' . $number . ' OFFSET ' . $min);
             if (!$results) {
                 throw new Exception();
             }

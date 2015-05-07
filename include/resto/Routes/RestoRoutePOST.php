@@ -394,7 +394,6 @@ class RestoRoutePOST extends RestoRoute {
                 'domain' => isset($data['domain']) ? $data['domain'] : null,
                 'use' => isset($data['use']) ? $data['use'] : null,
                 'country' => isset($data['country']) ? $data['country'] : null,
-                'ip' => isset($data['ip']) ? $data['ip'] : null,
                 'adress' => isset($data['adress']) ? $data['adress'] : null,
                 'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
                 'numfax' => isset($data['numfax']) ? $data['numfax'] : null,

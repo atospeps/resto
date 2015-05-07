@@ -53,6 +53,7 @@
       |  PUT     users/{userid}                                |  Update {userid} information
  *    |  GET     users/{userid}/cart                           |  Show {userid} cart
  *    |  POST    users/{userid}/cart                           |  Add new item in {userid} cart
+ *    |  DELETE  users/{userid}/cart                           |  Remove all cart items
  *    |  PUT     users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
  *    |  DELETE  users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
  *    |  GET     users/{userid}/orders                         |  Show orders for {userid}
@@ -61,6 +62,8 @@
  *    |  GET     users/{userid}/rights                         |  Show rights for {userid}
  *    |  GET     users/{userid}/rights/{collection}            |  Show rights for {userid} on {collection}
  *    |  GET     users/{userid}/rights/{collection}/{feature}  |  Show rights for {userid} on {feature} from {collection}
+ *    |  GET     users/{userid}/signatures                     |  Show signatures for {userid}
+ *    |  GET     users/{userid}/signatures/{collection}        |  Show signatures for {userid} on {collection}
  * 
  *    Note: {userid} can be replaced by base64(email) 
  * 

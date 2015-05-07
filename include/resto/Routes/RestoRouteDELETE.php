@@ -34,6 +34,7 @@ class RestoRouteDELETE extends RestoRoute {
      *    collections/{collection}                      |  Delete {collection}
      *    collections/{collection}/{feature}            |  Delete {feature}
      *    
+     *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
      *    
      * @param array $segments

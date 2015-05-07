@@ -511,7 +511,7 @@ class RestoRouteGET extends RestoRoute {
         }
 
         /*
-         * users/{userid}/orders
+         * users/{userid}/signatures
          */
         if ($segments[2] === 'signatures') {
             return $this->GET_userSignatures($segments[1], isset($segments[3]) ? $segments[3] : null);
@@ -633,11 +633,6 @@ class RestoRouteGET extends RestoRoute {
          * Orders can only be seen by its owner or by admin
          */
         $user = $this->getAuthorizedUser($emailOrId);
-
-        /*
-         * Check if the user hasn't exceed his download volume limit
-         */
-        $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
         
         /*
          * Special case of metalink for single order

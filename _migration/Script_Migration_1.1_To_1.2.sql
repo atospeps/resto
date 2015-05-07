@@ -10,8 +10,6 @@ ALTER TABLE usermanagement.users ADD COLUMN use text;
 
 ALTER TABLE usermanagement.users ADD COLUMN country text;
 
-ALTER TABLE usermanagement.users ADD COLUMN ip text;
-
 ALTER TABLE usermanagement.users ADD COLUMN adress text;
 
 ALTER TABLE usermanagement.users ADD COLUMN numtel text;

@@ -66,13 +66,15 @@ class Functions_users {
             RestoLogUtil::httpError(404);
         }
 
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, ip, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
+        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         if (count($results) === 0) {
             RestoLogUtil::httpError(404);
         }
-        
+
+        $results[0]['instantdownloadvolume'] = (integer) $results[0]['instantdownloadvolume'];
+        $results[0]['weeklydownloadvolume'] = (integer) $results[0]['weeklydownloadvolume'];
         $results[0]['activated'] = (integer) $results[0]['activated'];
         
         return $results[0];
@@ -115,7 +117,7 @@ class Functions_users {
         foreach ( array_values ( array (
 				'username', 'givenname', 'lastname',
 				'organization', 'nationality', 'domain',
-				'use', 'country', 'ip',	'adress', 
+				'use', 'country', 'adress', 
         		'numtel', 'numfax',	'instantdownloadvolume',
 				'weeklydownloadvolume' 
 		) ) as $field ) {
@@ -125,7 +127,7 @@ class Functions_users {
         $values .= $profile['activated'] . ',now()';
         
         // TODO change to pg_fetch_assoc ?
-		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,ip,adress,numtel,numfax,instantdownloadvolume,weeklydownloadvolume,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
+		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,adress,numtel,numfax,instantdownloadvolume,weeklydownloadvolume,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
         return pg_fetch_array($results);
         
     }
@@ -142,7 +144,7 @@ class Functions_users {
         if (!is_array($profile) || !isset($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
-
+        
         /*
          * Only password, groupname and activated fields can be updated
          */
@@ -162,9 +164,9 @@ class Functions_users {
         if (isset($profile['weeklydownloadvolume'])) {
             $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
         }
-        
-        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
-        
+
+        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE ' . $this->useridOrEmailFilter(pg_escape_string(trim(strtolower($profile['email'])))) . ' RETURNING userid'));
+
         return count($results) === 1 ? $results[0]['userid'] : null;
         
     }

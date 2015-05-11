@@ -179,17 +179,17 @@ class Administration extends RestoModule {
         } else {
             $rights = array();
             $this->groups = $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
-            $this->collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
+            $this->collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
             foreach ($this->collections as $collection) {
 
                 $group = 'default';
                 $item = array();
-                $item['name'] = $collection['collection'];
+                $item['name'] = $collection['name'];
                 $item['group'] = $group;
 
                 $restoRights = new RestoRights($group, $group, $this->context);
-                $item['rights'] = $restoRights->getRights($collection['collection']);
-                $rights[$collection['collection']] = $item;
+                $item['rights'] = $restoRights->getRights($collection['name']);
+                $rights[$collection['name']] = $item;
             }
 
             return $this->to($rights);
@@ -289,13 +289,13 @@ class Administration extends RestoModule {
             $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $this->segments[1])), $this->context);
 
             $rights = array();
-            $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
+            $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
 
             $fullRights = $user->getFullRights();
 
             foreach ($collections as $collection) {
 
-                $collectionName = $collection['collection'];
+                $collectionName = $collection['name'];
 
                 $rights[$collectionName] = $user->getRights($collectionName);
                 if (isset($fullRights[$collectionName])) {
@@ -618,9 +618,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function addRights() {
-
-
-
         try {
             /*
              * Get posted data
@@ -808,7 +805,7 @@ class Administration extends RestoModule {
          * Statistics for each collections
          */
         $statistics = array();
-        $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS);
+        $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
         foreach ($collections as $collection) {
             $collection_statistics = array();
             $collection_statistics['download'] = $this->countService('download', $collection['collection'], $userid);
@@ -844,9 +841,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function to($data) {
-
-
-
         return $data;
     }
 

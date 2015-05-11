@@ -70,7 +70,7 @@ angular.module('administration')
                                     profile.logout();
                                     return;
                                 } else {
-                                    initialization.isOK();
+                                    initialization.setOk(true);
                                 }
                                 $scope.closeSignIn();
                             }, function(error) {
@@ -87,12 +87,13 @@ angular.module('administration')
                             profile.logout();
                             return;
                         } else {
-                            initialization.isOK();
+                            initialization.setOk(true);
                         }
                     });
                 };
 
                 $scope.logout = function() {
+                    initialization.setOk(false);
                     profile.logout();
                     $scope.profile = null;
                 };

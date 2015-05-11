@@ -132,12 +132,11 @@ class RestoUser{
      * 
      * @param string $collectionName
      * @param string $featureIdentifier
-     * @param string $resourceUrl
      * @param string $token
      * @return boolean
      */
-    public function canVisualize($collectionName = null, $featureIdentifier = null, $resourceUrl = null, $token = null){
-        return $this->canDownloadOrVisualize('visualize', $collectionName, $featureIdentifier, $resourceUrl, $token);
+    public function canVisualize($collectionName = null, $featureIdentifier = null, $token = null){
+        return $this->canDownloadOrVisualize('visualize', $collectionName, $featureIdentifier, $token);
     }
     
     /**
@@ -145,12 +144,11 @@ class RestoUser{
      * 
      * @param string $collectionName
      * @param string $featureIdentifier
-     * @param string $resourceUrl
      * @param string $token
      * @return boolean
      */
-    public function canDownload($collectionName = null, $featureIdentifier = null, $resourceUrl = null, $token = null){
-        return $this->canDownloadOrVisualize('download', $collectionName, $featureIdentifier, $resourceUrl, $token);
+    public function canDownload($collectionName = null, $featureIdentifier = null, $token = null){
+        return $this->canDownloadOrVisualize('download', $collectionName, $featureIdentifier, $token);
     }
     
     /**
@@ -191,15 +189,29 @@ class RestoUser{
     /**
      * Check if user has to sign license for collection
      * 
-     * @param RestoCollection $collection
+     * @param array $collectionDescription
      */
-    public function hasToSignLicense($collection) {
-        if (!empty($collection->license)) {
-            if (!isset($this->profile['email']) || !$this->context->dbDriver->check(RestoDatabaseDriver::LICENSE_SIGNED, array('email' => $this->profile['email'], 'collectionName' => $collection->name))) {
-                return true;
-            }
+    public function hasToSignLicense($collectionDescription) {
+        
+        /*
+         * Collection has not license => never need to sign one
+         */
+        if (empty($collectionDescription['license'])) {
+            return false;
         }
-        return false;
+        
+        /*
+         * Unregistered user always have to sign
+         */
+        if (!isset($this->profile['email'])) {
+            return true;
+        }
+        
+        /*
+         * Check in database
+         */
+        return !$this->context->dbDriver->check(RestoDatabaseDriver::LICENSE_SIGNED, array('email' => $this->profile['email'], 'collectionName' => $collectionDescription['name']));
+        
     }
     
     /**
@@ -303,19 +315,26 @@ class RestoUser{
      * @param string $action
      * @param string $collectionName
      * @param string $featureIdentifier
-     * @param string $resourceUrl
      * @param string $token
      * @return boolean
      */
-    private function canDownloadOrVisualize($action, $collectionName = null, $featureIdentifier = null, $resourceUrl = null, $token = null){
+    private function canDownloadOrVisualize($action, $collectionName = null, $featureIdentifier = null, $token = null){
         
-        if (!isset($resourceUrl) || !isset($token)) {
-            return false;
+        /*
+         * Token case - bypass user rights
+         */
+        if (isset($token)) {
+            if (!isset($collectionName) || !isset($featureIdentifier)) {
+                return false;
+            }
+            if ($this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->baseUrl . '/' . $this->context->path, 'token' => $token))) {
+                return true;
+            }
         }
-        if ($this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $resourceUrl, 'token' => $token))) {
-            return true;
-        }
-    
+        
+        /*
+         * Normal case - checke user rights
+         */
         $rights = $this->rights->getRights($collectionName, $featureIdentifier);
         return $rights[$action];
     }

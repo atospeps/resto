@@ -428,16 +428,17 @@ class RestoRouteGET extends RestoRoute {
     private function GET_featureDownload($collection, $feature) {
         $featureProp = $feature->toArray();
         $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 900;
+
         /*
          * User do not have right to download product
          */
-        if (!$this->user->canDownload($collection->name, $feature->identifier, $this->context->baseUrl . '/' . $this->context->path, !empty($this->context->query['_tk']) ? $this->context->query['_tk'] : null)) {
+        if (!$this->user->canDownload($collection->name, $feature->identifier, !empty($this->context->query['_tk']) ? $this->context->query['_tk'] : null)) {
             RestoLogUtil::httpError(403);
         }
         /*
          * Or user has rigth but hasn't sign the license yet
          */
-        else if ($this->user->hasToSignLicense($collection) && empty($this->context->query['_tk'])) {
+        else if ($this->user->hasToSignLicense($collection->toArray(false)) && empty($this->context->query['_tk'])) {
             return array(
                 'ErrorMessage' => 'Forbidden',
                 'collection' => $collection->name,
@@ -578,18 +579,24 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Get collections
          */
-        $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
-            
+        $collectionsDescriptions = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
+        
         /*
          *  Get rights for collections
          */
         if (!isset($collectionName)) {
-            foreach ($collections as $collection) {
-                $signatures[$collectionName] = $user->hasToSignLicense($collection);
+            foreach ($collectionsDescriptions as $collectionDescription) {
+                $signatures[$collectionName] = array(
+                    'hasToSignLicense' => $user->hasToSignLicense($collectionDescription),
+                    'licenseUrl' =>  $this->getLicenseUrl($collectionDescription)
+                );
             }
         }
         else {
-            $signatures[$collectionName] = $user->hasToSignLicense($collections[$collectionName]);
+            $signatures[$collectionName] = array(
+                'hasToSignLicense' => $user->hasToSignLicense($collectionsDescriptions[$collectionName]),
+                'licenseUrl' => $this->getLicenseUrl($collectionsDescriptions[$collectionName])
+            );
         }
 
         return RestoLogUtil::success('Signatures for ' . $user->profile['userid'], array(
@@ -645,6 +652,21 @@ class RestoRouteGET extends RestoRoute {
                 'orders' => $user->getOrders()
             ));
         }
+    }
+    
+    /**
+     * Return license url in the curent language
+     * 
+     * @param array $collectionDescription
+     * @return string
+     */
+    private function getLicenseUrl($collectionDescription) {
+        if (!empty($collectionDescription['license'])) {
+            return isset($collectionDescription['license'][$this->context->dictionary->language]) ? $collectionDescription['license'][$this->context->dictionary->language] : $collectionDescription['license']['en'];
+        }
+        
+        return null;
+            
     }
 
 }

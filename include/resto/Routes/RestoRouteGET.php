@@ -427,7 +427,7 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_featureDownload($collection, $feature) {
         $featureProp = $feature->toArray();
-        $size = isset($featureProp['properties']['resourceSize']) ? $featureProp['properties']['resourceSize'] : 900;
+        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
 
         /*
          * User do not have right to download product

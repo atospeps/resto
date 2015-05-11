@@ -243,9 +243,6 @@ CREATE TABLE usermanagement.users (
     username            TEXT,
     givenname           TEXT,
     lastname            TEXT,
-    country             TEXT,
-    organization        TEXT,
-    topics              TEXT,
     password            TEXT NOT NULL, -- stored as sha1
     registrationdate    TIMESTAMP NOT NULL,
     activationcode      TEXT NOT NULL UNIQUE, -- activation code store as sha1

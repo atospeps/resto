@@ -19,7 +19,7 @@
         <fieldset>
             <legend>{{name}}</legend>
             <ul class="small-block-grid-1 medium-block-grid-1 large-block-grid-1">
-                <li><a class="button expand disabled" ng-class="{ success : signed, alert : !signed}">{{signed === true ? ('signed' | translate) : ('not signed' | translate)}}</a></li>
+                <li><a class="button expand disabled" ng-class="{ success : !signed.hasToSignLicense, alert : signed.hasToSignLicense}">{{signed.hasToSignLicense === false ? ('signed' | translate) : ('not signed' | translate)}}</a></li>
              </ul>
         </fieldset>
     </li>

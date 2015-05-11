@@ -29,9 +29,9 @@ services.factory('initialization',
             var initialization = {};
 
             initialization.ok = false;
-
-            initialization.isOK = function() {
-                initialization.ok = true;
+            
+            initialization.setOk = function(isOk) {
+                initialization.ok = isOk;
             };
 
             return initialization;

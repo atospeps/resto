@@ -180,16 +180,16 @@ class Administration extends RestoModule {
             $rights = array();
             $this->groups = $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
             $this->collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
-            foreach ($this->collections as $collection) {
+            foreach ($this->collections as $collection => $description) {
 
                 $group = 'default';
                 $item = array();
-                $item['name'] = $collection['name'];
+                $item['name'] = $collection;
                 $item['group'] = $group;
 
                 $restoRights = new RestoRights($group, $group, $this->context);
-                $item['rights'] = $restoRights->getRights($collection['name']);
-                $rights[$collection['name']] = $item;
+                $item['rights'] = $restoRights->getRights($collection);
+                $rights[$collection] = $item;
             }
 
             return $this->to($rights);
@@ -293,9 +293,7 @@ class Administration extends RestoModule {
 
             $fullRights = $user->getFullRights();
 
-            foreach ($collections as $collection) {
-
-                $collectionName = $collection['name'];
+            foreach ($collections as $collectionName => $description) {
 
                 $rights[$collectionName] = $user->getRights($collectionName);
                 if (isset($fullRights[$collectionName])) {
@@ -489,8 +487,6 @@ class Administration extends RestoModule {
      */
     private function createUser() {
         $data = array_merge($_POST);
-        
-        error_log(print_r($data, true));
         
         if ($data) {
             if (!isset($data['email'])) {
@@ -806,16 +802,16 @@ class Administration extends RestoModule {
          */
         $statistics = array();
         $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
-        foreach ($collections as $collection) {
+        foreach ($collections as $collection => $description) {
             $collection_statistics = array();
-            $collection_statistics['download'] = $this->countService('download', $collection['collection'], $userid);
-            $collection_statistics['search'] = $this->countService('search', $collection['collection'], $userid);
-            $collection_statistics['visualize'] = $this->countService('resource', $collection['collection'], $userid);
-            $collection_statistics['insert'] = $this->countService('insert', $collection['collection'], $userid);
-            $collection_statistics['create'] = $this->countService('create', $collection['collection'], $userid);
-            $collection_statistics['update'] = $this->countService('update', $collection['collection'], $userid);
-            $collection_statistics['remove'] = $this->countService('remove', $collection['collection'], $userid);
-            $statistics[$collection['collection']] = $collection_statistics;
+            $collection_statistics['download'] = $this->countService('download', $collection, $userid);
+            $collection_statistics['search'] = $this->countService('search', $collection, $userid);
+            $collection_statistics['visualize'] = $this->countService('resource', $collection, $userid);
+            $collection_statistics['insert'] = $this->countService('insert', $collection, $userid);
+            $collection_statistics['create'] = $this->countService('create', $collection, $userid);
+            $collection_statistics['update'] = $this->countService('update', $collection, $userid);
+            $collection_statistics['remove'] = $this->countService('remove', $collection, $userid);
+            $statistics[$collection] = $collection_statistics;
         }
         return $statistics;
     }

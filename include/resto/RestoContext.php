@@ -96,11 +96,6 @@ class RestoContext {
     public $uploadDirectory = '/tmp/resto_uploads';
     
     /*
-     * Stream method 
-     */
-    public $streamMethod = 'php';
-    
-    /*
      *  JSON Web Token passphrase
      * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
      */
@@ -292,13 +287,6 @@ class RestoContext {
          */
         if (isset($config['general']['uploadDirectory'])) {
             $this->uploadDirectory = $config['general']['uploadDirectory'];
-        }
-        
-        /*
-         * Stream method
-         */
-        if (isset($config['general']['streamMethod'])) {
-            $this->streamMethod = $config['general']['streamMethod'];
         }
         
         /*

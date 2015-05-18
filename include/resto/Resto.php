@@ -525,7 +525,7 @@ class Resto {
         /*
          * No white list => all allowed
          */
-        if (!isset($this->corsWhiteList) || count($this->corsWhiteList) === 0) {
+        if (empty($this->corsWhiteList)) {
             return true;
         }
         

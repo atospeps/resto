@@ -478,10 +478,10 @@ class RestoRoutePOST extends RestoRoute {
         	 * Check if the user hasn't exceed his download volume limit
         	 */
         	if ($size > $this->user->profile['instantdownloadvolume']) {
-        	    return RestoLogUtil::error("You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
+                return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
         	}
         	if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
-        		return RestoLogUtil::error("You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
+        		return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
         	}
         	
             return RestoLogUtil::success('Place order', array(

@@ -93,7 +93,14 @@ class RestoFeature {
                 RestoLogUtil::httpError(404);
             }
            
-            return $this->streamLocalUrl(realpath($this->featureArray['properties']['resourceInfos']['path']), isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
+            /*
+             * Optimized download with Apache module XsendFile
+             */
+            if (in_array('mod_xsendfile', apache_get_modules())) {
+                return $this->streamApache();
+            }
+            
+            return $this->stream(realpath($this->featureArray['properties']['resourceInfos']['path']), isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
             
         }
         /*
@@ -207,49 +214,16 @@ class RestoFeature {
     }
     
     /**
-     * Stream local file either from PHP or from Apache/Nginx
-     * 
-     * @param string $path
-     * @param string $mimeType
-     * @param boolean $multipart
-     */
-    private function streamLocalUrl($path, $mimeType, $multipart = true) {
-       
-        switch ($this->context->streamMethod) {
-            
-           /*
-            * Optimized download with Apache module XsendFile
-            */
-            case 'apache':
-                return $this->streamApache($path, $mimeType);
-                
-           /*
-            * Optimized download with Apache module XsendFile
-            */  
-            case 'nginx':
-                return $this->streamNginx($path, $mimeType);
-            
-           /*
-            * Slower but generic PHP stream
-            */
-            default:
-                return $this->streamPHP($path, $mimeType, $multipart);
-                
-        }
-        
-    }
-    
-    /**
      * 
      * Download hosted resource with support of Range and Partial Content
      * (See http://stackoverflow.com/questions/3697748/fastest-way-to-serve-a-file-using-php)
      *
      * @param string $path
      * @param string $mimeType
-     * @param boolean $multipart
+     * @param type $multipart
      * @return boolean
      */
-    private function streamPHP($path, $mimeType, $multipart) {
+    private function stream($path, $mimeType = 'application/octet-stream', $multipart = true) {
 
         /*
          * Open file
@@ -260,24 +234,11 @@ class RestoFeature {
         }
         
         /*
-         * Compute file size
+         * Set range and headers
          */
         $size = sprintf('%u', filesize($path));
         $range = $multipart ? $this->getMultipartRange($size, filter_input(INPUT_SERVER, 'HTTP_RANGE', FILTER_SANITIZE_STRING)) : $this->getSimpleRange($size);
-        
-        if (($range[0] > 0) || ($range[1] < ($size - 1))) {
-            header('HTTP/1.1 206 Partial Content');
-        }
-        else {
-            header('HTTP/1.1 200 OK');
-        }
-       
-        /*
-         * Set range and headers
-         */
-        $this->setDownloadHeaders($path, $mimeType);
-        header('Content-Length: ' . sprintf('%u', $range[1] - $range[0] + 1));
-        header('Content-Range: bytes ' . sprintf('%u-%u/%u', $range[0], $range[1], $size));
+        $this->setDownloadHeaders($mimeType, $path, $range);
         
         /*
          * Read file
@@ -347,48 +308,47 @@ class RestoFeature {
             foreach ($range as $key => $value) {
                 $range[$key] = max(0, min($value, $size - 1));
             }
+            if (($range[0] > 0) || ($range[1] < ($size - 1))) {
+                header(sprintf('%s %03u %s', 'HTTP/1.1', 206, 'Partial Content'), true, 206);
+            }
         }
+        header('Accept-Ranges: bytes');
+        header('Content-Range: bytes ' . sprintf('%u-%u/%u', $range[0], $range[1], $size));
         return $range;
     }
     
     /**
      * Set HTTP headers for download
      * 
-     * @param string $path
-     * @param string $mimeType
+     * @param type $mimeType
+     * @param type $path
+     * @param type $range
      */
-    private function setDownloadHeaders($path, $mimeType) {
+    private function setDownloadHeaders($mimeType, $path, $range) {
         header('Pragma: public');
-        header('Cache-Control: public, must-revalidate, post-check=0, pre-check=0');
-        header('Expires: 0');
+        header('Cache-Control: public, no-cache');
         header('Content-Type: ' . $mimeType);
+        header('Content-Length: ' . sprintf('%u', $range[1] - $range[0] + 1));
         header('Content-Disposition: attachment; filename="' . basename($path) . '"');
         header('Content-Transfer-Encoding: binary');
-        header('Accept-Ranges: bytes');     
     }
     
     /**
      * Stream file using Apache XSendFile
      * 
-     * @param string $path
-     * @param string $mimeType
+     * @return type
      */
-    private function streamApache($path, $mimeType) {
-        $this->setDownloadHeaders($path, $mimeType);
-        header('X-Sendfile: ' . $path);
+    private function streamApache() {
+        header('HTTP/1.1 200 OK');
+        header('Pragma: public');
+        header('Expires: -1');
+        header('Cache-Control: public, must-revalidate, post-check=0, pre-check=0');
+        header('X-Sendfile: ' . $this->featureArray['properties']['resourceInfos']['path']);
+        header('Content-Type: ' . isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/unknown');
+        header('Content-Disposition: attachment; filename="' . basename($this->featureArray['properties']['resourceInfos']['path']) . '"');
+        header('Accept-Ranges: bytes');
     }
   
-    /**
-     * Stream file using Nginx X-Accel-Redirect
-     * 
-     * @param string $path
-     * @param string $mimeType
-     */
-    private function streamNginx($path, $mimeType) {
-        $this->setDownloadHeaders($path, $mimeType);
-        header('X-Accel-Redirect: ' . $path);
-    }
-    
     /**
      * Stream file from external url
      * 

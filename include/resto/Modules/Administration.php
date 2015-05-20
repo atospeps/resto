@@ -29,15 +29,21 @@
  * 
  *    |          Resource                                                             |     Description
  *    |_______________________________________________________________________________|______________________________________
+ *    |  GET     administration/users                                                 |  Display users informations
+ *    |  POST    administration/users                                                 |  Create user
+ *    |  GET     administration/users/history                                         |  Get all users history
+ *    |  POST    administration/users/{userid}                                        |  Update user group
  *    |  POST    administration/users/{userid}/rights                                 |  Add new rights for {userid}
  *    |  GET     administration/users/{userid}/rights                                 |  Get detailed rights for {userid}
- *    |  POST    administration/users/{userid}/rights/{collection}                    |  Add new rights for {userid}
- *    |  POST    administration/users/{userid}/rights/{collection}/{feature}          |  Add new rights for {userid}
+ *    |  POST    administration/users/{userid}/rights/delete                          |  Remove all rights to a specific product for {userid}
+ *    |  POST    administration/users/{userid}/rights/update                          |  Update a specific right to collection for {userid}
+ *    |  GET     administration/users/{userid}/history                                |  Get history for {userid}
  *    |  POST    administration/users/{userid}/activate                               |  Activate {userid}
  *    |  POST    administration/users/{userid}/deactivate                             |  Deactivate {userid}
- *    |  GET     administration/rights                                                |  Get default rights by collections for each groups
- *    |  POST    administration/rights                                                |  Update rights
+ *    |  GET     administration/collections                                           |  Display all collections
+ *    |  POST    administration/collections                                           |  Update a specific right to collection for userOrGroup
  *    |  GET     administration/stats/users                                           |  Get stats about users
+ *    |  GET     administration/stats/users/{userid}                                  |  Get stats about user {userid}
  *    |  GET     administration/stats/collections                                     |  Get stats about collections
  * 
  */
@@ -45,7 +51,6 @@ class Administration extends RestoModule {
     /*
      * Resto context
      */
-
     public $context;
 
     /*
@@ -89,7 +94,7 @@ class Administration extends RestoModule {
 
             RestoLogUtil::httpError(401);
         }
-
+        
         if ($this->context->method === 'POST' && $this->context->outputFormat !== 'json') {
             /*
              * Only JSON can be posted
@@ -120,7 +125,10 @@ class Administration extends RestoModule {
      */
     private function processPOST() {
 
-
+        /*
+         * Input data for POST request
+         */
+        $data = RestoUtil::readInputData($this->context->uploadDirectory);
 
         /*
          * Can't post file on /administration
@@ -133,7 +141,7 @@ class Administration extends RestoModule {
          */ else {
             switch ($this->segments[0]) {
                 case 'users':
-                    return $this->processPostUsers();
+                    return $this->processPostUsers($data);
                 case 'collections':
                     return $this->processPostCollections();
                 default:
@@ -403,17 +411,15 @@ class Administration extends RestoModule {
      * 
      * @throws Exception
      */
-    private function processPostUsers() {
-
-
-
+    private function processPostUsers($data) {
+        
         if (isset($this->segments[1])) {
-            return $this->processPostUser();
+            return $this->processPostUser($data);
         } else {
             /*
              * Insert user
              */
-            return $this->createUser();
+            return $this->createUser($data);
         }
     }
 
@@ -422,12 +428,9 @@ class Administration extends RestoModule {
      * 
      * @throws Exception
      */
-    private function processPostUser() {
-
-
+    private function processPostUser($data) {
 
         if (isset($this->segments[2])) {
-
             /*
              * Activate user
              */
@@ -450,7 +453,7 @@ class Administration extends RestoModule {
             /*
              * Update user
              */
-            return $this->updateUser();
+            return $this->updateUser($data);
         }
     }
 
@@ -485,8 +488,8 @@ class Administration extends RestoModule {
      * 
      * @return type
      */
-    private function createUser() {
-        $data = array_merge($_POST);
+    private function createUser($data) {
+        //$data = array_merge($_POST);
         
         if ($data) {
             if (!isset($data['email'])) {
@@ -530,8 +533,9 @@ class Administration extends RestoModule {
      * 
      * @throws Exception
      */
-    private function updateUser() {
-        $userParam = array_merge($_POST);
+    private function updateUser($userParam) {
+        //$userParam = array_merge($_POST);
+        
         if ($userParam) {
             try {
                 $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $this->segments[1]));
@@ -552,8 +556,6 @@ class Administration extends RestoModule {
 
     private function updateRights() {
 
-
-
         try {
             /*
              * Get posted data
@@ -563,7 +565,7 @@ class Administration extends RestoModule {
             $postedData['collection'] = htmlspecialchars(filter_input(INPUT_POST, 'collection'), ENT_QUOTES);
             $postedData['field'] = htmlspecialchars(filter_input(INPUT_POST, 'field'), ENT_QUOTES);
             $postedData['value'] = htmlspecialchars(filter_input(INPUT_POST, 'value'), ENT_QUOTES);
-
+        
             $emailorgroup = $postedData['emailorgroup'];
             $collectionName = ($postedData['collection'] === '') ? null : $postedData['collection'];
 
@@ -675,10 +677,7 @@ class Administration extends RestoModule {
      */
     private function deleteRights() {
 
-
-
         try {
-
             $rights = array();
             $rights['emailOrGroup'] = htmlspecialchars(filter_input(INPUT_POST, 'emailorgroup'), ENT_QUOTES);
             $rights['collectionName'] = htmlspecialchars(filter_input(INPUT_POST, 'collection'), ENT_QUOTES);
@@ -794,8 +793,6 @@ class Administration extends RestoModule {
      * @return type
      */
     private function statisticsService($userid = null) {
-
-
 
         /*
          * Statistics for each collections

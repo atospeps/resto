@@ -166,12 +166,20 @@ class RestoRoutePUT extends RestoRoute {
     	$userid = $this->userid($emailOrId);
 	    if ($user->profile['groupname'] !== 'admin') {
 	        RestoLogUtil::httpError(403);
-	    } else if(isset($data['instantdownloadvolume']) && isset($data['weeklydownloadvolume'])) {
-	    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => array('email' => $emailOrId,
-	    			 'instantdownloadvolume' => $data['instantdownloadvolume'],
-	    			 'weeklydownloadvolume' => $data['weeklydownloadvolume'])))) {
-	    	    return RestoLogUtil::success('User updated');
-	    	}
+	    }
+	    
+	    $profile[email] = $emailOrId;
+	    
+	    if(isset($data['instantdownloadvolume'])) {
+	        $profile['instantdownloadvolume'] = $data['instantdownloadvolume'];
+    	}
+	    
+	    if(isset($data['weeklydownloadvolume'])) {
+	        $profile['weeklydownloadvolume'] = $data['weeklydownloadvolume'];
+    	}
+    	
+    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $profile))) {
+    	    return RestoLogUtil::success('User updated');
     	}
         RestoLogUtil::httpError(400);
     }

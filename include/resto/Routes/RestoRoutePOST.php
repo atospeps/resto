@@ -196,8 +196,7 @@ class RestoRoutePOST extends RestoRoute {
         if (!isset($pair[1])) {
             RestoLogUtil::httpError(403);
         }
-        $query = array();
-        parse_str($pair[1], $query);
+        $query = RestoUtil::queryStringToKvps($pair[1]);
         if (!isset($query['_tk']) || !$this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $pair[0], 'token' => $query['_tk']))) {
             RestoLogUtil::httpError(403);
         }
@@ -354,7 +353,7 @@ class RestoRoutePOST extends RestoRoute {
          * users/{userid}/orders
          */
         else if (isset($segments[2]) && $segments[2] === 'orders') {
-            return $this->POST_userOrders($segments[1]);
+            return $this->POST_userOrders($segments[1], $data);
         }
         
         /*
@@ -414,7 +413,7 @@ class RestoRoutePOST extends RestoRoute {
                 RestoLogUtil::httpError(3001);
             }
         } else {
-            RestoLogUtil::httpError(500, 'Database connection error 1');
+            RestoLogUtil::httpError(500, 'Database connection error');
         }
 
         return RestoLogUtil::success('User ' . $data['email'] . ' created');
@@ -463,15 +462,15 @@ class RestoRoutePOST extends RestoRoute {
      *    users/{userid}/orders                         |  Send an order for {userid}
      * 
      * @param string $emailOrId
+     * @param array $data
      * @throws Exception
      */
-    private function POST_userOrders($emailOrId) {
+    private function POST_userOrders($emailOrId, $data) {
         
         /*
          * Order can only be modified by its owner or by admin
          */
-        $order = $this->getAuthorizedUser($emailOrId)->placeOrder();
-        
+        $order = $this->getAuthorizedUser($emailOrId)->placeOrder($data);
         if ($order) {
         	$size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $order));
         	/*

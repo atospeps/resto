@@ -58,6 +58,33 @@ class Functions_groups {
     }
     
     /**
+     * Return single group
+     * 
+     * @return array
+     * @throws exception
+     */
+    public function getGroup($groupId) {        
+        $items = array();
+        $query = 'SELECT * FROM usermanagement.groups WHERE gid = \'' . $groupId . '\' ORDER BY gid';
+        $results = $this->dbDriver->query($query);
+        
+        while ($result = pg_fetch_assoc($results)) {
+            $items[] = array(
+                'id' => $result['gid'],
+                'groupname' => $result['groupname'],
+                'description' => $result['description']
+            );
+        }
+
+        // If group not found
+        if ($items[0] === null) {
+            RestoLogUtil::httpError(404);
+        }
+        
+        return $items[0];
+    }
+    
+    /**
      * Return true if the group $groupname exists 
      * 
      * @param string $groupname
@@ -129,9 +156,10 @@ class Functions_groups {
             $this->dbDriver->query('UPDATE usermanagement.rights SET emailorgroup = \''. pg_escape_string($groupname) . '\' WHERE emailorgroup=\'' . pg_escape_string($group['groupname']) . '\'');
             // Update all users which have the updated group
             $this->dbDriver->query('UPDATE usermanagement.users SET groupname = \''. pg_escape_string($groupname) . '\' WHERE groupname=\'' . pg_escape_string($group['groupname']) . '\'');
+            return true;
+        } else {
+            return false;
         }
-        
-        return true;
     }
     
     /**
@@ -153,9 +181,10 @@ class Functions_groups {
             
             // Change the group of the users which have the deleted group by the default group
             $this->dbDriver->query('UPDATE usermanagement.users SET groupname = \'default\' WHERE groupname=\'' . pg_escape_string($group['groupname']) . '\'');
+            return true;
+        } else {
+            return false;
         }
-        
-        return true;
     }
     
 }

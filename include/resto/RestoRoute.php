@@ -47,7 +47,8 @@
  *    |          Resource                                      |      Description
  *    |________________________________________________________|________________________________________________
  *    |  GET     groups                                        |  List all groups           
- *    |  POST    groups                                        |  Create a new group            
+ *    |  POST    groups                                        |  Create a new group   
+ *    |  GET     groups/{groupid}                              |  Show group {groupid}                
  *    |  DELETE  groups/{group}                                |  Delete {group}
  *    |  PUT     groups/{group}                                |  Update {group}
  *

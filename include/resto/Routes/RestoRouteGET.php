@@ -45,7 +45,8 @@ class RestoRouteGET extends RestoRoute {
      *    collections/{collection}/{feature}            |  Get {feature} description within {collection}
      *    collections/{collection}/{feature}/download   |  Download {feature}
      * 
-     *    groups                                        |  List all groups            
+     *    groups                                        |  List all groups    
+     *    groups/{groupid}                              |  Show group {groupid}         
      *    
      *    users                                         |  List all users
      *    users/{userid}                                |  Show {userid} information
@@ -486,7 +487,12 @@ class RestoRouteGET extends RestoRoute {
             RestoLogUtil::httpError(403);
         }
         
-        return $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
+        // groups/{groupid}
+        if(isset($segments[1])) {
+            return $this->context->dbDriver->get(RestoDatabaseDriver::GROUP_DESCRIPTIONS, array("id" => $segments[1]));
+        } else {
+            return $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
+        }
     }
     
 

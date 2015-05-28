@@ -146,7 +146,7 @@ class RestoRoutePUT extends RestoRoute {
             ))) {
                 return RestoLogUtil::success('Group ' . $data['groupName'] . ' updated');
             } else {
-                return RestoLogUtil::error('Cannot update group');
+            RestoLogUtil::httpError(5000, 'Cannot update group, it does not exist');
             }
         }
         else {
@@ -204,12 +204,16 @@ class RestoRoutePUT extends RestoRoute {
 	    if ($user->profile['groupname'] !== 'admin') {
 	        RestoLogUtil::httpError(403);
 	    }
-	    
-	    $profile[email] = $emailOrId;
+
+	    if (!ctype_digit($emailOrId)) {
+	       $profile['email'] = strtolower(base64_decode($emailOrId));
+	    } else {
+	       $profile['email'] = $emailOrId;
+	    }
 	    
 	    if(isset($data['groupname'])) {
 	        if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {
-	            RestoLogUtil::httpError(400, "Can't update user, the group " . $data['groupname'] . " does not exist");
+	            RestoLogUtil::httpError(404, "Can't update user, the group " . $data['groupname'] . " does not exist");
 	        }
 	        $profile['groupname'] = $data['groupname'];
     	}

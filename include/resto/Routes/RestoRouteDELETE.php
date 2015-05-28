@@ -131,7 +131,7 @@ class RestoRouteDELETE extends RestoRoute {
             if($this->context->dbDriver->remove(RestoDatabaseDriver::GROUPS, array("groupId" => $segments[1]))) {
                 return RestoLogUtil::success('Group ' . $segments[1] . ' deleted');
             } else {
-                return RestoLogUtil::error('Cannot delete group');
+	            RestoLogUtil::httpError(404, "Cannot delete group, the group does not exist");
             }
         }
         else {

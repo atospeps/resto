@@ -367,6 +367,16 @@ END;
 CREATE TRIGGER old_tokens_gc AFTER INSERT ON usermanagement.revokedtokens EXECUTE PROCEDURE delete_old_tokens();
 EOF
 
+CREATE TABLE usermanagement.groups
+(
+  gid serial NOT NULL,
+  groupname text NOT NULL,
+  description text,
+  CONSTRAINT groups_pkey PRIMARY KEY (gid),
+  CONSTRAINT groups_groupname_key UNIQUE (groupname)
+)
+CREATE INDEX idx_groupname_groups ON usermanagement.groups (groupname);
+
 # Data
 psql -U $SUPERUSER -d $DB -f $DATADIR/platformsAndInstruments.sql
 psql -U $SUPERUSER -d $DB -f $DATADIR/regionsAndStates.sql
@@ -421,6 +431,7 @@ GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.signatures TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.cart TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.orders TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.sharedlinks TO $USER;
+GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.groups TO $USER;
 GRANT SELECT,INSERT,UPDATE ON usermanagement.history TO $USER;
 GRANT ALL ON usermanagement.rights_gid_seq TO $USER;
 

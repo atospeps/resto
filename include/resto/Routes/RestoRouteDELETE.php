@@ -34,6 +34,8 @@ class RestoRouteDELETE extends RestoRoute {
      *    collections/{collection}                      |  Delete {collection}
      *    collections/{collection}/{feature}            |  Delete {feature}
      *    
+     *    groups/{group}                                |  Delete {group}
+     *    
      *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
      *    
@@ -43,6 +45,8 @@ class RestoRouteDELETE extends RestoRoute {
         switch($segments[0]) {
             case 'collections':
                 return $this->DELETE_collections($segments);
+            case 'groups':
+                return $this->DELETE_groups($segments);
             case 'users':
                 return $this->DELETE_users($segments);
             default:
@@ -107,6 +111,34 @@ class RestoRouteDELETE extends RestoRoute {
         
     }
     
+    /**
+     * Process HTTP DELETE request on groups
+     * 
+     *    groups/{groupid}                              |  Remove group {groupid}
+     * 
+     * @param array $segments
+     */
+    private function DELETE_groups($segments) {
+        
+        if (isset($segments[1])) {
+            /*
+             * Groups can only be delete by admin
+             */
+            if ($this->user->profile['groupname'] !== 'admin') {
+                RestoLogUtil::httpError(403);
+            }
+        
+            if($this->context->dbDriver->remove(RestoDatabaseDriver::GROUPS, array("groupId" => $segments[1]))) {
+                return RestoLogUtil::success('Group ' . $segments[1] . ' deleted');
+            } else {
+                return RestoLogUtil::error('Cannot delete group');
+            }
+        }
+        else {
+            RestoLogUtil::httpError(404);
+        }
+        
+    }
     
     /**
      * 

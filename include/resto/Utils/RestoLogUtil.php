@@ -94,7 +94,8 @@ class RestoLogUtil {
         4002 => 'Database driver does not exist',
         4003 => 'Database driver is not instantiable',
         4004 => 'Invalid input object',
-        4005 => 'Invalid input array'
+        4005 => 'Invalid input array',
+        5000 => 'Cannot create group - group already exists'
     );
     
     /*

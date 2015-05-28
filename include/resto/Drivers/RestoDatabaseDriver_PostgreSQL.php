@@ -26,6 +26,7 @@ require 'PostgreSQL/Functions_features.php';
 require 'PostgreSQL/Functions_filters.php';
 require 'PostgreSQL/Functions_rights.php';
 require 'PostgreSQL/Functions_users.php';
+require 'PostgreSQL/Functions_groups.php';
 
 /**
  * RESTo PostgreSQL Database
@@ -103,13 +104,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options']);
             
             /*
-             * Get groups list
-             */
-            case parent::GROUPS:
-                $rightsFunctions = new Functions_rights($this);
-                return $rightsFunctions->getGroups();
-            
-            /*
              * Get Keywords
              */
             case parent::KEYWORDS:
@@ -171,7 +165,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_PROFILE:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->getUserProfile(isset($params['email']) ? $params['email'] : $params['userid'], isset($params['password']) ? $params['password'] : null);
-                
+
+            /*
+             * Get groups
+             */
+            case parent::GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->getGroups();
+            
             default:
                 return null;
         }
@@ -308,7 +309,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_LIMIT:
             	$usersFunctions = new Functions_users($this);
             	return $usersFunctions->hasUserReachedWeekLimitation($params['userprofile'], $params['size']);
-                
+
+        	/*
+        	 * True if the group exist
+        	 */
+            case parent::GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->isGroupExists($params['groupname']);
+            	    
             default:
                 return null;
         }
@@ -365,6 +373,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::RIGHTS:
                 $rightsFunctions = new Functions_rights($this);
                 return $rightsFunctions->deleteRights($params['emailOrGroup'], $params['collectionName'],  $params['featureIdentifier']);
+
+            /*
+             * Remove group
+             */
+            case parent::GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->removeGroup($params['groupId']);
                 
             default:
                 return null;
@@ -436,6 +451,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_PROFILE:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->storeUserProfile($params['profile']);
+
+            /*
+             * Store group
+             */
+            case parent::GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->createGroup($params['groupName'], $params['groupDescription']);
             
             default:
                 return null;
@@ -472,7 +494,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_PROFILE:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->updateUserProfile($params['profile']);
-            
+
+            /*
+             * Update group
+             */
+            case parent::GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->updateGroup($params['groupId'], $params['groupName'], $params['groupDescription']);
+                    
             default:
                 return null;
         }

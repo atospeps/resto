@@ -177,8 +177,6 @@ class Administration extends RestoModule {
      */
     private function processGetCollections() {
 
-
-
         /*
          * Get on /administration/collections
          */
@@ -187,16 +185,20 @@ class Administration extends RestoModule {
         } else {
             $rights = array();
             $this->groups = $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
+            //echo var_dump($this->groups);
             $this->collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
             foreach ($this->collections as $collection => $description) {
-
-                $group = 'default';
                 $item = array();
                 $item['name'] = $collection;
-                $item['group'] = $group;
-
-                $restoRights = new RestoRights($group, $group, $this->context);
-                $item['rights'] = $restoRights->getRights($collection);
+                $item['groups'] = array();
+                foreach ($this->groups as $group) {
+                    //echo var_dump($group);
+                    $itemGroup = array();
+                    $restoRights = new RestoRights($group['id'], $group['groupname'], $this->context);
+                    $itemGroup['name'] = $group['groupname'];
+                    $itemGroup['rights'] = $restoRights->getRights($collection);
+                    $item['groups'][$group['groupname']] = $itemGroup;
+                }
                 $rights[$collection] = $item;
             }
 
@@ -563,11 +565,13 @@ class Administration extends RestoModule {
             $postedData = array();
             $postedData['emailorgroup'] = htmlspecialchars(filter_input(INPUT_POST, 'emailorgroup'), ENT_QUOTES);
             $postedData['collection'] = htmlspecialchars(filter_input(INPUT_POST, 'collection'), ENT_QUOTES);
+            $postedData['feature'] = htmlspecialchars(filter_input(INPUT_POST, 'feature'), ENT_QUOTES);
             $postedData['field'] = htmlspecialchars(filter_input(INPUT_POST, 'field'), ENT_QUOTES);
             $postedData['value'] = htmlspecialchars(filter_input(INPUT_POST, 'value'), ENT_QUOTES);
         
             $emailorgroup = $postedData['emailorgroup'];
             $collectionName = ($postedData['collection'] === '') ? null : $postedData['collection'];
+            $featureId = ($postedData['feature'] === '') ? null : $postedData['feature'];
 
             /*
              * Posted rights
@@ -577,7 +581,7 @@ class Administration extends RestoModule {
             $params = array();
             $params['emailOrGroup'] = $emailorgroup;
             $params['collectionName'] = $collectionName;
-            $params['featureIdentifier'] = null;
+            $params['featureIdentifier'] = $featureId;
             $params['rights'] = $rights;
 
             $right = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, $params);
@@ -861,7 +865,7 @@ class Administration extends RestoModule {
             if (!$user) {
                 return $usersProfile;
             }
-            $user['activated'] = $user['activated'] === 't' ? true : false;
+            $user['activated'] = $user['activated'] === "1" ? true : false;
             $user['registrationdate'] = substr(str_replace(' ', 'T', $user['registrationdate']), 0, 19) . 'Z';
 
             $usersProfile[] = $user;

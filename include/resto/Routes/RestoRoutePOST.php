@@ -39,6 +39,8 @@ class RestoRoutePOST extends RestoRoute {
      *    collections                                   |  Create a new {collection}            
      *    collections/{collection}                      |  Insert new product within {collection}
      *    
+     *    groups                                        |  Create a new group      
+     *    
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/orders                         |  Send an order for {userid}
@@ -60,6 +62,8 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->POST_api($segments, $data);
             case 'collections':
                 return $this->POST_collections($segments, $data);
+            case 'groups':
+                return $this->POST_groups($segments, $data);
             case 'users':
                 return $this->POST_users($segments, $data);
             default:
@@ -313,6 +317,34 @@ class RestoRoutePOST extends RestoRoute {
         return RestoLogUtil::success('Feature ' . $feature->identifier . ' inserted within ' . $collection->name, array(
             'featureIdentifier' => $feature->identifier
         ));
+    }
+    
+    /**
+     * 
+     * Process HTTP POST request on groups
+     * 
+     *    groups                                        |  Add a group
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function POST_groups($segments, $data) {
+        /*
+         * Groups can only be create by admin
+         */
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
+        if(!isset($data['groupName'])) {
+            RestoLogUtil::httpError(400);
+        }
+        
+        if($this->context->dbDriver->store(RestoDatabaseDriver::GROUPS, array('groupName' => $data['groupName'], 'groupDescription' => $data['groupDescription']))) {
+            return RestoLogUtil::success('Group ' . $data['groupName'] . ' created');
+        } else {
+            return RestoLogUtil::error('Cannot create group');
+        }
     }
     
     /**

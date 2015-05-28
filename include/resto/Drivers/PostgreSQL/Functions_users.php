@@ -64,15 +64,10 @@ class Functions_users {
          */
         if (!isset($identifier) || !$identifier || $identifier === 'unregistered') {
             RestoLogUtil::httpError(404);
-<<<<<<< HEAD
         }
 
         $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
 
-=======
-        }
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
->>>>>>> d008a8c27ee621fd2b74f49c8a8255bb02bb2748
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         if (count($results) === 0) {

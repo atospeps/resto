@@ -45,6 +45,8 @@ class RestoRouteGET extends RestoRoute {
      *    collections/{collection}/{feature}            |  Get {feature} description within {collection}
      *    collections/{collection}/{feature}/download   |  Download {feature}
      * 
+     *    groups                                        |  List all groups            
+     *    
      *    users                                         |  List all users
      *    users/{userid}                                |  Show {userid} information
      *    users/{userid}/cart                           |  Show {userid} cart
@@ -67,6 +69,8 @@ class RestoRouteGET extends RestoRoute {
                 return $this->GET_api($segments);
             case 'collections':
                 return $this->GET_collections($segments);
+            case 'groups':
+                return $this->GET_groups($segments);
             case 'users':
                 return $this->GET_users($segments);
             default:
@@ -467,6 +471,24 @@ class RestoRouteGET extends RestoRoute {
             return null;
         }
     }
+
+    /**
+     *
+     * Process HTTP GET request on groups
+     *
+     * @param array $segments
+     */
+    private function GET_groups($segments) {
+        /*
+         * Groups can only be seen by admin
+         */
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+        
+        return $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
+    }
+    
 
     /**
      * 

@@ -91,6 +91,7 @@
  *   - 4003 : Database driver is not instantiable
  *   - 4004 : Invalid input object
  *   - 4005 : Invalid input array
+ *   - 5000 : Cannot create group - group already exists
  */
 class Resto {
     
@@ -181,12 +182,11 @@ class Resto {
      * Initialize route and get response from server
      */
     private function getResponse() {
-        
+
         /*
          * Initialize route from HTTP method
          */
         switch ($this->context->method) {
-            
             /*
              * GET
              */

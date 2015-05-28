@@ -34,6 +34,8 @@ class RestoRoutePUT extends RestoRoute {
      *    collections/{collection}                      |  Update {collection}
      *    collections/{collection}/{feature}            |  Update {feature}
      *    
+     *    groups/{groupid}                              |  Update {groupid}
+     *    
      *    users/{userid}                                |  Update {userid} information
      *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
      *    
@@ -52,6 +54,8 @@ class RestoRoutePUT extends RestoRoute {
         switch($segments[0]) {
             case 'collections':
                 return $this->PUT_collections($segments, $data);
+            case 'groups':
+                return $this->PUT_groups($segments, $data);
             case 'users':
                 return $this->PUT_users($segments, $data);
             default:
@@ -116,6 +120,39 @@ class RestoRoutePUT extends RestoRoute {
         
     }
     
+    /**
+     * 
+     * Process HTTP PUT request on groups
+     * 
+     *    groups/{groupid}                              |  Update {groupid}
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function PUT_groups($segments, $data) {
+
+        if (isset($segments[1])) {
+            /*
+             * Groups can only be update by admin
+             */
+            if ($this->user->profile['groupname'] !== 'admin') {
+                RestoLogUtil::httpError(403);
+            }
+        
+            if($this->context->dbDriver->update(RestoDatabaseDriver::GROUPS, array(
+                    "groupId" => $segments[1],
+                    "groupName" => $data["groupName"],
+                    "groupDescription" => $data["groupDescription"]
+            ))) {
+                return RestoLogUtil::success('Group ' . $data['groupName'] . ' updated');
+            } else {
+                return RestoLogUtil::error('Cannot update group');
+            }
+        }
+        else {
+            RestoLogUtil::httpError(404);
+        }
+    }
     
     /**
      * 
@@ -169,6 +206,13 @@ class RestoRoutePUT extends RestoRoute {
 	    }
 	    
 	    $profile[email] = $emailOrId;
+	    
+	    if(isset($data['groupname'])) {
+	        if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {
+	            RestoLogUtil::httpError(400, "Can't update user, the group " . $data['groupname'] . " does not exist");
+	        }
+	        $profile['groupname'] = $data['groupname'];
+    	}
 	    
 	    if(isset($data['instantdownloadvolume'])) {
 	        $profile['instantdownloadvolume'] = $data['instantdownloadvolume'];

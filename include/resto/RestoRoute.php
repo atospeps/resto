@@ -40,6 +40,16 @@
  *    |  PUT     collections/{collection}/{feature}            |  Update {feature}
  *    |  DELETE  collections/{collection}/{feature}            |  Delete {feature}
  * 
+ * ** Groups **
+ *  
+ *      Groups have rights on collections.
+ *                           
+ *    |          Resource                                      |      Description
+ *    |________________________________________________________|________________________________________________
+ *    |  GET     groups                                        |  List all groups           
+ *    |  POST    groups                                        |  Create a new group            
+ *    |  DELETE  groups/{group}                                |  Delete {group}
+ *    |  PUT     groups/{group}                                |  Update {group}
  *
  * ** Users **
  * 

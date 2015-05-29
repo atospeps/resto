@@ -28,11 +28,13 @@ CREATE TABLE usermanagement.groups
   description text,
   CONSTRAINT groups_pkey PRIMARY KEY (gid),
   CONSTRAINT groups_groupname_key UNIQUE (groupname)
-)
+);
 CREATE INDEX idx_groupname_groups ON usermanagement.groups (groupname);
 
 ALTER TABLE usermanagement.groups OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.groups TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.groups TO resto;
 
+GRANT ALL ON SEQUENCE usermanagement.groups_gid_seq TO postgres;
+GRANT SELECT, UPDATE ON SEQUENCE usermanagement.groups_gid_seq TO resto;
 

@@ -374,7 +374,7 @@ CREATE TABLE usermanagement.groups
   description text,
   CONSTRAINT groups_pkey PRIMARY KEY (gid),
   CONSTRAINT groups_groupname_key UNIQUE (groupname)
-)
+);
 CREATE INDEX idx_groupname_groups ON usermanagement.groups (groupname);
 
 # Data

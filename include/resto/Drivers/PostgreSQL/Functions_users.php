@@ -142,7 +142,7 @@ class Functions_users {
      */
     public function updateUserProfile($profile) {
        
-        if (!is_array($profile) || !isset($profile['email'])) {
+        if (!is_array($profile) || (!isset($profile['email']) && !isset($profile['id']))) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
         
@@ -166,7 +166,11 @@ class Functions_users {
             $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
         }
 
-        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' OR email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
+        if(isset($profile['email'])) {
+            $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
+        } else {
+            $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['id']))) .'\' RETURNING userid'));
+        }
         
         return count($results) === 1 ? $results[0]['userid'] : null;
         

@@ -208,7 +208,7 @@ class RestoRoutePUT extends RestoRoute {
 	    if (!ctype_digit($emailOrId)) {
 	       $profile['email'] = strtolower(base64_decode($emailOrId));
 	    } else {
-	       $profile['email'] = $emailOrId;
+	       $profile['id'] = $emailOrId;
 	    }
 	    
 	    if(isset($data['groupname'])) {

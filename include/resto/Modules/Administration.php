@@ -185,14 +185,12 @@ class Administration extends RestoModule {
         } else {
             $rights = array();
             $this->groups = $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
-            //echo var_dump($this->groups);
             $this->collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
             foreach ($this->collections as $collection => $description) {
                 $item = array();
                 $item['name'] = $collection;
                 $item['groups'] = array();
                 foreach ($this->groups as $group) {
-                    //echo var_dump($group);
                     $itemGroup = array();
                     $restoRights = new RestoRights($group['id'], $group['groupname'], $this->context);
                     $itemGroup['name'] = $group['groupname'];
@@ -583,7 +581,6 @@ class Administration extends RestoModule {
             $params['collectionName'] = $collectionName;
             $params['featureIdentifier'] = $featureId;
             $params['rights'] = $rights;
-
             $right = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, $params);
 
             if (!$right) {
@@ -591,6 +588,7 @@ class Administration extends RestoModule {
                 /*
                  * Store rights
                  */
+                $this->storeQuery('create', $params['collectionName'], $params['featureIdentifier']);
                 $this->context->dbDriver->store(RestoDatabaseDriver::RIGHTS, $params);
 
                 /*
@@ -601,6 +599,7 @@ class Administration extends RestoModule {
                 /*
                  * Upsate rights
                  */
+                $this->storeQuery('update', $params['collectionName'], $params['featureIdentifier']);
                 $this->context->dbDriver->update(RestoDatabaseDriver::RIGHTS, $params);
 
 
@@ -663,6 +662,7 @@ class Administration extends RestoModule {
                 throw new Exception('Right already exists for this feature', 4004);
             }
 
+            $this->storeQuery('create', $params['collectionName'], $params['featureIdentifier']);
             $this->context->dbDriver->store(RestoDatabaseDriver::RIGHTS, $params);
 
             /*
@@ -690,6 +690,7 @@ class Administration extends RestoModule {
             $rights['collectionName'] = $rights['collectionName'] === '' ? null : $rights['collectionName'];
             $rights['featureIdentifier'] = $rights['featureIdentifier'] === '' ? null : $rights['featureIdentifier'];
 
+            $this->storeQuery('remove', $rights['collectionName'], $rights['featureIdentifier']);
             $this->context->dbDriver->remove(RestoDatabaseDriver::RIGHTS, $rights);
 
             return array('status' => 'success', 'message' => 'success');

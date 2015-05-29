@@ -74,6 +74,18 @@ abstract class RestoModule{
         
         return $dbh;
     }
+
+    /**
+     * Store query to database
+     * 
+     * @param string $serviceName
+     * @param string $collectionName
+     */
+    protected function storeQuery($serviceName, $collectionName, $featureIdentifier) {
+        if ($this->context->storeQuery === true && isset($this->user)) {
+            $this->user->storeQuery($this->context->method, $serviceName, isset($collectionName) ? $collectionName : null, isset($featureIdentifier) ? $featureIdentifier : null, $this->context->query, $this->context->getUrl());
+        }
+    }
     
     /**
      * Run module - this function should be called by Resto.php

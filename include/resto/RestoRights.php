@@ -110,13 +110,7 @@ class RestoRights{
         /*
          * Return group rights
          */
-        $groupRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->groupname, 'collectionName' => $collectionName));
-        if (!isset($groupRights) || $this->isIncomplete($groupRights)) {
-            return !isset($groupRights) ? $this->groupRights[$this->groupname] : $this->mergeRights($groupRights, $this->groupRights[$this->groupname]);
-        }
-        
-        return $this->groupRights[$this->groupname];
-        
+        return $this->getGroupRights($collectionName);
     }
     
     /**
@@ -135,10 +129,7 @@ class RestoRights{
             $collectionRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->identifier, 'collectionName' => $collectionName));
             if (!isset($collectionRights) || $this->isIncomplete($collectionRights)) {
                 $rights = isset($collectionRights) ? $this->mergeRights($rights, $collectionRights) : $rights;
-                $groupRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->groupname, 'collectionName' => $collectionName));
-                if (!isset($groupRights) || $this->isIncomplete($groupRights)) {
-                    return $this->mergeRights(isset($groupRights) ? $this->mergeRights($rights, $groupRights) : $rights, $this->groupRights[$this->groupname]);
-                }
+                $groupRights = $this->getGroupRights($collectionName);
                 return $this->mergeRights($rights, $groupRights);
             }
             return $this->mergeRights($rights, $collectionRights);
@@ -154,10 +145,7 @@ class RestoRights{
     private function getCollectionRights($collectionName) {
         $collectionRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->identifier, 'collectionName' => $collectionName));
         if (!isset($collectionRights) || $this->isIncomplete($collectionRights)) {
-            $groupRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->groupname, 'collectionName' => $collectionName));
-            if (!isset($groupRights) || $this->isIncomplete($groupRights)) {
-                $groupRights = !$groupRights ? $this->groupRights[$this->groupname] : $this->mergeRights($groupRights, $this->groupRights[$this->groupname]);
-            }
+            $groupRights = $this->getGroupRights($collectionName);
             return !isset($collectionRights) ? $groupRights : $this->mergeRights($collectionRights, $groupRights);
         }
         return $collectionRights;
@@ -187,6 +175,26 @@ class RestoRights{
     public function getFullRights($collectionName = null, $featureIdentifier = null) {
         $rights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS_FULL, array('emailOrGroup' => $this->identifier, 'collectionName' => $collectionName, 'featureIdentifier' => $featureIdentifier));
         return isset($rights) ? array_merge(array('*' => $this->groupRights[$this->groupname]), $rights) : array('*' => $this->groupRights[$this->groupname]);
+    }
+    
+    /**
+     * Get group rights
+     * 
+     * @param string $groupname
+     */
+    private function getGroupRights($collectionName) {
+        $groupRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->groupname, 'collectionName' => $collectionName));
+        // If some group rights are missing, complete with hard coded rights
+        if (!isset($groupRights) || $this->isIncomplete($groupRights)) {
+            // Check what group take to merge rights
+            if($this->groupname !== "admin" && $this->groupname !== "unregistered") {
+                $mergeGroupName = "default";
+            } else {
+                $mergeGroupName = $this->groupname;
+            }
+            $groupRights = !$groupRights ? $this->groupRights[$mergeGroupName] : $this->mergeRights($groupRights, $this->groupRights[$mergeGroupName]);
+        }
+        return $groupRights;
     }
     
     /**

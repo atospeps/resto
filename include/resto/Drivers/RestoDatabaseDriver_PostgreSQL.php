@@ -171,7 +171,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
-                return $groupsFunctions->getGroups($params['id']);
+                return $groupsFunctions->getGroups();
                 
             /*
              * Get group description

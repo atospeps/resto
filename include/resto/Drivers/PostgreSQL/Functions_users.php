@@ -166,7 +166,7 @@ class Functions_users {
             $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
         }
 
-        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
+        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' OR email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
         
         return count($results) === 1 ? $results[0]['userid'] : null;
         

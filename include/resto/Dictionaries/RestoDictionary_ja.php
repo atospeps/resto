@@ -16,9 +16,9 @@
  */
 
 /*
- * English Dictionary class
+ * Japanese (partial) Dictionary class
  */
-class RestoDictionary_en extends RestoDictionary {
+class RestoDictionary_ja extends RestoDictionary {
 
     /*
      * Multiwords
@@ -27,9 +27,11 @@ class RestoDictionary_en extends RestoDictionary {
         'greater than',
         'lower than',
         'equal to',
+        'greater than',
         'more than',
         'lesser than',
         'less than',
+        'lower than',
         'austral summer',
         'austral winter',
         'austral autumn',
@@ -166,12 +168,12 @@ class RestoDictionary_en extends RestoDictionary {
             'cloud' => array('cloud', 'clouds', 'cloud cover'),
             'snow' => array('snow'),
             'ice' => array('ice'),
-            'urban' => array('city', 'cities', 'town', 'towns', 'urban'),
-            'cultivated' => array('cultivated', 'cropland', 'croplands', 'crop', 'crops'),
+            'urban' => array('city', 'cities', 'urban area'),
+            'cultivated' => array('cultivated area', 'cropland', 'croplands', 'crop', 'crops'),
             'forest' => array('forest', 'forests'),
-            'herbaceous' => array('herbaceous', 'grass', 'lowland', 'prairie'),
-            'desert' => array('desert', 'bare'),
-            'flooded' => array('flooded'),
+            'herbaceous' => array('herbaceous area', 'grass', 'lowland', 'prairie'),
+            'desert' => array('desert', 'bare area'),
+            'flooded' => array('flooded area'),
             'water' => array('water')
         ),
         /*
@@ -206,10 +208,10 @@ class RestoDictionary_en extends RestoDictionary {
      * Translations
      */
     protected $translations = array(
-        'activationSubject' => '[{a:1}] Activation code',
-        'activationMessage' => "Hi,\r\n\r\nYou have registered an account to {a:1} application\r\n\r\nTo validate this account, go to {a:2}\r\n\r\nRegards\r\n\r\n{a:1} team",
-        'resetPasswordSubject' => '[{a:1}] Reset password',
-        'resetPasswordMessage' => "Hi,\r\n\r\nYou ask to reset your password for the {a:1} application\r\n\r\nTo reset your password, go to {a:2}\r\n\r\nRegards\r\n\r\n{a:1} team",
+        'activationSubject' => '[{a:1}] ユーザ登録完了のための設定',
+        'activationMessage' => "この度はepicをご利用いただき有難うございます。\r\n\r\n{a:1}へのユーザ登録申請を受け付けました。\r\n\r\nアカウントを有効化するためこちらのリンク（{a:2}）を選択してください。\r\n\r\nご利用いただき誠に有り難うございます。\r\n\r\n{a:1}運用担当",
+        'resetPasswordSubject' => '[{a:1}] パスワードの再発行',
+        'resetPasswordMessage' => "この度はepicをご利用いただき有難うございます。\r\n\r\nパスワードの再発行申請を受け付けました。\r\n\r\n手続き完了のためこちらのリンク（{a:2}）を選択してください。\r\n\r\nご利用いただき誠に有り難うございます。\r\n\r\n{a:1}運用担当",
         '_acquiredOn' => 'acquired on {a:1}',
         '_alternateCollectionLink' => 'alternate',
         '_atomLink' => 'ATOM link for {a:1}',

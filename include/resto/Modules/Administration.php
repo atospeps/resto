@@ -157,7 +157,6 @@ class Administration extends RestoModule {
      */
     private function processGET() {
 
-
         switch ($this->segments[0]) {
             case 'users':
                 return $this->processGetUsers();
@@ -210,9 +209,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function processPostCollections() {
-
-
-
         if (isset($this->segments[1])) {
             RestoLogUtil::httpError(404);
         }
@@ -229,11 +225,7 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function processGetUser() {
-
-
-
         if ($this->segments[2] == 'history') {
-
             /**
              * Process get on /administration/users/{userid}/history
              * 
@@ -293,7 +285,6 @@ class Administration extends RestoModule {
              * Get rights on all collections and features for user associated to {userid}
              * 
              */
-
             $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $this->segments[1])), $this->context);
 
             $rights = array();
@@ -325,9 +316,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function processGetUsers() {
-
-
-
         /*
          * Get user creation MMI
          */
@@ -464,9 +452,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function processPostRights() {
-
-
-
         if (isset($this->segments[3])) {
             /*
              * This post delete rights passed with data
@@ -489,8 +474,6 @@ class Administration extends RestoModule {
      * @return type
      */
     private function createUser($data) {
-        //$data = array_merge($_POST);
-        
         if ($data) {
             if (!isset($data['email'])) {
                 RestoLogUtil::httpError(400, 'Email is not set');
@@ -534,8 +517,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function updateUser($userParam) {
-        //$userParam = array_merge($_POST);
-        
         if ($userParam) {
             try {
                 $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $this->segments[1]));

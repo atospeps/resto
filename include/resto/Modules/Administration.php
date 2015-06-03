@@ -86,12 +86,14 @@ class Administration extends RestoModule {
      * @param array $segments
      * @throws Exception
      */
-    public function run($segments) {
+    public function run($segments, $data = array()) {
+        
+        //echo var_dump($data);
+        
         if ($this->user->profile['groupname'] !== 'admin') {
             /*
              * Only administrators can access to administration
              */
-
             RestoLogUtil::httpError(401);
         }
         
@@ -112,7 +114,9 @@ class Administration extends RestoModule {
             case 'GET':
                 return $this->processGET();
             case 'POST':
-                return $this->processPOST();
+                return $this->processPOST($data);
+            case 'PUT':
+                return $this->processPUT($data);
             default:
                 RestoLogUtil::httpError(404);
         }
@@ -123,12 +127,7 @@ class Administration extends RestoModule {
      * 
      * @throws Exception
      */
-    private function processPOST() {
-
-        /*
-         * Input data for POST request
-         */
-        $data = RestoUtil::readInputData($this->context->uploadDirectory);
+    private function processPOST($data) {
 
         /*
          * Can't post file on /administration
@@ -147,6 +146,23 @@ class Administration extends RestoModule {
                 default:
                     RestoLogUtil::httpError(404);
             }
+        }
+    }
+
+    /**
+     * Process on HTTP method PUT on /administration
+     * 
+     * @throws Exception
+     */
+    private function processPUT($data) {        
+        /*
+         * Switch on url segments
+         */ 
+        switch ($this->segments[0]) {
+            case 'users':
+                return $this->processPutUsers($data);
+            default:
+                RestoLogUtil::httpError(404);
         }
     }
 
@@ -442,6 +458,20 @@ class Administration extends RestoModule {
              * Update user
              */
             return $this->updateUser($data);
+        }
+    }
+    
+    /**
+     * Process when PUT on /administration/users
+     *
+     * @throws Exception
+     */
+    private function processPutUsers($data) {
+        /*
+         * users/{userid}
+         */
+        if (isset($this->segments[1]) && !isset($this->segments[2])) {
+            return $this->PUT_userProfile($this->segments[1], $data);
         }
     }
 
@@ -950,5 +980,47 @@ class Administration extends RestoModule {
         }
         return $result;
     }
+    
 
+
+    /**
+     * Process HTTP PUT request on user
+     *
+     *    users/{userid}                                |  Update {userid}
+     *
+     * @param string $emailOrId
+     * @param array $data
+     */
+    private function PUT_userProfile($emailOrId, $data) {
+        $user = $this->user;
+        if ($user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+    
+        if (!ctype_digit($emailOrId)) {
+            $profile['email'] = strtolower(base64_decode($emailOrId));
+        } else {
+            $profile['id'] = $emailOrId;
+        }
+         
+        if(isset($data['groupname'])) {
+            if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {
+                RestoLogUtil::httpError(404, "Can't update user, the group " . $data['groupname'] . " does not exist");
+            }
+            $profile['groupname'] = $data['groupname'];
+        }
+         
+        if(isset($data['instantdownloadvolume'])) {
+            $profile['instantdownloadvolume'] = $data['instantdownloadvolume'];
+        }
+         
+        if(isset($data['weeklydownloadvolume'])) {
+            $profile['weeklydownloadvolume'] = $data['weeklydownloadvolume'];
+        }
+         
+        if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $profile))) {
+            return RestoLogUtil::success('User updated');
+        }
+        RestoLogUtil::httpError(400);
+    }
 }

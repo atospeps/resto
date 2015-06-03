@@ -63,7 +63,7 @@ class Wikipedia extends RestoModule {
      * 
      * @return string : result from run process in the $context->outputFormat
      */
-    public function run($elements) {
+    public function run($elements, $data = array()) {
        
         /*
          * Only GET method on 'search' route with json outputformat is accepted

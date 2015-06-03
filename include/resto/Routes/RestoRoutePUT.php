@@ -196,37 +196,14 @@ class RestoRoutePUT extends RestoRoute {
      * @param array $data
      */
     private function PUT_userProfile($emailOrId, $data) {
-    	/*
-    	 * User can only be modified by admin
-    	 */
-    	$user = $this->user;
-    	$userid = $this->userid($emailOrId);
-	    if ($user->profile['groupname'] !== 'admin') {
-	        RestoLogUtil::httpError(403);
-	    }
-
-	    if (!ctype_digit($emailOrId)) {
-	       $profile['email'] = strtolower(base64_decode($emailOrId));
-	    } else {
-	       $profile['id'] = $emailOrId;
-	    }
-	    
-	    if(isset($data['groupname'])) {
-	        if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {
-	            RestoLogUtil::httpError(404, "Can't update user, the group " . $data['groupname'] . " does not exist");
-	        }
-	        $profile['groupname'] = $data['groupname'];
-    	}
-	    
-	    if(isset($data['instantdownloadvolume'])) {
-	        $profile['instantdownloadvolume'] = $data['instantdownloadvolume'];
-    	}
-	    
-	    if(isset($data['weeklydownloadvolume'])) {
-	        $profile['weeklydownloadvolume'] = $data['weeklydownloadvolume'];
-    	}
+        /*
+         * Cart can only be modified by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+    	$data['id'] = $user->profile["userid"];
     	
-    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $profile))) {
+    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $data))) {
     	    return RestoLogUtil::success('User updated');
     	}
         RestoLogUtil::httpError(400);

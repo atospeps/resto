@@ -141,14 +141,10 @@ class Functions_users {
      * @throws exception
      */
     public function updateUserProfile($profile) {
-       
         if (!is_array($profile) || (!isset($profile['email']) && !isset($profile['id']))) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
         
-        /*
-         * Only password, groupname and activated fields can be updated
-         */
         $values = array();
         if (isset($profile['password'])) {
             $values[] = 'password=\'' . RestoUtil::encrypt($profile['password']) . '\'';
@@ -159,12 +155,17 @@ class Functions_users {
         if (isset($profile['activated'])) {
             $values[] = 'activated=' . $profile['activated'];
         }
-        if (isset($profile['instantdownloadvolume'])) {
-            $values[] = 'instantdownloadvolume=' . $profile['instantdownloadvolume'];
-        }
-        if (isset($profile['weeklydownloadvolume'])) {
-            $values[] = 'weeklydownloadvolume=' . $profile['weeklydownloadvolume'];
-        }
+        foreach ( array_values ( array (
+				'username', 'givenname', 'lastname',
+				'organization', 'nationality', 'domain',
+				'use', 'country', 'adress', 
+        		'numtel', 'numfax',	'instantdownloadvolume',
+				'weeklydownloadvolume' 
+		) ) as $field ) {
+		    if (isset($profile[$field])) {
+		        $values[] = pg_escape_string($field) . '=\'' . pg_escape_string($profile[$field]) . '\'';
+		    }
+		}
 
         if(isset($profile['email'])) {
             $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));

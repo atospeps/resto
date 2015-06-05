@@ -200,10 +200,20 @@ class RestoRoutePUT extends RestoRoute {
          * Cart can only be modified by its owner or by admin
          */
         $user = $this->getAuthorizedUser($emailOrId);
-        
-    	$data['id'] = $user->profile["userid"];
+    	$profile['id'] = $user->profile["userid"];
     	
-    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $data))) {
+    	// For each modifiable value get the value
+    	foreach (array_values(array(
+    	        'username', 'givenname', 'lastname',
+    	        'organization', 'nationality', 'domain',
+    	        'use', 'country', 'adress',
+    	        'numtel', 'numfax')) as $field) {
+	        if (isset($data[$field])) {
+                $profile[$field] = $data[$field];
+            }
+        }
+    	
+    	if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $profile))) {
     	    return RestoLogUtil::success('User updated');
     	}
         RestoLogUtil::httpError(400);

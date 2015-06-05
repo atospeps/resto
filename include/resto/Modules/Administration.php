@@ -992,32 +992,38 @@ class Administration extends RestoModule {
      * @param array $data
      */
     private function PUT_userProfile($emailOrId, $data) {
+        $profile = array();
         $user = $this->user;
         if ($user->profile['groupname'] !== 'admin') {
             RestoLogUtil::httpError(403);
         }
-    
+
         if (!ctype_digit($emailOrId)) {
             $profile['email'] = strtolower(base64_decode($emailOrId));
         } else {
             $profile['id'] = $emailOrId;
         }
+        
+        // For each modifiable value get the value
+        foreach (array_values(array(
+                'username', 'givenname', 'lastname',
+                'organization', 'nationality', 'domain',
+                'use', 'country', 'adress',
+                'numtel', 'numfax',	'instantdownloadvolume',
+                'weeklydownloadvolume')) as $field) {
+            if (isset($data[$field])) {
+                $profile[$field] = $data[$field];
+            }
+        }
          
+        // Check if groupname exists
         if(isset($data['groupname'])) {
             if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {
                 RestoLogUtil::httpError(404, "Can't update user, the group " . $data['groupname'] . " does not exist");
             }
             $profile['groupname'] = $data['groupname'];
         }
-         
-        if(isset($data['instantdownloadvolume'])) {
-            $profile['instantdownloadvolume'] = $data['instantdownloadvolume'];
-        }
-         
-        if(isset($data['weeklydownloadvolume'])) {
-            $profile['weeklydownloadvolume'] = $data['weeklydownloadvolume'];
-        }
-         
+
         if ($this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $profile))) {
             return RestoLogUtil::success('User updated');
         }

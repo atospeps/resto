@@ -228,26 +228,20 @@ abstract class RestoDictionary {
      * @param string any number of optional arguments
      */
     public function translate($sentence) {
-        
-        if (!isset($this->translations)) {
-            return $sentence;
+        if (isset($this->translations) && isset($this->translations[$sentence])) {
+            $sentence = $this->translations[$sentence];
         }
         
-        /*
-         * Replace additional arguments
-         */
-        if (isset($this->translations[$sentence])) {
-            if (false !== strpos($this->translations[$sentence], '{a:')) {
-                $replace = array();
-                $args = func_get_args();
-                for ($i = 1, $max = count($args); $i < $max; $i++) {
-                    $replace['{a:' . $i . '}'] = $args[$i];
-                }
-
-                return strtr($this->translations[$sentence], $replace);
+        if (false !== strpos($sentence, '{a:')) {
+            $replace = array();
+            $args = func_get_args();
+            for ($i = 1, $max = count($args); $i < $max; $i++) {
+                $replace['{a:' . $i . '}'] = $args[$i];
             }
+
+            return strtr($sentence, $replace);
         }
-        return isset($this->translations[$sentence]) ? $this->translations[$sentence] : $sentence;
+        return $sentence;
     }
     
     

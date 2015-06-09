@@ -1,5 +1,6 @@
 /* Script de migration de la base de données Resto de la version 1.1 vers 1.2 */
 /* Change user postgres with your database admin user, and change user resto with your database resto user */
+/* Change the default value of instantdownaloadlimit and weeklydownloadlimit (value in MegaOctet) */
 
 ALTER TABLE usermanagement.users ADD COLUMN organization text;
 
@@ -38,3 +39,4 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.groups TO resto;
 GRANT ALL ON SEQUENCE usermanagement.groups_gid_seq TO postgres;
 GRANT SELECT, UPDATE ON SEQUENCE usermanagement.groups_gid_seq TO resto;
 
+UPDATE usermanagement.users  SET instantdownloadvolume=1000, weeklydownloadvolume=7000;

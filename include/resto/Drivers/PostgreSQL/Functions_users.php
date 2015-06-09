@@ -293,12 +293,14 @@ class Functions_users {
         $query = 'SELECT resourceid FROM usermanagement.history  WHERE querytime > \'' . $timestamp . '\' AND service=\'download\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\'';
         $results = pg_fetch_all($this->dbDriver->query($query));
         $features = array ();
-        foreach ($results as $item) {
-            $id = $item['resourceid'];
-            if ($features[$id]) {
-                $features[$id] += 1;
-            } else {
-                $features[$id] = 1;
+        if($results) {
+            foreach ($results as $item) {
+                $id = $item['resourceid'];
+                if ($features[$id]) {
+                    $features[$id] += 1;
+                } else {
+                    $features[$id] = 1;
+                }
             }
         }
         

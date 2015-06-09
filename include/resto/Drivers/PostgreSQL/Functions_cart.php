@@ -61,7 +61,6 @@ class Functions_cart{
                 $items[] = json_decode($result['item'], true);
             }
         }
-        
         return $items;
     }
     
@@ -352,7 +351,7 @@ class Functions_cart{
 	public function getOrderSize($order) {
 		// Compute the total size of features
 		$totalsize = 0;
-		foreach($order['items'] as $feature) {
+		foreach($order as $feature) {
 			$query = 'SELECT resource_size FROM resto.features  WHERE identifier=\'' . pg_escape_string($feature["id"]) . '\'';
 			$results = pg_fetch_all($this->dbDriver->query($query));
 			$totalsize += $results[0]['resource_size'];

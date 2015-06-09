@@ -151,7 +151,7 @@ class Functions_features {
          * Check that resource does not already exist in database
          */
         if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array('featureIdentifier' => $featureArray['id']))) {
-            RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' already in database');
+            RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' already in database');
         }
         
         /*

@@ -500,22 +500,36 @@ class RestoRoutePOST extends RestoRoute {
      */
     private function POST_userOrders($emailOrId, $data) {
         
+    	/*
+    	 * Order can only be modified by its owner or by admin
+    	 */
+        $user = $this->getAuthorizedUser($emailOrId);
+
+        // Retrieve all order items
+        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
+        $items = array();
+        if($fromCart) {
+            $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
+        } else {
+            $items = $data;
+        }
+
+        $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
+        
         /*
-         * Order can only be modified by its owner or by admin
+         * Check if the user hasn't exceed his download volume limit
          */
-        $order = $this->getAuthorizedUser($emailOrId)->placeOrder($data);
+        if ($size > $user->profile['instantdownloadvolume']) {
+            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
+        }
+        if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $user->profile, 'size' => $size))) {
+            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['weeklydownloadvolume'] . "Mo per week, please wait some days, or contact our administrator");
+        }
+        
+        // Try to place order
+    	$order = $user->placeOrder($data);
+    	
         if ($order) {
-        	$size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $order));
-        	/*
-        	 * Check if the user hasn't exceed his download volume limit
-        	 */
-        	if ($size > $this->user->profile['instantdownloadvolume']) {
-                return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, pleaser remove some products, or contact our administrator");
-        	}
-        	if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
-        		return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, pleaser wait some days, or contact our administrator");
-        	}
-        	
             return RestoLogUtil::success('Place order', array(
                 'order' => $order
             ));

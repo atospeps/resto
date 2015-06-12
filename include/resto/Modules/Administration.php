@@ -755,9 +755,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function processStatistics() {
-
-
-
         switch ($this->segments[1]) {
             case 'collections':
                 return $this->to($this->statisticsService());
@@ -765,7 +762,7 @@ class Administration extends RestoModule {
                 if (!isset($this->segments[2])) {
                     return $this->to($this->statisticsUsers());
                 } else if (isset($this->segments[2]) && !isset($this->segments[3])) {
-                    return $this->to($this->statisticsService($this->segments[2]));
+                    return $this->to($this->statisticsUser($this->segments[2]));
                 } else {
                     throw new Exception(null, 404);
                 }
@@ -781,9 +778,6 @@ class Administration extends RestoModule {
      * @return type
      */
     private function statisticsUsers() {
-
-
-
         /**
          * nb users
          * nb download
@@ -801,19 +795,19 @@ class Administration extends RestoModule {
         $statistics['remove'] = $this->countService('remove');
         return $statistics;
     }
-
+    
     /**
-     * statisticsService - services stats on collections
      * 
-     * @param int $userid
-     * @return type
+     * @param string $userid
+     * @return array:
      */
-    private function statisticsService($userid = null) {
+    private function statisticsUser($userid) {
 
-        /*
-         * Statistics for each collections
-         */
         $statistics = array();
+        /*
+         * User statistics for each collection
+         */
+        $collectionStats = array();
         $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
         foreach ($collections as $collection => $description) {
             $collection_statistics = array();
@@ -824,8 +818,86 @@ class Administration extends RestoModule {
             $collection_statistics['create'] = $this->countService('create', $collection, $userid);
             $collection_statistics['update'] = $this->countService('update', $collection, $userid);
             $collection_statistics['remove'] = $this->countService('remove', $collection, $userid);
-            $statistics[$collection] = $collection_statistics;
+            $collectionStats[$collection] = $collection_statistics;
         }
+        $statistics["collectionStats"] = $collectionStats;
+        
+        /**
+         * Get total user download volume
+         */
+        $query = 'SELECT resourceid FROM usermanagement.history  WHERE service=\'download\' AND userid=\'' . pg_escape_string($userid) . '\'';
+        $results = pg_fetch_all($this->context->dbDriver->query($query));
+        $features = array ();
+        if($results) {
+            foreach ($results as $item) {
+                $id = $item['resourceid'];
+                if ($features[$id]) {
+                    $features[$id] += 1;
+                } else {
+                    $features[$id] = 1;
+                }
+            }
+        }
+
+        // Compute the total size of this features
+        $totalsize = 0;
+        foreach ($features as $key => $value) {
+            $query = 'SELECT resource_size FROM resto.features  WHERE identifier=\'' . pg_escape_string($key) . '\'';
+            $results = pg_fetch_all($this->context->dbDriver->query($query));
+            $totalsize += $results[0]['resource_size'] * $value;
+        }
+
+        $statistics["downloadVolume"] = $totalsize;
+        
+        return $statistics;
+    }
+
+    /**
+     * statisticsService - services stats on collections
+     * 
+     * @param int $userid
+     * @return type
+     */
+    private function statisticsService($userid = null) {
+        $startDate = isset($this->context->query['startDate']) ? $this->context->query['startDate'] : null;
+        $endDate = isset($this->context->query['endDate']) ? $this->context->query['endDate'] : null;
+        $statistics = array();
+        
+        /*
+         * Compute total downloaded volume
+         */
+        $productVolume = 0;
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
+        if($startDate && $endDate) {
+            $query .= ' AND querytime>\'' . pg_escape_string($startDate) . '\' AND querytime<\'' . pg_escape_string($endDate) . '\'';
+        }
+        $results = pg_fetch_assoc(pg_query($this->context->dbDriver->dbh, $query));
+        if($results) {
+            $productVolume = $results['sum'];
+        }
+        
+        /*
+         * Statistics for each collections
+         */
+        $productQuantity = 0;
+        $collectionStats = array();
+        $collections = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
+        foreach ($collections as $collection => $description) {
+            $collection_statistics = array();
+            $collection_statistics['download'] = $this->countService('download', $collection, $userid, $startDate, $endDate);
+            $productQuantity += $collection_statistics['download']['count']; 
+            $collection_statistics['search'] = $this->countService('search', $collection, $userid, $startDate, $endDate);
+            $collection_statistics['visualize'] = $this->countService('resource', $collection, $userid, $startDate, $endDate);
+            $collection_statistics['insert'] = $this->countService('insert', $collection, $userid, $startDate, $endDate);
+            $collection_statistics['create'] = $this->countService('create', $collection, $userid, $startDate, $endDate);
+            $collection_statistics['update'] = $this->countService('update', $collection, $userid, $startDate, $endDate);
+            $collection_statistics['remove'] = $this->countService('remove', $collection, $userid, $startDate, $endDate);
+            $collectionStats[$collection] = $collection_statistics;
+        }
+        $statistics["collectionStats"] = $collectionStats;
+        $statistics["productQuantity"] = $productQuantity;
+        $statistics["productVolume"] = $productVolume;
+        
         return $statistics;
     }
 
@@ -895,11 +967,14 @@ class Administration extends RestoModule {
      * @return integer
      * @throws Exception
      */
-    public function countService($service, $collectionName = null, $userid = null) {
-
-
-
-        $results = pg_query($this->context->dbDriver->dbh, 'SELECT count(gid) FROM usermanagement.history WHERE service=\'' . pg_escape_string($service) . '\'' . (isset($collectionName) ? ' AND collection=\'' . pg_escape_string($collectionName) . '\'' : '') . (isset($userid) ? ' AND userid=\'' . pg_escape_string($userid) . '\'' : ''));
+    public function countService($service, $collectionName = null, $userid = null, $startDate = null, $endDate = null) {
+        $query = 'SELECT count(gid) FROM usermanagement.history WHERE service=\'' . pg_escape_string($service) . '\'';
+        $query .= isset($collectionName) ? ' AND collection=\'' . pg_escape_string($collectionName) . '\'' : ''; 
+        $query .= isset($userid) ? ' AND userid=\'' . pg_escape_string($userid) . '\'' : '';
+        if(isset($startDate) && isset($endDate)) {
+            $query .= ' AND querytime>\'' . pg_escape_string($startDate) . '\' AND querytime<\'' . pg_escape_string($endDate) . '\'';
+        }
+        $results = pg_query($this->context->dbDriver->dbh, $query);
         if (!$results) {
             RestoLogUtil::httpError(500, 'Database connection error');
         }
@@ -915,9 +990,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     public function countUsers($activated = null, $groupname = null) {
-
-
-
         $results = pg_query($this->context->dbDriver->dbh, 'SELECT COUNT(*) FROM usermanagement.users ' . (isset($activated) ? (' WHERE activated=\'' . ($activated === true ? 't' : 'f') . '\'') : '') . (isset($groupname) ? ' AND groupname=\'' . pg_escape_string($groupname) . '\'' : ''));
         if (!$results) {
             RestoLogUtil::httpError(500, 'Database connection error');

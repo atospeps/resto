@@ -191,7 +191,8 @@ class RestoModel_sentinel1 extends RestoModel {
             'properties' => array(
                 'productIdentifier' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
                 'title' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
-		'authority' => 'ESA',
+                'resourceSize' => $dom->getElementsByTagName('resourceSize')->item(0)->nodeValue,
+		        'authority' => 'ESA',
                 'startDate' => $dom->getElementsByTagName('startTime')->item(0)->nodeValue,
                 'completionDate' => $dom->getElementsByTagName('stopTime')->item(0)->nodeValue,
                 'productType' => $dom->getElementsByTagName('productType')->item(0)->nodeValue,

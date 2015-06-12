@@ -288,34 +288,21 @@ class Functions_users {
      * @param integer $size
      */
     public function hasUserReachedWeekLimitation($userprofile, $size) {
-        // Retrieves and count all downloaded features by user in the last 7 days
+        if(!isset($userprofile['userid'])) {
+            RestoLogUtil::httpError(404);
+        }
+
         $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
-        $query = 'SELECT resourceid FROM usermanagement.history  WHERE querytime > \'' . $timestamp . '\' AND service=\'download\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\'';
-        $results = pg_fetch_all($this->dbDriver->query($query));
-        $features = array ();
-        if($results) {
-            foreach ($results as $item) {
-                $id = $item['resourceid'];
-                if ($features[$id]) {
-                    $features[$id] += 1;
-                } else {
-                    $features[$id] = 1;
-                }
-            }
-        }
-        
-        // Compute the total size of this features
         $totalsize = 0;
-        foreach ($features as $key => $value) {
-            $query = 'SELECT resource_size FROM resto.features  WHERE identifier=\'' . pg_escape_string($key) . '\'';
-            $results = pg_fetch_all($this->dbDriver->query($query));
-            $totalsize += $results[0]['resource_size'] * $value;
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
+        $query .= ' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\' AND querytime>\'' . $timestamp . '\'';
+        $results = pg_fetch_assoc($this->dbDriver->query($query));
+        if($results) {
+            $totalsize = $results['sum'];
         }
-        
         if ($totalsize + $size > $userprofile['weeklydownloadvolume']) {
              return true;
         }
-
         return false;
     }
 }

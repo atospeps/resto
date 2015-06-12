@@ -32,6 +32,8 @@ CREATE TABLE usermanagement.groups
 );
 CREATE INDEX idx_groupname_groups ON usermanagement.groups (groupname);
 
+CREATE INDEX idx_identifier_features ON resto.features (identifier);
+
 ALTER TABLE usermanagement.groups OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.groups TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.groups TO resto;

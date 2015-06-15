@@ -101,6 +101,16 @@ class RestoContext {
     public $streamMethod = 'php';
     
     /*
+     * Instant download limit
+     */
+    public $instantDownloadLimit = 1000;
+    
+    /*
+     * Weekly download limit
+     */
+    public $weeklyDownloadLimit = 5000;
+    
+    /*
      *  JSON Web Token passphrase
      * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
      */
@@ -299,6 +309,20 @@ class RestoContext {
          */
         if (isset($config['general']['streamMethod'])) {
             $this->streamMethod = $config['general']['streamMethod'];
+        }
+
+        /*
+         * Instant download limit
+         */
+        if (isset($config['general']['instantLimitDownloadVolume'])) {
+            $this->instantDownloadLimit = $config['general']['instantLimitDownloadVolume'];
+        }
+
+        /*
+         * Weekly download limit
+         */
+        if (isset($config['general']['weeklyLimitDownloadVolume'])) {
+            $this->weeklyDownloadLimit = $config['general']['weeklyLimitDownloadVolume'];
         }
         
         /*

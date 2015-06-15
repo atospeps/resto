@@ -113,8 +113,13 @@ return array(
          */
         'corsWhiteList' => array(
             'localhost'
-        )
-        
+        ),
+            
+        /*
+         * Set the default user download limit volume (in Megabyte)
+         */
+        'instantLimitDownloadVolume' => 1000,
+        'weeklyLimitDownloadVolume' => 5000
     ),
     
     /*

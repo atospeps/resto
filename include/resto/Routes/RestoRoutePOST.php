@@ -428,8 +428,8 @@ class RestoRoutePOST extends RestoRoute {
                 'adress' => isset($data['adress']) ? $data['adress'] : null,
                 'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
                 'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
-                'instantdownloadvolume' => isset($data['instantdownloadvolume']) ? $data['instantdownloadvolume'] : null,
-                'weeklydownloadvolume' => isset($data['weeklydownloadvolume']) ? $data['weeklydownloadvolume'] : null,
+                'instantdownloadvolume' => $this->context->instantDownloadLimit,
+                'weeklydownloadvolume' => $this->context->weeklyDownloadLimit,
                 'activated' => 0
             ))
         );

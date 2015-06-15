@@ -101,12 +101,12 @@ class RestoContext {
     public $streamMethod = 'php';
     
     /*
-     * Instant download limit
+     * Instant download limit (in Mb)
      */
     public $instantDownloadLimit = 1000;
     
     /*
-     * Weekly download limit
+     * Weekly download limit (in Mb)
      */
     public $weeklyDownloadLimit = 5000;
     

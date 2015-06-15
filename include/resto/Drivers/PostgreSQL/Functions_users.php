@@ -300,7 +300,7 @@ class Functions_users {
         if($results) {
             $totalsize = $results['sum'];
         }
-        if ($totalsize + $size > $userprofile['weeklydownloadvolume']) {
+        if ($totalsize + $size > $userprofile['weeklydownloadvolume'] * 1000000) {
              return true;
         }
         return false;

@@ -455,7 +455,7 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Or the user has reached his instant download limit
          */
-        else if ($size > $this->user->profile['instantdownloadvolume']) {
+        else if ($size > $this->user->profile['instantdownloadvolume'] * 1000000) {
             return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
         }        
         /*

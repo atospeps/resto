@@ -1,26 +1,49 @@
 /* Script de migration de la base de données Resto de la version 1.1 vers 1.2 */
 /* Change user postgres with your database admin user, and change user resto with your database resto user */
 /* Change the default value of instantdownaloadlimit and weeklydownloadlimit (value in MegaOctet) */
+CREATE OR REPLACE function f_add_col(
+   _tbl regclass, _col  text, _type regtype, OUT success bool)
+    LANGUAGE plpgsql AS
+$func$
+BEGIN
 
-ALTER TABLE usermanagement.users ADD COLUMN organization text;
+IF EXISTS (
+   SELECT 1 FROM pg_attribute
+   WHERE  attrelid = _tbl
+   AND    attname = _col
+   AND    NOT attisdropped) THEN
+   success := FALSE;
 
-ALTER TABLE usermanagement.users ADD COLUMN nationality text;
+ELSE
+   EXECUTE '
+   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || quote_ident(_col) || ' ' || _type;
+   success := TRUE;
+END IF;
 
-ALTER TABLE usermanagement.users ADD COLUMN domain text;
+END
+$func$;
 
-ALTER TABLE usermanagement.users ADD COLUMN use text;
+SELECT f_add_col('usermanagement.users', 'organization', 'text');
 
-ALTER TABLE usermanagement.users ADD COLUMN adress text;
+SELECT f_add_col('usermanagement.users', 'nationality', 'text');
 
-ALTER TABLE usermanagement.users ADD COLUMN numtel text;
+SELECT f_add_col('usermanagement.users', 'domain', 'text');
 
-ALTER TABLE usermanagement.users ADD COLUMN numfax text;
+SELECT f_add_col('usermanagement.users', 'use', 'text');
 
-ALTER TABLE usermanagement.users ADD COLUMN instantdownloadvolume integer;
+SELECT f_add_col('usermanagement.users', 'adress', 'text');
 
-ALTER TABLE usermanagement.users ADD COLUMN weeklydownloadvolume integer;
+SELECT f_add_col('usermanagement.users', 'numtel', 'text');
 
-CREATE TABLE usermanagement.groups
+SELECT f_add_col('usermanagement.users', 'numfax', 'text');
+
+SELECT f_add_col('usermanagement.users', 'instantdownloadvolume', 'integer');
+
+SELECT f_add_col('usermanagement.users', 'weeklydownloadvolume', 'text');
+
+SELECT f_add_col('usermanagement.rights', 'productidentifier', 'text');
+
+CREATE TABLE IF NOT EXISTS usermanagement.groups
 (
   gid serial NOT NULL,
   groupname text NOT NULL,
@@ -39,4 +62,4 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.groups TO resto;
 GRANT ALL ON SEQUENCE usermanagement.groups_gid_seq TO postgres;
 GRANT SELECT, UPDATE ON SEQUENCE usermanagement.groups_gid_seq TO resto;
 
-UPDATE usermanagement.users  SET instantdownloadvolume=1000, weeklydownloadvolume=7000;
+UPDATE usermanagement.users  SET instantdownloadvolume=1000, weeklydownloadvolume=7000 WHERE instantdownloadvolume IS NULL OR weeklydownloadvolume IS NULL;

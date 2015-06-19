@@ -48,10 +48,10 @@ class Functions_collections {
         if (isset($cached)) {
             return $cached;
         }
-        $collectionsDescriptions = array();
+        $collectionsDesc = array();
         $descriptions = $this->dbDriver->query('SELECT collection, status, model, mapping, license FROM resto.collections' . (isset($collectionName) ? ' WHERE collection=\'' . pg_escape_string($collectionName) . '\'' : ''));
         while ($collection = pg_fetch_assoc($descriptions)) {
-            $collectionsDescriptions[$collection['collection']] = array(
+            $collectionsDesc[$collection['collection']] = array(
                 'name' => $collection['collection'],
                 'model' => $collection['model'],
                 'status' => $collection['status'],
@@ -64,9 +64,9 @@ class Functions_collections {
         /*
          * Store in cache
          */
-        $this->dbDriver->cache->store(array('getCollectionsDescriptions', $collectionName), $collectionsDescriptions);
+        $this->dbDriver->cache->store(array('getCollectionsDescriptions', $collectionName), $collectionsDesc);
         
-        return $collectionsDescriptions;
+        return $collectionsDesc;
         
     }
     

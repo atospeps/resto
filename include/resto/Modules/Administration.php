@@ -847,7 +847,7 @@ class Administration extends RestoModule {
             $totalsize += $results[0]['resource_size'] * $value;
         }
 
-        $statistics["downloadVolume"] = $totalsize;
+        $statistics["downloadVolume"] = $totalsize / 1000000;
         
         return $statistics;
     }
@@ -896,7 +896,7 @@ class Administration extends RestoModule {
         }
         $statistics["collectionStats"] = $collectionStats;
         $statistics["productQuantity"] = $productQuantity;
-        $statistics["productVolume"] = $productVolume;
+        $statistics["productVolume"] = $productVolume / 1000000;
         
         return $statistics;
     }

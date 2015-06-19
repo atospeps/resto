@@ -63,7 +63,7 @@ class RestoRoutePOST extends RestoRoute {
             case 'collections':
                 return $this->POST_collections($segments, $data);
             case 'groups':
-                return $this->POST_groups($segments, $data);
+                return $this->POST_groups($data);
             case 'users':
                 return $this->POST_users($segments, $data);
             default:
@@ -109,7 +109,7 @@ class RestoRoutePOST extends RestoRoute {
              * api/users/disconnect
              */
             if ($segments[2] === 'disconnect' && !isset($segments[3])) {
-                return $this->POST_apiUsersDisconnect($data);
+                return $this->POST_apiUsersDisconnect();
             }
             
             /*
@@ -174,7 +174,7 @@ class RestoRoutePOST extends RestoRoute {
     /**
      * Process api/users/disconnect
      */
-    private function POST_apiUsersDisconnect($data) {
+    private function POST_apiUsersDisconnect() {
         $this->user->disconnect();
         return RestoLogUtil::success('User disconnected');
     }
@@ -337,7 +337,7 @@ class RestoRoutePOST extends RestoRoute {
      * @param array $segments
      * @param array $data
      */
-    private function POST_groups($segments, $data) {
+    private function POST_groups($data) {
         /*
          * Groups can only be create by admin
          */

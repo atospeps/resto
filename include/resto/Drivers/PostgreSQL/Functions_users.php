@@ -167,6 +167,11 @@ class Functions_users {
 		    }
 		}
 
+		// Nothing to update
+		if(count($values) === 0) {
+            return true;   
+		}
+		
         if(isset($profile['email'])) {
             $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
         } else {

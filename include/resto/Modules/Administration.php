@@ -88,8 +88,6 @@ class Administration extends RestoModule {
      */
     public function run($segments, $data = array()) {
         
-        //echo var_dump($data);
-        
         if ($this->user->profile['groupname'] !== 'admin') {
             /*
              * Only administrators can access to administration

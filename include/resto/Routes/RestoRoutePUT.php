@@ -202,6 +202,17 @@ class RestoRoutePUT extends RestoRoute {
         $user = $this->getAuthorizedUser($emailOrId);
     	$profile['id'] = $user->profile["userid"];
     	
+    	/*
+    	 * Check if the user can change his password.
+    	 */
+    	if(isset($data['currentPassword']) && isset($data['newPassword'])) {
+    	    if($this->context->dbDriver->check(RestoDatabaseDriver::USER_PASSWORD, array( 'id' => $profile['id'], 'password' => $data['currentPassword']))) {
+    	        $profile['password'] = $data['newPassword'];
+    	    } else {
+    	        RestoLogUtil::httpError(403);
+    	    }
+    	}
+    	
     	// For each modifiable value get the value
     	foreach (array_values(array(
     	        'username', 'givenname', 'lastname',

@@ -310,4 +310,13 @@ class Functions_users {
         }
         return false;
     }
+    
+    public function checkPassword($identifier, $password) {
+        if(!isset($identifier) || !isset($password)) {
+            RestoLogUtil::httpError(404);
+        }
+        $query = 'SELECT 1 FROM usermanagement.users WHERE userid=\'' . pg_escape_string($identifier) . '\' AND password=\'' . RestoUtil::encrypt($password) . '\'';
+        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        return !empty($results);
+    }
 }

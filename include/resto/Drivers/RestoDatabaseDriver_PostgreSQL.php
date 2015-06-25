@@ -323,7 +323,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->isGroupExists($params['groupname']);
-            	    
+
+            /*
+             * True if the password is correct
+             */
+            case parent::USER_PASSWORD:
+                $usersFunctions = new Functions_users($this);
+                return $usersFunctions->checkPassword($params['id'], $params['password']);
+                
             default:
                 return null;
         }

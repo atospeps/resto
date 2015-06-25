@@ -5,3 +5,7 @@
 /js/lib/slick/
 /js/lib/responsiveslides/
 /.project
+/include/resto/Models/RestoModel_alos.php
+/include/resto/Models/RestoModel_restec.php
+/include/config.local.php
+/include/config.dev.php

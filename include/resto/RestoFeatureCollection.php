@@ -179,10 +179,20 @@ class RestoFeatureCollection {
         $originalFilters = $this->getOriginalFilters();
         
         /*
-         * Number of returned results is never greater than MAXIMUM_LIMIT
+         * Result par page
          */
-        $limit = isset($originalFilters['count']) && is_numeric($originalFilters['count']) ? min($originalFilters['count'], isset($this->defaultModel->searchFilters['count']->maximumInclusive) ? $this->defaultModel->searchFilters['count']->maximumInclusive : 500) : $this->context->dbDriver->resultsPerPage;
-
+        $limit =$this->context->dbDriver->resultsPerPage;
+        if(isset($originalFilters['count']) && is_numeric($originalFilters['count'])) {
+            /*
+             * Number of returned results is never greater than MAXIMUM_LIMIT
+             */
+            $limit = min($originalFilters['count'], isset($this->defaultModel->searchFilters['count']['maxInclusive']) ? $this->defaultModel->searchFilters['count']['maxInclusive'] : 500);
+            /*
+             * Number of returned results is never lower than MINIMUM_LIMIT
+             */
+            $limit = max($limit, isset($this->defaultModel->searchFilters['count']['minInclusive']) ? $this->defaultModel->searchFilters['count']['minInclusive'] : 1);
+        }
+        
         /*
          * Compute offset based on startPage or startIndex
          */

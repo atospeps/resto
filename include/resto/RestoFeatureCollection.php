@@ -242,6 +242,7 @@ class RestoFeatureCollection {
                 'totalResults' => $this->totalCount !== -1 ? $this->totalCount : null,
                 'startIndex' => $offset + 1,
                 'itemsPerPage' => count($this->restoFeatures),
+                'totalItemsPerPage' => $limit,
                 'query' => array(
                     'searchFilters' => $analysis['searchFilters'],
                     'analysis' => $analysis['analysis'],

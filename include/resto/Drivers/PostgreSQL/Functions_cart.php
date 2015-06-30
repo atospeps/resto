@@ -350,6 +350,9 @@ class Functions_cart{
 	 */
 	public function getOrderSize($order) {
 		// Compute the total size of features
+		if(empty($order)) {
+		    return 0;
+		}
 		$totalsize = 0;
 		$featuresId = array();
 		foreach($order as $feature) {

@@ -282,7 +282,7 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Send email with reset link
          */
-        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->resetPasswordUrl . '/' . base64_encode($this->context->query['email'])));
+        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->resetPasswordUrl . '/' . base64_encode($this->context->query['email']), 'email' => $this->context->query['email']));
         $fallbackLanguage = isset($this->context->mail['resetPassword'][$this->context->dictionary->language]) ? $this->context->dictionary->language : 'en';
         if (!$this->sendMail(array(
                     'to' => $this->context->query['email'],
@@ -435,17 +435,28 @@ class RestoRouteGET extends RestoRoute {
     private function GET_featureDownload($collection, $feature) {
         $featureProp = $feature->toArray();
         $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
-
+        
+        /*
+         * Token case, retrieve user to perform all controls
+         */
+        if(!empty($this->context->query['_tk'])) {
+            $email = $this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->baseUrl . '/' . $this->context->path, 'token' => $this->context->query['_tk']));
+            if(!$email) {
+                RestoLogUtil::httpError(403);
+            }
+            $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $email)), $this->context);
+        }
+        
         /*
          * User do not have right to download product
          */
-        if (!$this->user->canDownload($collection->name, $feature->identifier, !empty($this->context->query['_tk']) ? $this->context->query['_tk'] : null)) {
+        if (!$this->user->canDownload($collection->name, $feature->identifier)) {
             RestoLogUtil::httpError(403);
         }
         /*
          * Or user has rigth but hasn't sign the license yet
          */
-        else if ($this->user->hasToSignLicense($collection->toArray(false)) && empty($this->context->query['_tk'])) {
+        else if ($this->user->hasToSignLicense($collection->toArray(false))) {
             return array(
                 'ErrorMessage' => 'Forbidden',
                 'collection' => $collection->name,

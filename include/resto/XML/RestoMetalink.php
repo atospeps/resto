@@ -44,7 +44,7 @@ class RestoMetalink extends RestoXML {
      * 
      * @return type
      */
-    public function addLink($item) {
+    public function addLink($item, $email) {
         
         /*
          * Compute file name from productIdentifier and mimeType - identifier otherwise
@@ -71,7 +71,7 @@ class RestoMetalink extends RestoXML {
         /*
          * Url
          */
-        $this->addUrl($item);
+        $this->addUrl($item, $email);
         
         $this->endElement(); // End file
     }
@@ -102,8 +102,8 @@ class RestoMetalink extends RestoXML {
      * @param string $resourceUrl
      * @return string
      */
-    private function getSharedLink($resourceUrl) {
-        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $resourceUrl));
+    private function getSharedLink($resourceUrl, $email) {
+        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $resourceUrl, 'email' => $email));
         return $resourceUrl . (strrpos($resourceUrl, '?') === false ? '?_tk=' : '&_tk=') . $shared['token'];       
     }
     
@@ -127,13 +127,13 @@ class RestoMetalink extends RestoXML {
      * 
      * @param array $item
      */
-    private function addUrl($item) {
+    private function addUrl($item, $email) {
         $this->startElement('url');
         $this->writeAttributes(array(
             //'location' => 'TODO',
             'priority' => 1
         ));
-        $this->text($this->getSharedLink($item['properties']['services']['download']['url']));
+        $this->text($this->getSharedLink($item['properties']['services']['download']['url'], $email));
         $this->endElement(); // End url
     }
     

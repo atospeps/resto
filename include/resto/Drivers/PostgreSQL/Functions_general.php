@@ -129,10 +129,13 @@ class Functions_general {
         if (!isset($resourceUrl) || !isset($token)) {
             return false;
         }
-        $query = 'SELECT 1 FROM usermanagement.sharedlinks WHERE url=\'' . pg_escape_string($resourceUrl) . '\' AND token=\'' . pg_escape_string($token) . '\' AND validity > now()';
+        $query = 'SELECT email FROM usermanagement.sharedlinks WHERE url=\'' . pg_escape_string($resourceUrl) . '\' AND token=\'' . pg_escape_string($token) . '\' AND validity > now()';
         $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        return !empty($results);
         
+        if(empty($results)) {
+            return false;
+        }
+        return $results[0]['email'];
     }
     
     /**
@@ -141,7 +144,7 @@ class Functions_general {
      * @param string $resourceUrl
      * @return array
      */
-    public function createSharedLink($resourceUrl, $duration = 86400) {
+    public function createSharedLink($resourceUrl, $email, $duration = 86400) {
         
         if (!isset($resourceUrl) || !RestoUtil::isUrl($resourceUrl)) {
             return null;
@@ -149,7 +152,7 @@ class Functions_general {
         if (!is_int($duration)) {
             $duration = 86400;
         }
-        $results = $this->dbDriver->fetch($this->dbDriver->query('INSERT INTO usermanagement.sharedlinks (url, token, validity) VALUES (\'' . pg_escape_string($resourceUrl) . '\',\'' . (RestoUtil::encrypt(mt_rand() . microtime())) . '\',now() + ' . $duration . ' * \'1 second\'::interval) RETURNING token', 500, 'Cannot share link'));
+        $results = $this->dbDriver->fetch($this->dbDriver->query('INSERT INTO usermanagement.sharedlinks (url, token, validity, email) VALUES (\'' . pg_escape_string($resourceUrl) . '\',\'' . (RestoUtil::encrypt(mt_rand() . microtime())) . '\',now() + ' . $duration . ' * \'1 second\'::interval,\'' . pg_escape_string($email) . '\') RETURNING token', 500, 'Cannot share link'));
         if (count($results) === 1) {
             return array(
                 'resourceUrl' => $resourceUrl,

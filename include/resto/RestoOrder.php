@@ -104,7 +104,7 @@ class RestoOrder{
             /*
              * Add link
              */
-            $meta4->addLink($item);
+            $meta4->addLink($item, $this->user->profile['email']);
         }
            
         return $meta4->toString();

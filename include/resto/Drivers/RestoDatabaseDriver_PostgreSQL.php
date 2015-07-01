@@ -150,7 +150,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::SHARED_LINK:
                 $generalFunctions = new Functions_general($this);
-                return $generalFunctions->createSharedLink($params['resourceUrl']);
+                return $generalFunctions->createSharedLink($params['resourceUrl'], $params['email']);
             
             /*
              * Get encrypted user password

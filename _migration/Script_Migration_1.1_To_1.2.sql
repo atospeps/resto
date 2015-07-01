@@ -43,6 +43,8 @@ SELECT f_add_col('usermanagement.users', 'weeklydownloadvolume', 'text');
 
 SELECT f_add_col('usermanagement.rights', 'productidentifier', 'text');
 
+SELECT f_add_col('usermanagement.sharedlinks', 'email', 'text');
+
 CREATE TABLE IF NOT EXISTS usermanagement.groups
 (
   gid serial NOT NULL,

@@ -208,7 +208,7 @@ CREATE TABLE resto.features (
     metadata_mimetype   TEXT,
     resource            TEXT,
     resource_mimetype   TEXT,
-    resource_size       INTEGER,
+    resource_size       BIGINT,
     resource_checksum   TEXT, -- Checksum should be on the form checksumtype=checksum (e.g. SHA1=.....)
     wms                 TEXT,
     updated             TIMESTAMP,
@@ -226,6 +226,8 @@ CREATE TABLE resto.features (
     snowcover           NUMERIC,
     cloudcover          NUMERIC
 );
+CREATE INDEX idx_identifier_features ON resto.features (identifier);
+
 SELECT AddGeometryColumn('resto', 'features', 'geometry', '4326', 'GEOMETRY', 2);
 
 -- 
@@ -343,7 +345,8 @@ CREATE TABLE usermanagement.sharedlinks (
     gid                 SERIAL PRIMARY KEY,
     token               TEXT UNIQUE NOT NULL,
     url                 TEXT NOT NULL,
-    validity            TIMESTAMP
+    validity            TIMESTAMP,
+    email	            TEXT
 );
 CREATE INDEX idx_token_sharedlinks ON usermanagement.sharedlinks (token);
 

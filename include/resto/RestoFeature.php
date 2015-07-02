@@ -90,6 +90,7 @@ class RestoFeature {
         if (isset($this->featureArray['properties']['resourceInfos'])) {
             
             if (!isset($this->featureArray['properties']['resourceInfos']['path']) || !is_file($this->featureArray['properties']['resourceInfos']['path'])) {
+                $this->user->storeQuery('error', 'download', $this->collection->name, $this->identifier, $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
            

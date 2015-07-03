@@ -67,3 +67,5 @@ GRANT SELECT, UPDATE ON SEQUENCE usermanagement.groups_gid_seq TO resto;
 ALTER TABLE resto.features ALTER COLUMN resource_size TYPE bigint;
 
 UPDATE usermanagement.users  SET instantdownloadvolume=1000, weeklydownloadvolume=7000 WHERE instantdownloadvolume IS NULL OR weeklydownloadvolume IS NULL;
+
+INSERT INTO usermanagement.groups (groupname) SELECT distinct(groupname) from usermanagement.users;

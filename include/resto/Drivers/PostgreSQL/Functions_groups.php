@@ -91,11 +91,14 @@ class Functions_groups {
      * @return boolean
      * @throws exception
      */
-    public function isGroupExists($groupname) {
+    public function isGroupExists($groupname, $identifier = null) {
         if (!isset($groupname)) {
             return false;
         }
         $query = 'SELECT 1 FROM usermanagement.groups WHERE groupname=\'' . pg_escape_string($groupname) . '\'';
+        if(isset($identifier)) {
+            $query .= ' AND gid!=\'' . pg_escape_string($identifier) . '\'';     
+        }
         $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
         return !empty($results);
     }
@@ -145,7 +148,7 @@ class Functions_groups {
         }
 
         // Check if group already exists in the database
-        if($this->isGroupExists($groupname)) {
+        if($this->isGroupExists($groupname, $identifier)) {
             RestoLogUtil::httpError(5000, 'Cannot update groupname to : ' . $groupname . ', it already exists');
         }
         

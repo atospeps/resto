@@ -43,6 +43,7 @@ class RestoRouteGET extends RestoRoute {
      *    collections                                   |  List all collections            
      *    collections/{collection}                      |  Get {collection} description
      *    collections/{collection}/{feature}            |  Get {feature} description within {collection}
+     *    collections/{collection}/{feature}/check      |  Verify {feature} zip file exists
      *    collections/{collection}/{feature}/download   |  Download {feature}
      * 
      *    groups                                        |  List all groups    
@@ -409,6 +410,13 @@ class RestoRouteGET extends RestoRoute {
             $this->storeQuery('resource', $collection->name, $feature->identifier);
             return $feature;
         }
+        
+        /*
+         * Check the zip file of the feature
+         */
+        else if ($segments[3] === 'check') {
+            return $this->GET_featureCheckFile($collection, $feature);
+        }
 
         /*
          * Download feature then exit
@@ -422,6 +430,41 @@ class RestoRouteGET extends RestoRoute {
          */
         else {
             RestoLogUtil::httpError(404);
+        }
+    }
+    
+    /**
+     * Verify zip file exists
+     *
+     * @param RestoCollection $collection
+     * @param RestoFeature $feature
+     * @return type
+     */
+    private function GET_featureCheckFile($collection, $feature) {
+        $featureProp = $feature->toArray();
+        // We verify the existence of an external file
+        if (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
+            $url = $featureProp['properties']['services']['download']['url'];
+            if (@fopen($url, "r")) {
+                return array (
+                        'check' => '200' 
+                );
+            } else {
+                return array (
+                        'check' => '404' 
+                );
+            }
+            // We verify th existence of a file in the server
+        } elseif (isset($featureProp['properties']['resourceInfos']['path'])) {
+            if (is_file($featureProp['properties']['resourceInfos']['path'])) {
+                return array (
+                        'check' => '200' 
+                );
+            } else {
+                return array (
+                        'check' => '404' 
+                );
+            }
         }
     }
 

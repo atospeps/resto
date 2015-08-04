@@ -210,9 +210,9 @@ class Functions_filters {
                 return $model->getDbKey($model->searchFilters['startPublishedDate']['key']) . ' >= \'' . pg_escape_string($filters['startPublishedDate']) . '\'';
             case 'endPublishedDate' :
                 return $model->getDbKey($model->searchFilters['endPublishedDate']['key']) . ' <= \'' . pg_escape_string($filters['endPublishedDate']) . '\'';
-            case 'startUpdateDate' :
-                return $model->getDbKey($model->searchFilters['startUpdateDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdateDate']) . '\'';
-            case 'endUpdateDate' :
+            case 'startUpdatedDate' :
+                return $model->getDbKey($model->searchFilters['startUpdatedDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdatedDate']) . '\'';
+            case 'endUpdatedDate' :
                 return $model->getDbKey($model->searchFilters['endUpdateDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdateDate']) . '\'';
             default :
                 return null;

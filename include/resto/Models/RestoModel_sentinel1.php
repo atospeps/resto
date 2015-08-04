@@ -93,6 +93,47 @@ class RestoModel_sentinel1 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
+        
+        /*
+         * Interval Update Date
+         * Extends rest api search
+         */
+        $this->searchFilters['startPublishedDate'] =  array(
+                'key' => 'published',
+                'osKey' => 'startPublishedDate',
+                'operation' => '>=',
+                'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[\+\-][0-9]{2}:[0-9]{2})$',
+                'title' => 'Beginning of the time slice of the search query. Format should follow RFC-3339'
+        );
+        
+        $this->searchFilters['endPublishedDate'] =  array(
+                'key' => 'published',
+                'osKey' => 'endPublishedDate',
+                'operation' => '<=',
+                'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[\+\-][0-9]{2}:[0-9]{2})$',
+                'title' => 'End of the time slice of the search query. Format should follow RFC-3339'
+        );          
+        
+        /*
+         * Interval Update Date
+         * Extends rest api search
+         */
+        $this->searchFilters['startUpdateDate'] =  array(
+                'key' => 'updated',
+                'osKey' => 'startUpdateDate',
+                'operation' => '>=',
+                'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[\+\-][0-9]{2}:[0-9]{2})$',
+                'title' => 'Beginning of the time slice of the search query. Format should follow RFC-3339'
+        );
+        
+        $this->searchFilters['endUpdateDate'] =  array(
+                'key' => 'updated',
+                'osKey' => 'endUpdateDate',
+                'operation' => '<=',
+                'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[\+\-][0-9]{2}:[0-9]{2})$',
+                'title' => 'End of the time slice of the search query. Format should follow RFC-3339'
+        );
+        
     }
     
     /**

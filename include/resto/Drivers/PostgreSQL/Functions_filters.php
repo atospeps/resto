@@ -187,14 +187,13 @@ class Functions_filters {
     
     /**
      * Prepare SQL query for date
-     * 
+     *
      * @param RestoModel $model
      * @param string $filterName
      * @param array $filters
      * @return type
      */
     private function prepareFilterQuery_date($model, $filterName, $filters) {
-        
         if (!RestoUtil::isISO8601($filters[$filterName])) {
             RestoLogUtil::httpError(400, 'Invalid date parameter - ' . $filterName);
         }
@@ -203,11 +202,19 @@ class Functions_filters {
          * Process time:start and time:end filters
          */
         switch ($filterName) {
-            case 'time:start':
+            case 'time:start' :
                 return $model->getDbKey($model->searchFilters['time:start']['key']) . ' >= \'' . pg_escape_string($filters['time:start']) . '\'';
-            case 'time:end':
+            case 'time:end' :
                 return $model->getDbKey($model->searchFilters['time:end']['key']) . ' <= \'' . pg_escape_string($filters['time:end']) . '\'';
-            default:
+            case 'startPublishedDate' :
+                return $model->getDbKey($model->searchFilters['startPublishedDate']['key']) . ' >= \'' . pg_escape_string($filters['startPublishedDate']) . '\'';
+            case 'endPublishedDate' :
+                return $model->getDbKey($model->searchFilters['endPublishedDate']['key']) . ' <= \'' . pg_escape_string($filters['endPublishedDate']) . '\'';
+            case 'startUpdateDate' :
+                return $model->getDbKey($model->searchFilters['startUpdateDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdateDate']) . '\'';
+            case 'endUpdateDate' :
+                return $model->getDbKey($model->searchFilters['endUpdateDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdateDate']) . '\'';
+            default :
                 return null;
         }
     }

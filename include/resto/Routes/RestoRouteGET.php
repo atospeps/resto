@@ -31,34 +31,35 @@ class RestoRouteGET extends RestoRoute {
      * 
      * Process HTTP GET request
      * 
-     *    api/collections/search                        |  Search on all collections
-     *    api/collections/{collection}/search           |  Search on {collection}
-     *    api/collections/describe                      |  Opensearch service description at collections level
-     *    api/collections/{collection}/describe         |  Opensearch service description for products on {collection}
-     *    api/users/connect                             |  Connect and return a new valid connection token
-     *    api/users/resetPassword                       |  Ask for password reset (i.e. reset link sent to user email adress)
-     *    api/users/checkToken                          |  Check if token is valid
-     *    api/users/{userid}/activate                   |  Activate users with activation code
+     *    api/collections/search                            |  Search on all collections
+     *    api/collections/{collection}/search               |  Search on {collection}
+     *    api/collections/describe                          |  Opensearch service description at collections level
+     *    api/collections/{collection}/describe             |  Opensearch service description for products on {collection}
+     *    api/users/connect                                 |  Connect and return a new valid connection token
+     *    api/users/resetPassword                           |  Ask for password reset (i.e. reset link sent to user email adress)
+     *    api/users/checkToken                              |  Check if token is valid
+     *    api/users/{userid}/activate                       |  Activate users with activation code
      *    
-     *    collections                                   |  List all collections            
-     *    collections/{collection}                      |  Get {collection} description
-     *    collections/{collection}/{feature}            |  Get {feature} description within {collection}
-     *    collections/{collection}/{feature}/check      |  Verify {feature} zip file exists
-     *    collections/{collection}/{feature}/download   |  Download {feature}
+     *    collections                                       |  List all collections            
+     *    collections/{collection}                          |  Get {collection} description
+     *    collections/{collection}/{feature}                |  Get {feature} description within {collection}
+     *    collections/{collection}/{feature}/download       |  Download {feature}
+     *    collections/{collection}/{feature}/check/cart     |  Verify {feature} zip file exists
+     *    collections/{collection}/{feature}/check/download |  Verify {feature} zip file exists
      * 
-     *    groups                                        |  List all groups    
-     *    groups/{groupid}                              |  Show group {groupid}         
+     *    groups                                            |  List all groups    
+     *    groups/{groupid}                                  |  Show group {groupid}         
      *    
-     *    users                                         |  List all users
-     *    users/{userid}                                |  Show {userid} information
-     *    users/{userid}/cart                           |  Show {userid} cart
-     *    users/{userid}/orders                         |  Show orders for {userid}
-     *    users/{userid}/orders/{orderid}               |  Show {orderid} order for {userid}
-     *    users/{userid}/rights                         |  Show rights for {userid}
-     *    users/{userid}/rights/{collection}            |  Show rights for {userid} on {collection}
-     *    users/{userid}/rights/{collection}/{feature}  |  Show rights for {userid} on {feature} from {collection}
-     *    users/{userid}/signatures                     |  Show signatures for {userid}
-     *    users/{userid}/signatures/{collection}        |  Show signatures for {userid} on {collection}
+     *    users                                             |  List all users
+     *    users/{userid}                                    |  Show {userid} information
+     *    users/{userid}/cart                               |  Show {userid} cart
+     *    users/{userid}/orders                             |  Show orders for {userid}
+     *    users/{userid}/orders/{orderid}                   |  Show {orderid} order for {userid}
+     *    users/{userid}/rights                             |  Show rights for {userid}
+     *    users/{userid}/rights/{collection}                |  Show rights for {userid} on {collection}
+     *    users/{userid}/rights/{collection}/{feature}      |  Show rights for {userid} on {feature} from {collection}
+     *    users/{userid}/signatures                         |  Show signatures for {userid}
+     *    users/{userid}/signatures/{collection}            |  Show signatures for {userid} on {collection}
      * 
      * Note: {userid} can be replaced by base64(email) 
      * 
@@ -414,8 +415,15 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Check the zip file of the feature
          */
-        else if ($segments[3] === 'check') {
-            return $this->GET_featureCheckFile($collection, $feature);
+        else if ($segments[3] === 'check' && $segments[4] === 'download') {
+            return $this->GET_featureCheckFileDownload($collection, $feature);
+        }
+        
+        /*
+         * Check the zip file of the feature
+         */
+        else if ($segments[3] === 'check' && $segments[4] === 'cart') {
+            return $this->GET_featureCheckFileCart($collection, $feature);
         }
 
         /*
@@ -434,98 +442,87 @@ class RestoRouteGET extends RestoRoute {
     }
     
     /**
-     * Verify zip file exists
+     * We verify all the elements to add a product to the cart
      *
      * @param RestoCollection $collection
      * @param RestoFeature $feature
      * @return type
      */
-    private function GET_featureCheckFile($collection, $feature) {
-        $featureProp = $feature->toArray();
-        // We verify the existence of an external file
-        if (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
-            $url = $featureProp['properties']['services']['download']['url'];
-            if (@fopen($url, "r")) {
-                return array (
-                        'check' => '200' 
-                );
-            } else {
-                return array (
-                        'check' => '404' 
-                );
-            }
-            // We verify th existence of a file in the server
-        } elseif (isset($featureProp['properties']['resourceInfos']['path'])) {
-            if (is_file($featureProp['properties']['resourceInfos']['path'])) {
-                return array (
-                        'check' => '200' 
-                );
-            } else {
-                return array (
-                        'check' => '404' 
-                );
-            }
+    private function GET_featureCheckFileCart($collection, $feature) {
+        //We validate all the possible elemnts to allow the product download
+        $downloadState = $this->validateDownload($collection, $feature);
+        
+        if ($downloadState !== "OK") {
+            return $downloadState;
         }
+        
     }
-
+    
     /**
-     * Download feature
-     * 
+     * We verify all the elements to directly download a product
+     *
      * @param RestoCollection $collection
      * @param RestoFeature $feature
      * @return type
      */
-    private function GET_featureDownload($collection, $feature) {
-        $featureProp = $feature->toArray();
-        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
+    private function GET_featureCheckFileDownload($collection, $feature) {
+        //We validate all the possible elemnts to allow the product download
+        $downloadState = $this->validateDownload($collection, $feature);
+    
+        if ($downloadState !== "OK") {
+            return $downloadState;
+        }
         
+        //We validate all the possible elemnts to allow the product download
+        $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
+    
+        if ($sizeLimitState !== "OK") {
+            return $sizeLimitState;
+        }
+    }
+    
+    /**
+     * Download feature
+     *
+     * @param RestoCollection $collection
+     * @param RestoFeature $feature
+     * @return type
+     */
+    private function GET_featureDownload($collection, $feature) {      
         /*
          * Token case, retrieve user to perform all controls
          */
-        if(!empty($this->context->query['_tk'])) {
-            $email = $this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->baseUrl . '/' . $this->context->path, 'token' => $this->context->query['_tk']));
-            if(!$email) {
+        if (!empty($this->context->query['_tk'])) {
+            $email = $this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array (
+                    'resourceUrl' => $this->context->baseUrl . '/' . $this->context->path,
+                    'token' => $this->context->query['_tk'] 
+            ));
+            if (!$email) {
                 RestoLogUtil::httpError(403);
             }
-            $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $email)), $this->context);
+            $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
+                    'email' => $email 
+            )), $this->context);
         }
         
-        /*
-         * User do not have right to download product
-         */
-        if (!$this->user->canDownload($collection->name, $feature->identifier)) {
-            RestoLogUtil::httpError(403);
+        //We validate all the possible elemnts to allow the product download
+        $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
+        
+        if ($sizeLimitState !== "OK") {
+            return $sizeLimitState;
         }
-        /*
-         * Or user has rigth but hasn't sign the license yet
-         */
-        else if ($this->user->hasToSignLicense($collection->toArray(false))) {
-            return array(
-                'ErrorMessage' => 'Forbidden',
-                'collection' => $collection->name,
-                'license' => $collection->getLicense(),
-                'ErrorCode' => 3002
-            );
-        }
-        /*
-         * Or the user has reached his instant download limit
-         */
-        else if ($size > $this->user->profile['instantdownloadvolume'] * 1000000) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
-        }        
-        /*
-         * Or the user has reached his weekly download limit.
-         */
-        else if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $this->user->profile, 'size' => $size))) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $this->user->profile['weeklydownloadvolume'] . "Mo per week, please wait some days, or contact our administrator");
-        }
-        /*
-         * Rights + license signed = download and exit
-         */
-        else {
+        
+        // We validate all the elemetns needed to make the product available to the user
+        $downloadState = $this->validateDownload($collection, $feature);
+        
+        // If the validations is OK we download
+        if ($downloadState === "OK") {
             $this->storeQuery('download', $collection->name, $feature->identifier);
             $feature->download();
             return null;
+        } else {
+            // If the validations is KO we return an error message
+            return $downloadState;
         }
     }
 
@@ -739,8 +736,84 @@ class RestoRouteGET extends RestoRoute {
     }
     
     /**
+     * Validate that a user can download a product by it's limit download size
+     */    
+    private function validateUserSizeLimit($collection, $feature) {
+        // We get a correct array format
+        $featureProp = $feature->toArray();
+        //We get the size limit of the user
+        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
+        
+        /*
+         * Or the user has reached his instant download limit
+         */
+        if ($size > $this->user->profile['instantdownloadvolume'] * 1000000) {
+            return RestoLogUtil::httpError(420, "instant|" . $this->user->profile['instantdownloadvolume']);
+        }
+        /*
+         * Or the user has reached his weekly download limit.
+         */
+        else if ($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array (
+                'userprofile' => $this->user->profile,
+                'size' => $size
+        ))) {
+            return RestoLogUtil::httpError(420, "week|" . $this->user->profile['weeklydownloadvolume']);
+        
+        }else {
+            return "OK";
+        }
+    }
+    
+    /**
+     * Validate that a user can download a certain product
+     */
+    private function validateDownload($collection, $feature) {
+        // We get a correct array format
+        $featureProp = $feature->toArray();
+        
+        // First we verify if the product's file is in our infrastructure 
+        // We verify the existence of an external file
+        if (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
+            $url = $featureProp['properties']['services']['download']['url'];
+            if (@fopen($url, "r") === false) {
+                return RestoLogUtil::httpError(404);
+            }
+            // We verify th existence of a file in the server
+        } elseif (isset($featureProp['properties']['resourceInfos']['path'])) {
+            if (!is_file($featureProp['properties']['resourceInfos']['path'])) {
+                return RestoLogUtil::httpError(404);
+            }
+        }
+        
+        // Secondly we verify all the rights
+        /*
+         * User do not have right to download product
+         */
+        if (!$this->user->canDownload($collection->name, $feature->identifier)) {
+            RestoLogUtil::httpError(403);
+        }         
+        /*
+         * Or user has rigth but hasn't sign the license yet
+         */
+        else if ($this->user->hasToSignLicense($collection->toArray(false))) {
+            return array (
+                    'ErrorMessage' => 'Forbidden',
+                    'collection' => $collection->name,
+                    'license' => $collection->getLicense(),
+                    'ErrorCode' => 3002 
+            );
+        }                 
+        /*
+         * Existinf file + rights + license signed = OK
+         */
+        else {
+            return "OK";
+        }
+    }
+    
+    /**
      * Return license url in the curent language
-     * 
+     *
      * @param array $collectionDescription
      * @return string
      */
@@ -750,7 +823,6 @@ class RestoRouteGET extends RestoRoute {
         }
         
         return null;
-            
     }
 
 }

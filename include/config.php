@@ -118,8 +118,8 @@ return array(
         /*
          * Set the default user download limit volume (in Megabyte)
          */
-        'instantLimitDownloadVolume' => 10000,
-        'weeklyLimitDownloadVolume' => 50000
+        'instantLimitDownloadVolume' => 1000,
+        'weeklyLimitDownloadVolume' => 5000
     ),
     
     /*
@@ -207,7 +207,7 @@ return array(
             ),
             'fr' => array(
                 'subject' => '[{a:1}] Demande de réinitialisation de mot de passe',
-                'message' => "Bonjour,<br><br>Vous avez demandé une réinitialisation de votre mot de passe pour l'application {a:1}<br><br>Pour réinitialiser ce mot de passe, veuillez vous rendre sur le lien suivante {a:2} <br><br>Cordialement<br><br>L'équipe {a:1}"
+                'message' => "Bonjour,<br><br>Vous avez demandé une réinitialisation de votre mot de passe pour l'application {a:1}<br><br>Pour réinitialiser ce mot de passe, veuillez vous rendre sur le lien suivant {a:2} <br><br>Cordialement<br><br>L'équipe {a:1}"
             )
         )
     ),
@@ -280,7 +280,7 @@ return array(
          * !!! Require iTag !!!
          */
         'Gazetteer' => array(
-            'activate' => false,
+            'activate' => true,
             'route' => 'api/gazetteer/search',
             'options' => array(
                 'database' => array(
@@ -288,7 +288,7 @@ return array(
                     /*
                      * Database host - if not specified connect through socket instead of TCP/IP
                      */
-                    //'host' => 'localhost',
+                    'host' => 'localhost',
                     'user' => 'itag',
                     'password' => 'itag'
                 )
@@ -322,14 +322,14 @@ return array(
          * !!! Require iTag !!!
          */
         'iTag' => array(
-            'activate' => false,
+            'activate' => true,
             'options' => array(
                 'database' => array(
                     'dbname' => 'itag',
                     /*
                      * Database host - if not specified connect through socket instead of TCP/IP
                      */
-                    //'host' => 'localhost',
+                    'host' => 'localhost',
                     'user' => 'itag',
                     'password' => 'itag'
                 ),

@@ -58,6 +58,10 @@ class RestoModel_sentinel1 extends RestoModel {
         'missionTakeId' => array(
             'name' => 'missiontakeid',
             'type' => 'INTEGER'
+        ),
+        'orbitDirection' => array(
+            'name' => 'orbitDirection',
+            'type' => 'TEXT'
         )
     );
     
@@ -131,10 +135,10 @@ class RestoModel_sentinel1 extends RestoModel {
          */
         $feature = array(
                 'type' => 'Feature',
-                /*'geometry' => array(
+                'geometry' => array(
                         'type' => 'Polygon',
-                        'coordinates' => array($polygon)
-                ),*/
+                        'coordinates' => array($this->wktToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue)),
+                ),
                 'properties' => array(
                         'productIdentifier' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
                         'title' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
@@ -263,6 +267,47 @@ class RestoModel_sentinel1 extends RestoModel {
         $missionId = $dom->getElementsByTagName('missionId')->item(0)->nodeValue;
         $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
 	return $result."/".$missionId."/".$title;
+    }
+        
+    /*
+     * Converts WKT polygon (string) to polygon array
+     *
+     */
+    function wktToArray($wktPolygon) {
+        /*
+         * Result
+         */
+        $coordinates = array ();
+        /*
+         * Patterns
+         */
+        $coordinate = '[-]?[0-9]{1,3}\.?[0-9]*';
+        $values = "($coordinate $coordinate)(\s*,\s*$coordinate $coordinate)*";
+        $pattern = "/^POLYGON\s*\(\s*\(\s*($values)\s*\)\s*\)$/i";
+        /*
+         * Checks input parameter (WKT String)
+         */
+        if (preg_match($pattern, $wktPolygon, $matches)) {
+            if (count($matches) >= 1) {
+                /*
+                 * Explodes coordinates string
+                 */
+                $coordinates = $matches[1];
+                $coordinates = explode(',', $coordinates);
+                /*
+                 * For each coordinate, stores lon/lat
+                 */
+                for($i = 0; $i < count($coordinates); $i++) {
+                    $coordinates[$i] = explode(' ', $coordinates[$i]);
+                }
+            }
+        } else {
+            throw new Exception('wktToArray : Invalid input WKT.');
+        }
+        /*
+         * Returns result
+         */
+        return $coordinates;
     }
 
 }

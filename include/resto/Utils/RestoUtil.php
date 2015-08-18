@@ -405,43 +405,13 @@ class RestoUtil {
         if (is_array($strOrArray)) {
             $result = array();
             foreach ($strOrArray as $key => $value) {
-                
-                /*
-                 * Remove html tags
-                 */
-                if (is_string($value)) {
-                    $result[$key] = strip_tags($value);
-                }
-                /*
-                 * Let value untouched
-                 */
-                else {
-                    $result[$key] = $value;
-                }
+                $result[$key] = RestoUtil::sanitizeString($value);
             }
+            exit();
             return $result;
         }
-        else {
-
-            /*
-             * No Hexadecimal allowed
-             */
-            if (ctype_xdigit($strOrArray)) {
-                return null;
-            }
-            /*
-             * Remove html tags
-             */
-            else if (is_string($strOrArray)) {
-                return strip_tags($strOrArray);
-            }
-            /*
-             * Let value untouched
-             */
-            else {
-                return $strOrArray;
-            }
-        }
+        
+        return RestoUtil::sanitizeString($strOrArray);
         
     }
     
@@ -570,6 +540,45 @@ class RestoUtil {
         $json = json_decode($content, true);
         
         return $json === null ? explode("\n", $content) : $json;
+    }
+    
+    /**
+     * Sanitize string
+     *
+     * @param string $str
+     * @return string
+     */
+    private static function sanitizeString($str) {
+        
+        /*
+         * Remove html tags and NULL (i.e. \0)
+         */
+        if (is_string($str)) {
+            
+            /*
+             * No Hexadecimal. If the string only has hexadecimals,
+             * bu not only decimals, means it's sure an heaxadecimal number
+             * 2AF3 -> Hexadecimal
+             * 2453 -> Hexadecimal and decimal
+             */
+            if (ctype_xdigit($str) && !ctype_digit($str)) {
+                return null;
+            }
+            
+            /*
+             * No Hexadecimal allowed i.e. nothing that starts with 0x
+             */
+            if (strlen($str) > 1 && substr($str, 0, 2) === '0x') {
+                return null;
+            }
+            
+            return strip_tags(str_replace(chr(0), '', $str));
+        }
+        
+        /*
+         * Let value untouched
+         */
+        return $str;
     }
     
 }

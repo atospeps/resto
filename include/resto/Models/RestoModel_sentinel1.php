@@ -152,6 +152,9 @@ class RestoModel_sentinel1 extends RestoModel {
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
                         'orbitDirection' => strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue),
+                        'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
+                        'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
+                        'missionTakeId' => $dom->getElementsByTagName('missiontakeid')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )
@@ -252,6 +255,9 @@ class RestoModel_sentinel1 extends RestoModel {
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
                         'orbitDirection' => strtolower($dom->getElementsByTagName('pass')->item(0)->nodeValue),
+                        'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
+                        'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
+                        'missionTakeId' => $dom->getElementsByTagName('missionDataTakeId')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )

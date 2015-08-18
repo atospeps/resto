@@ -1,6 +1,5 @@
 /* Script de migration de la base de données Resto de la version 1.2 vers 1.2.1 */
 /* Rajouter la colonne orbitDirection dans la table features de la collection s1 et de Resto  */
-/* Change the default value of instantdownaloadlimit and weeklydownloadlimit (value in MegaOctet) */
 CREATE OR REPLACE function f_add_col(
    _tbl regclass, _col  text, _type regtype, OUT success bool)
     LANGUAGE plpgsql AS
@@ -16,7 +15,7 @@ IF EXISTS (
 
 ELSE
    EXECUTE '
-   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || quote_ident(_col) || ' ' || _type;
+   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || _col || ' ' || _type;
    success := TRUE;
 END IF;
 
@@ -24,5 +23,3 @@ END
 $func$;
 
 SELECT f_add_col('_s1.features', 'orbitDirection', 'text');
-
-SELECT f_add_col('resto.features', 'orbitDirection', 'text');

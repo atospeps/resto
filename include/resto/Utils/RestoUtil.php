@@ -407,7 +407,7 @@ class RestoUtil {
             foreach ($strOrArray as $key => $value) {
                 $result[$key] = RestoUtil::sanitizeString($value);
             }
-            exit();
+
             return $result;
         }
         

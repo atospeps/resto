@@ -151,7 +151,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                        'orbitDirection' => $dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue,
+                        'orbitDirection' => strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue),
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )
@@ -251,7 +251,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                        'orbitDirection' => $dom->getElementsByTagName('pass')->item(0)->nodeValue,
+                        'orbitDirection' => strtolower($dom->getElementsByTagName('pass')->item(0)->nodeValue),
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )

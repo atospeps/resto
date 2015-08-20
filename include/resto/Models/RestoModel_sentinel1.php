@@ -95,18 +95,23 @@ class RestoModel_sentinel1 extends RestoModel {
         
         $dom = new DOMDocument();
         $dom->loadXML(rawurldecode($xml));
-        
-        //adsHeader is a tag only found in the old xml version
+        /* 
+         * adsHeader is a tag only found in the old xml version
+         */
         $verifyVersion = $dom->getElementsByTagName('adsHeader');
         if($verifyVersion->length == 0){
-            // We parse the file with the new version
+            /* 
+             * We parse the file with the new version
+             */
             return $this->parseNew($dom);
         }else{
-            // We parse the file with the old version
+            /* 
+             * We parse the file with the old version 
+             */
             return $this->parseOld($dom);
         }
     }
-    
+
     /**
      * Create JSON feature from new resource xml string
      *
@@ -130,6 +135,19 @@ class RestoModel_sentinel1 extends RestoModel {
      * @param {DOMDocument} $dom : $dom DOMDocument
      */
     private function parseNew($dom){
+
+        /*
+         * Retreives orbit direction
+         */
+        $orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
+        /*
+         * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
+         * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside
+         * the ZIP files (i.e. as produced by the S1 ground segment).
+         */
+        $polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
+        $polygon = SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection);
+
         /*
          * Initialize feature
          */
@@ -137,7 +155,7 @@ class RestoModel_sentinel1 extends RestoModel {
                 'type' => 'Feature',
                 'geometry' => array(
                         'type' => 'Polygon',
-                        'coordinates' => array($this->wktToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue)),
+                        'coordinates' => $polygon,
                 ),
                 'properties' => array(
                         'productIdentifier' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
@@ -151,7 +169,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                        'orbitDirection' => strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue),
+                        'orbitDirection' => $orbitDirection,
                         'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missiontakeid')->item(0)->nodeValue,
@@ -162,7 +180,7 @@ class RestoModel_sentinel1 extends RestoModel {
 
         return $feature;
     }
-    
+
     /**
      * Create JSON feature from old resource xml string
      *
@@ -194,45 +212,22 @@ class RestoModel_sentinel1 extends RestoModel {
      * @param {DOMDocument} $dom : $dom DOMDocument
      */
     private function parseOld($dom){
+        /*
+         * Retreives geolocation grid point
+         */
         $geolocationGridPoint = $dom->getElementsByTagName('geolocationGridPoint');
-        $ul = array();
-        $ur = array();
-        $ll = array();
-        $lr = array();
-        $lineMax = 0;
-        $lineMin = 0;
-        $lineMinStatus = 0;
-        $pixelMax = 0;
-        for ($i = 0, $ii = $geolocationGridPoint->length; $i < $ii; $i++) {
-            $line = (integer) $geolocationGridPoint->item($i)->getElementsByTagName('line')->item(0)->nodeValue;
-            $pixel = (integer) $geolocationGridPoint->item($i)->getElementsByTagName('pixel')->item(0)->nodeValue;
-            $coordinates = array($geolocationGridPoint->item($i)->getElementsByTagName('longitude')->item(0)->nodeValue, $geolocationGridPoint->item($i)->getElementsByTagName('latitude')->item(0)->nodeValue);
-            if ($lineMinStatus == 0)
-            {
-                $lineMinStatus = 1;
-                $lineMin=$line;
-            }
-            if ($line === $lineMin) {
-                if ($pixel === 0) {
-                    $ul = $coordinates;
-                }
-                else if ($pixel >= $pixelMax) {
-                    $pixelMax = $pixel;
-                    $ur = $coordinates;
-                }
-            }
-            else if ($line >= $lineMax) {
-                $lineMax = $line;
-                if ($pixel === 0) {
-                    $ll = $coordinates;
-                }
-                else if ($pixel >= $pixelMax) {
-                    $pixelMax = $pixel;
-                    $lr = $coordinates;
-                }
-            }
-        }
-        $polygon = array($ul, $ur, $lr, $ll, $ul);
+        /*
+         * Retreives orbit direction
+         */
+        $orbitDirection = strtolower($dom->getElementsByTagName('pass')->item(0)->nodeValue);
+        /*
+         * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
+         * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside 
+         * the ZIP files (i.e. as produced by the S1 ground segment).
+         */
+        $polygon = SentinelUtil::readFootprintFromGeolocationGridPoint($geolocationGridPoint, $orbitDirection);
+        $polygon = SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection);
+
         /*
          * Initialize feature
         */
@@ -254,7 +249,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                        'orbitDirection' => strtolower($dom->getElementsByTagName('pass')->item(0)->nodeValue),
+                        'orbitDirection' => $orbitDirection,
                         'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missionDataTakeId')->item(0)->nodeValue,
@@ -262,7 +257,6 @@ class RestoModel_sentinel1 extends RestoModel {
                         'cloudCover' => 0
                 )
         );
-        
         return $feature;
     }
 
@@ -274,46 +268,4 @@ class RestoModel_sentinel1 extends RestoModel {
         $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
 	return $result."/".$missionId."/".$title;
     }
-        
-    /*
-     * Converts WKT polygon (string) to polygon array
-     *
-     */
-    function wktToArray($wktPolygon) {
-        /*
-         * Result
-         */
-        $coordinates = array ();
-        /*
-         * Patterns
-         */
-        $coordinate = '[-]?[0-9]{1,3}\.?[0-9]*';
-        $values = "($coordinate $coordinate)(\s*,\s*$coordinate $coordinate)*";
-        $pattern = "/^POLYGON\s*\(\s*\(\s*($values)\s*\)\s*\)$/i";
-        /*
-         * Checks input parameter (WKT String)
-         */
-        if (preg_match($pattern, $wktPolygon, $matches)) {
-            if (count($matches) >= 1) {
-                /*
-                 * Explodes coordinates string
-                 */
-                $coordinates = $matches[1];
-                $coordinates = explode(',', $coordinates);
-                /*
-                 * For each coordinate, stores lon/lat
-                 */
-                for($i = 0; $i < count($coordinates); $i++) {
-                    $coordinates[$i] = explode(' ', $coordinates[$i]);
-                }
-            }
-        } else {
-            throw new Exception('wktToArray : Invalid input WKT.');
-        }
-        /*
-         * Returns result
-         */
-        return $coordinates;
-    }
-
 }

@@ -565,9 +565,9 @@ abstract class RestoModel {
                     'title' => 'Beginning of the time slice of the update period. Format should follow RFC-3339' 
             ),
             
-            'endUpdateDate' => array (
+            'endUpdatedDate' => array (
                     'key' => 'updated',
-                    'osKey' => 'endUpdateDate',
+                    'osKey' => 'endUpdatedDate',
                     'operation' => '<=',
                     'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
                     'title' => 'End of the time slice of the update period. Format should follow RFC-3339' 

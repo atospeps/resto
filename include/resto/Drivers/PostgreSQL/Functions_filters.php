@@ -213,7 +213,7 @@ class Functions_filters {
             case 'startUpdatedDate' :
                 return $model->getDbKey($model->searchFilters['startUpdatedDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdatedDate']) . '\'';
             case 'endUpdatedDate' :
-                return $model->getDbKey($model->searchFilters['endUpdateDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdateDate']) . '\'';
+                return $model->getDbKey($model->searchFilters['endUpdatedDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdatedDate']) . '\'';
             default :
                 return null;
         }

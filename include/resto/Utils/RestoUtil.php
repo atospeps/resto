@@ -314,9 +314,10 @@ class RestoUtil {
         /*
          * A file is posted - read attachement
          */
-        else {
+        // By now, we don't attach files to POST URLs
+        /*else {
             return RestoUtil::readFile($uploadDirectory);
-        }
+        }*/
         
     }
     

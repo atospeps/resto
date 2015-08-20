@@ -30,6 +30,6 @@
         "metadata" : "https://peps.cnes.fr/hpss/peps/data/{:quicklook:}_Metadata.xml",
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
         "resourceMimeType": "application/zip",
-        "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=/data/peps/wms/config.map&data={:quicklook:}"
+        "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}"
     }
 }

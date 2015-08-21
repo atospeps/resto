@@ -771,17 +771,18 @@ class RestoRouteGET extends RestoRoute {
         // We get a correct array format
         $featureProp = $feature->toArray();
         
-        // First we verify if the product's file is in our infrastructure 
-        // We verify the existence of an external file
-        if (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
-            $url = $featureProp['properties']['services']['download']['url'];
-            if (@fopen($url, "r") === false) {
-                return RestoLogUtil::httpError(404);
+        // First we verify if the product's file is in our infrastructure
+        // We verify th existence of a file in the server
+        if (isset($featureProp['properties']['resourceInfos']['path'])) {
+            $file = fopen($featureProp['properties']['resourceInfos']['path'], 'rb');
+            if (!is_resource($file)) {
+                RestoLogUtil::httpError(404);
             }
-            // We verify th existence of a file in the server
-        } elseif (isset($featureProp['properties']['resourceInfos']['path'])) {
-            if (!is_file($featureProp['properties']['resourceInfos']['path'])) {
-                return RestoLogUtil::httpError(404);
+            // We verify the existence of an external file
+        } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
+            $file = fopen($featureProp['properties']['services']['download']['url'], 'rb');
+            if (!is_resource($file)) {
+                RestoLogUtil::httpError(404);
             }
         }
         
@@ -792,7 +793,7 @@ class RestoRouteGET extends RestoRoute {
         if (!$this->user->canDownload($collection->name, $feature->identifier)) {
             RestoLogUtil::httpError(403);
         }         
-        /*
+		/*
          * Or user has rigth but hasn't sign the license yet
          */
         else if ($this->user->hasToSignLicense($collection->toArray(false))) {
@@ -802,13 +803,11 @@ class RestoRouteGET extends RestoRoute {
                     'license' => $collection->getLicense(),
                     'ErrorCode' => 3002 
             );
-        }                 
+        }
         /*
          * Existinf file + rights + license signed = OK
          */
-        else {
-            return "OK";
-        }
+        return "OK";
     }
     
     /**

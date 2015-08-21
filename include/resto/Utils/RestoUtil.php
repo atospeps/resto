@@ -235,32 +235,58 @@ class RestoUtil {
                     '\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}' . '' . '[,|\.]\d+' . '' . '[\+|\-]\d{2}\d{2}' // YYYYMMDDTHHMMSSZ(. or ,)n +HHMM or -HHMM
                 )) . '$/i', $dateStr);
     }
-
+    
+    
     /**
-     * 
+     *
+     * Verify there is no time
+     *
+     * @param {String} $dateStr
+     *
+     */
+    public static function isTimeDefined($dateStr) {
+        /**
+         * Construct the regex to match all ISO 8601 format date case 
+         * The regex is constructed as a combination of all pattern
+         */
+        return preg_match('/^' . join('$|^', array (
+                '\d{4}', // YYYY
+                '\d{4}-\d{2}', // YYYY-MM
+                '\d{4}-\d{2}-\d{2}', // YYYY-MM-DD
+                '\d{4}\d{2}', // YYYYMM
+                '\d{4}\d{2}\d{2}') // YYYYMMDD
+        ) . '$/i', $dateStr);
+   }
+    
+    /**
+     *
      * Return an ISO 8601 formatted YYYY-MM-DDT00:00:00Z from
      * a valid iso8601 string
-     * 
+     *
      * @param {String} $dateStr
-     *    
+     *
      */
-    public static function toISO8601($dateStr) {
-
+    public static function toISO8601($dateStr, $utcTimeStr = null) {
+        
+        $utc_time = 'T00:00:00Z';
+        if (isset($utcTimeStr) && !empty($utcTimeStr)) {
+            $utc_time = $utcTimeStr;
+        }
+        
         // Year
         if (preg_match('/^\d{4}$/i', $dateStr)) {
-            return $dateStr . '-01-01T00:00:00Z';
-        }
-        // Month
+            return $dateStr . '-01-01' . $utc_time;
+        }  // Month
         else if (preg_match('/^\d{4}-\d{2}$/i', $dateStr)) {
-            return $dateStr . '-01T00:00:00Z';
-        }
-        // Day
+            return $dateStr . '-01' . $utc_time;
+        }  // Day
         else if (preg_match('/^\d{4}-\d{2}-\d{2}$/i', $dateStr)) {
-            return $dateStr . 'T00:00:00Z';
+            return $dateStr . $utc_time;
         }
-
+        
         return $dateStr;
     }
+    
     
     /**
      * Instantiate class with params

@@ -58,8 +58,6 @@ class RestoRouteGET extends RestoRoute {
      *    users/{userid}/rights                             |  Show rights for {userid}
      *    users/{userid}/rights/{collection}                |  Show rights for {userid} on {collection}
      *    users/{userid}/rights/{collection}/{feature}      |  Show rights for {userid} on {feature} from {collection}
-     *    users/{userid}/signatures                         |  Show signatures for {userid}
-     *    users/{userid}/signatures/{collection}            |  Show signatures for {userid} on {collection}
      * 
      * Note: {userid} can be replaced by base64(email) 
      * 
@@ -591,13 +589,6 @@ class RestoRouteGET extends RestoRoute {
         if ($segments[2] === 'orders') {
             return $this->GET_userOrders($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
-
-        /*
-         * users/{userid}/signatures
-         */
-        if ($segments[2] === 'signatures') {
-            return $this->GET_userSignatures($segments[1], isset($segments[3]) ? $segments[3] : null);
-        }
         
         return RestoLogUtil::httpError(404);
     }
@@ -639,51 +630,6 @@ class RestoRouteGET extends RestoRoute {
                     'userid' => $user->profile['userid'],
                     'groupname' => $user->profile['groupname'],
                     'rights' => $user->getFullRights($collectionName, $featureIdentifier)
-        ));
-    }
-
-    /**
-     * Process HTTP GET request on user signatures
-     * 
-     * @param string $emailOrId
-     * @param string $collectionName
-     * @throws Exception
-     */
-    private function GET_userSignatures($emailOrId, $collectionName = null) {
-        
-        /*
-         * Rights can only be seen by its owner or by admin
-         */
-        $user = $this->getAuthorizedUser($emailOrId);
-        $signatures = array();
-        
-        /*
-         * Get collections
-         */
-        $collectionsDescriptions = $this->context->dbDriver->get(RestoDatabaseDriver::COLLECTIONS_DESCRIPTIONS);
-        
-        /*
-         *  Get rights for collections
-         */
-        if (!isset($collectionName)) {
-            foreach ($collectionsDescriptions as $collectionDescription) {
-                $signatures[$collectionDescription['name']] = array(
-                    'hasToSignLicense' => $user->hasToSignLicense($collectionDescription),
-                    'licenseUrl' =>  $this->getLicenseUrl($collectionDescription)
-                );
-            }
-        }
-        else {
-            $signatures[$collectionName] = array(
-                'hasToSignLicense' => $user->hasToSignLicense($collectionsDescriptions[$collectionName]),
-                'licenseUrl' => $this->getLicenseUrl($collectionsDescriptions[$collectionName])
-            );
-        }
-
-        return RestoLogUtil::success('Signatures for ' . $user->profile['userid'], array(
-            'userid' => $user->profile['userid'],
-            'groupname' => $user->profile['groupname'],
-            'signatures' => $signatures
         ));
     }
 
@@ -771,17 +717,18 @@ class RestoRouteGET extends RestoRoute {
         // We get a correct array format
         $featureProp = $feature->toArray();
         
-        // First we verify if the product's file is in our infrastructure 
-        // We verify the existence of an external file
-        if (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
-            $url = $featureProp['properties']['services']['download']['url'];
-            if (@fopen($url, "r") === false) {
-                return RestoLogUtil::httpError(404);
+        // First we verify if the product's file is in our infrastructure
+        // We verify th existence of a file in the server
+        if (isset($featureProp['properties']['resourceInfos']['path'])) {
+            $file = fopen($featureProp['properties']['resourceInfos']['path'], 'rb');
+            if (!is_resource($file)) {
+                RestoLogUtil::httpError(404);
             }
-            // We verify th existence of a file in the server
-        } elseif (isset($featureProp['properties']['resourceInfos']['path'])) {
-            if (!is_file($featureProp['properties']['resourceInfos']['path'])) {
-                return RestoLogUtil::httpError(404);
+            // We verify the existence of an external file
+        } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
+            $file = fopen($featureProp['properties']['services']['download']['url'], 'rb');
+            if (!is_resource($file)) {
+                RestoLogUtil::httpError(404);
             }
         }
         
@@ -791,24 +738,12 @@ class RestoRouteGET extends RestoRoute {
          */
         if (!$this->user->canDownload($collection->name, $feature->identifier)) {
             RestoLogUtil::httpError(403);
-        }         
-        /*
-         * Or user has rigth but hasn't sign the license yet
-         */
-        else if ($this->user->hasToSignLicense($collection->toArray(false))) {
-            return array (
-                    'ErrorMessage' => 'Forbidden',
-                    'collection' => $collection->name,
-                    'license' => $collection->getLicense(),
-                    'ErrorCode' => 3002 
-            );
-        }                 
-        /*
-         * Existinf file + rights + license signed = OK
-         */
-        else {
-            return "OK";
         }
+        
+        /*
+         * Existinf file + rights = OK
+         */
+        return "OK";
     }
     
     /**

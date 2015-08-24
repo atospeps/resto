@@ -205,15 +205,27 @@ class Functions_filters {
             case 'time:start' :
                 return $model->getDbKey($model->searchFilters['time:start']['key']) . ' >= \'' . pg_escape_string($filters['time:start']) . '\'';
             case 'time:end' :
+                // For an ending date we make sure a T23:59:59 is added if there's no time set
+                if (RestoUtil::isTimeDefined($filters['time:end'])) {
+                    $filters['time:end'] = RestoUtil::toISO8601($filters['time:end'], 'T23:59:59'); 
+                }
                 return $model->getDbKey($model->searchFilters['time:end']['key']) . ' <= \'' . pg_escape_string($filters['time:end']) . '\'';
             case 'startPublishedDate' :
                 return $model->getDbKey($model->searchFilters['startPublishedDate']['key']) . ' >= \'' . pg_escape_string($filters['startPublishedDate']) . '\'';
             case 'endPublishedDate' :
+                // For an ending date we make sure a T23:59:59 is added if there's no time set
+                if (RestoUtil::isTimeDefined($filters['endPublishedDate'])) {
+                    $filters['endPublishedDate'] = RestoUtil::toISO8601($filters['endPublishedDate'], 'T23:59:59');
+                }
                 return $model->getDbKey($model->searchFilters['endPublishedDate']['key']) . ' <= \'' . pg_escape_string($filters['endPublishedDate']) . '\'';
             case 'startUpdatedDate' :
                 return $model->getDbKey($model->searchFilters['startUpdatedDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdatedDate']) . '\'';
             case 'endUpdatedDate' :
-                return $model->getDbKey($model->searchFilters['endUpdateDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdateDate']) . '\'';
+                // For an ending date we make sure a T23:59:59 is added if there's no time set
+                if (RestoUtil::isTimeDefined($filters['time:end'])) {
+                    $filters['endUpdatedDate'] = RestoUtil::toISO8601($filters['endUpdatedDate'], 'T23:59:59');
+                }
+                return $model->getDbKey($model->searchFilters['endUpdatedDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdatedDate']) . '\'';
             default :
                 return null;
         }

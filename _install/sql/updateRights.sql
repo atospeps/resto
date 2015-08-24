@@ -30,7 +30,6 @@ GRANT ALL ON SCHEMA usermanagement TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.users TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.revokedtokens TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.rights TO :user;
-GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.signatures TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.cart TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.orders TO :user;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.sharedlinks TO :user;

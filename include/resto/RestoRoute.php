@@ -73,8 +73,6 @@
  *    |  GET     users/{userid}/rights                         |  Show rights for {userid}
  *    |  GET     users/{userid}/rights/{collection}            |  Show rights for {userid} on {collection}
  *    |  GET     users/{userid}/rights/{collection}/{feature}  |  Show rights for {userid} on {feature} from {collection}
- *    |  GET     users/{userid}/signatures                     |  Show signatures for {userid}
- *    |  GET     users/{userid}/signatures/{collection}        |  Show signatures for {userid} on {collection}
  * 
  *    Note: {userid} can be replaced by base64(email) 
  * 
@@ -91,7 +89,6 @@
  *    |  GET     api/users/checkToken                          |  Check if token is valid (i.e. not revoked)
  *    |  GET     api/users/resetPassword                       |  Ask for password reset (i.e. reset link sent to user email adress)
  *    |  GET     api/users/{userid}/activate                   |  Activate users with activation code
- *    |  POST    api/users/{userid}/signLicense                |  Sign license for input collection
  *
  */
 abstract class RestoRoute {

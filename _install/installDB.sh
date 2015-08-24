@@ -52,7 +52,7 @@ then
     exit 1
 fi
 
-# attention cette variable n'etant que partiellement utilisee dans les scripts, la modifier ne marchera pasl
+# attention cette variable n'etant que partiellement utilisee dans les scripts, la modifier ne marchera pas
 DB=resto
 
 ##### DROP SCHEMA FIRST ######

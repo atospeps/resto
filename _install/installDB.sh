@@ -283,16 +283,6 @@ CREATE TABLE usermanagement.rights (
 CREATE INDEX idx_emailorgroup_rights ON usermanagement.rights (emailorgroup);
 
 --
--- list licenses signed by users
---
-CREATE TABLE usermanagement.signatures (
-    email               TEXT, -- email from usermanagement.users
-    collection          TEXT, -- collection from resto.collections
-    signdate            TIMESTAMP NOT NULL
-);
-CREATE INDEX idx_email_signatures ON usermanagement.signatures (email);
-
---
 -- history table stores all user requests
 --
 CREATE TABLE usermanagement.history (
@@ -431,7 +421,6 @@ GRANT ALL ON SCHEMA usermanagement TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.users TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.revokedtokens TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.rights TO $USER;
-GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.signatures TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.cart TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.orders TO $USER;
 GRANT SELECT,INSERT,UPDATE,DELETE ON usermanagement.sharedlinks TO $USER;

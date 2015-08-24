@@ -73,8 +73,6 @@
  *    |  GET     users/{userid}/rights                         |  Show rights for {userid}
  *    |  GET     users/{userid}/rights/{collection}            |  Show rights for {userid} on {collection}
  *    |  GET     users/{userid}/rights/{collection}/{feature}  |  Show rights for {userid} on {feature} from {collection}
- *    |  GET     users/{userid}/signatures                     |  Show signatures for {userid}
- *    |  GET     users/{userid}/signatures/{collection}        |  Show signatures for {userid} on {collection}
  * 
  *    Note: {userid} can be replaced by base64(email) 
  * 

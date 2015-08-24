@@ -14,10 +14,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-usage="## RESTo deployment\n\n  Usage $0 -s <RESTO_HOME> -t <RESTO_TARGET>\n"
-while getopts "s:t:h" options; do
+
+# recuperation du repertoire du script, n'utiliser que la variable PRG_DIR qui represente le chemin absolu
+PRG="$0"
+EXEC_DIR=`dirname ${PRG}`
+export PRG_DIR=`(cd ${EXEC_DIR} ; echo $PWD)`
+
+SRCDIR="${PRG_DIR}/.."
+
+usage="## RESTo deployment\n\n  Usage $0 -t <RESTO_TARGET>\n"
+while getopts "t:h" options; do
     case $options in
-        s ) SRCDIR=`echo $OPTARG`;;
         t ) TARGETDIR=`echo $OPTARG`;;
         h ) echo -e $usage;;
         \? ) echo -e $usage
@@ -26,11 +33,7 @@ while getopts "s:t:h" options; do
             exit 1;;
     esac
 done
-if [ "$SRCDIR" = "" ]
-then
-    echo -e $usage
-    exit 1
-fi
+
 if [ "$TARGETDIR" = "" ]
 then
     echo -e $usage

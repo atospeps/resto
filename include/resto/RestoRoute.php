@@ -89,7 +89,6 @@
  *    |  GET     api/users/checkToken                          |  Check if token is valid (i.e. not revoked)
  *    |  GET     api/users/resetPassword                       |  Ask for password reset (i.e. reset link sent to user email adress)
  *    |  GET     api/users/{userid}/activate                   |  Activate users with activation code
- *    |  POST    api/users/{userid}/signLicense                |  Sign license for input collection
  *
  */
 abstract class RestoRoute {

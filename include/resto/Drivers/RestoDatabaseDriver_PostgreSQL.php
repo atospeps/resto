@@ -216,13 +216,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::DISCONNECT_USER:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->revokeToken($params['token']);
-               
-            /*
-             * Sign license
-             */
-            case parent::SIGN_LICENSE:
-                $usersFunctions = new Functions_users($this);
-                return $usersFunctions->signLicense($params['email'], $params['collectionName']);
                 
             default:
                 return null;

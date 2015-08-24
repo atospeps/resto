@@ -738,20 +738,10 @@ class RestoRouteGET extends RestoRoute {
          */
         if (!$this->user->canDownload($collection->name, $feature->identifier)) {
             RestoLogUtil::httpError(403);
-        }         
-		/*
-         * Or user has rigth but hasn't sign the license yet
-         */
-        else if ($this->user->hasToSignLicense($collection->toArray(false))) {
-            return array (
-                    'ErrorMessage' => 'Forbidden',
-                    'collection' => $collection->name,
-                    'license' => $collection->getLicense(),
-                    'ErrorCode' => 3002 
-            );
         }
+        
         /*
-         * Existinf file + rights + license signed = OK
+         * Existinf file + rights = OK
          */
         return "OK";
     }

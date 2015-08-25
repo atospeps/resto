@@ -222,7 +222,7 @@ class Functions_filters {
                 return $model->getDbKey($model->searchFilters['startUpdatedDate']['key']) . ' >= \'' . pg_escape_string($filters['startUpdatedDate']) . '\'';
             case 'endUpdatedDate' :
                 // For an ending date we make sure a T23:59:59 is added if there's no time set
-                if (RestoUtil::isTimeDefined($filters['time:end'])) {
+                if (RestoUtil::isTimeDefined($filters['endUpdatedDate'])) {
                     $filters['endUpdatedDate'] = RestoUtil::toISO8601($filters['endUpdatedDate'], 'T23:59:59');
                 }
                 return $model->getDbKey($model->searchFilters['endUpdatedDate']['key']) . ' <= \'' . pg_escape_string($filters['endUpdatedDate']) . '\'';

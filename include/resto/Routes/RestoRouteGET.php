@@ -720,14 +720,14 @@ class RestoRouteGET extends RestoRoute {
         // First we verify if the product's file is in our infrastructure
         // We verify th existence of a file in the server
         if (isset($featureProp['properties']['resourceInfos']['path'])) {
-            $file = fopen($featureProp['properties']['resourceInfos']['path'], 'rb');
-            if (!is_resource($file)) {
+            $filePath = $featureProp['properties']['resourceInfos']['path'];
+            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
                 RestoLogUtil::httpError(404);
             }
             // We verify the existence of an external file
         } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
-            $file = fopen($featureProp['properties']['services']['download']['url'], 'rb');
-            if (!is_resource($file)) {
+            $filePath = $featureProp['properties']['services']['download']['url'];
+            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
                 RestoLogUtil::httpError(404);
             }
         }

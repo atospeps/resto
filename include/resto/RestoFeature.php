@@ -93,7 +93,7 @@ class RestoFeature {
                 RestoLogUtil::httpError(404);
             }
            
-            return $this->streamLocalUrl(realpath($this->featureArray['properties']['resourceInfos']['path']), isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
+            return $this->streamLocalUrl(realpath($this->featureArray['properties']['resourceInfos']['path']), 'octet-stream');
             
         }
         /*
@@ -361,7 +361,7 @@ class RestoFeature {
         header('Pragma: public');
         header('Cache-Control: public, must-revalidate, post-check=0, pre-check=0');
         header('Expires: 0');
-        header('Content-Type: ' . $mimeType);
+        $this->context->outputFormat = $mimeType;
         header('Content-Disposition: attachment; filename="' . basename($path) . '"');
         header('Content-Transfer-Encoding: binary');
         header('Accept-Ranges: bytes');     

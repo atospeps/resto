@@ -524,6 +524,8 @@ class RestoRoutePOST extends RestoRoute {
         }
 
         $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
+        // Refresh user profile
+        $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
         
         /*
          * Check if the user hasn't exceed his download volume limit

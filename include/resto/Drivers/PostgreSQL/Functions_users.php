@@ -204,20 +204,6 @@ class Functions_users {
         }
         return true;
     }
-
-    /**
-     * Check if user signed collection license
-     * 
-     * @param string $identifier
-     * @param string $collectionName
-     * 
-     * @return boolean
-     */
-    public function isLicenseSigned($identifier, $collectionName) {
-        $query = 'SELECT 1 FROM usermanagement.signatures WHERE email= \'' . pg_escape_string($identifier) . '\' AND collection= \'' . pg_escape_string($collectionName) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        return !empty($results);
-    }
     
     /**
      * Sign license for collection collectionName

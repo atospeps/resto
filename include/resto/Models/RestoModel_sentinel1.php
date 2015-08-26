@@ -146,7 +146,7 @@ class RestoModel_sentinel1 extends RestoModel {
          * the ZIP files (i.e. as produced by the S1 ground segment).
          */
         $polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
-        $polygon = SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection);
+        $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection));
 
         /*
          * Initialize feature

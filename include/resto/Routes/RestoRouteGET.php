@@ -690,7 +690,7 @@ class RestoRouteGET extends RestoRoute {
         //We get the size limit of the user
         $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
         // Refresh user profile
-        $this->user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
+        $this->user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $this->user->profile['email']));
         
         /*
          * Or the user has reached his instant download limit
@@ -724,12 +724,14 @@ class RestoRouteGET extends RestoRoute {
         if (isset($featureProp['properties']['resourceInfos']['path'])) {
             $filePath = $featureProp['properties']['resourceInfos']['path'];
             if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
+                $this->user->storeQuery('error', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
             // We verify the existence of an external file
         } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
             $filePath = $featureProp['properties']['services']['download']['url'];
             if ( ($fp = fopen($filePath, "rb"))===false ) {
+                $this->user->storeQuery('error', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
         }

@@ -689,6 +689,8 @@ class RestoRouteGET extends RestoRoute {
         $featureProp = $feature->toArray();
         //We get the size limit of the user
         $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
+        // Refresh user profile
+        $this->user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
         
         /*
          * Or the user has reached his instant download limit

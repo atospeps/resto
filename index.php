@@ -43,4 +43,11 @@ spl_autoload_register('autoload');
 /*
  * Launch RESTo
  */
-new Resto(realpath(dirname(__FILE__)) . '/include/config.php');
+$conffile=realpath(dirname(__FILE__)) . '/include/config.php';
+if (!file_exists($conffile)) {
+	// si installation securisee
+	$conffile='/etc/httpd/conf.d/config.php';
+}
+new Resto($conffile);
+
+?>

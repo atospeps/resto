@@ -187,46 +187,6 @@ class RestoUser{
     }
     
     /**
-     * Check if user has to sign license for collection
-     * 
-     * @param array $collectionDescription
-     */
-    public function hasToSignLicense($collectionDescription) {
-        
-        /*
-         * Collection has not license => never need to sign one
-         */
-        if (empty($collectionDescription['license'])) {
-            return false;
-        }
-        
-        /*
-         * Unregistered user always have to sign
-         */
-        if (!isset($this->profile['email'])) {
-            return true;
-        }
-        
-        /*
-         * Check in database
-         */
-        return !$this->context->dbDriver->check(RestoDatabaseDriver::LICENSE_SIGNED, array('email' => $this->profile['email'], 'collectionName' => $collectionDescription['name']));
-        
-    }
-    
-    /**
-     * Sign license for collection
-     * 
-     * @param string $collectionName
-     */
-    public function signLicense($collectionName) {
-        if ($this->context->dbDriver->execute(RestoDatabaseDriver::SIGN_LICENSE, array('email' => $this->profile['email'], 'collectionName' => $collectionName))) {
-            return true;
-        }
-        return false;
-    }
-    
-    /**
      * Disconnect user
      */
     public function disconnect() {

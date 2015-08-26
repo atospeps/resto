@@ -14,10 +14,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-usage="## RESTo deployment\n\n  Usage $0 -s <RESTO_HOME> -t <RESTO_TARGET>\n"
-while getopts "s:t:h" options; do
+
+# recuperation du repertoire du script, n'utiliser que la variable PRG_DIR qui represente le chemin absolu
+PRG="$0"
+EXEC_DIR=`dirname ${PRG}`
+export PRG_DIR=`(cd ${EXEC_DIR} ; echo $PWD)`
+#PRG_DIR correspond au chemin complet vers _install
+SRCDIR="${PRG_DIR}/.."
+SECURE="OFF"
+usage="## RESTo deployment\n\n  Usage $0 -t <RESTO_TARGET> [ -s ] \n\n\t -s : secure installation  \n"
+while getopts "st:h" options; do
     case $options in
-        s ) SRCDIR=`echo $OPTARG`;;
+        s ) SECURE="ON";;
         t ) TARGETDIR=`echo $OPTARG`;;
         h ) echo -e $usage;;
         \? ) echo -e $usage
@@ -26,11 +34,7 @@ while getopts "s:t:h" options; do
             exit 1;;
     esac
 done
-if [ "$SRCDIR" = "" ]
-then
-    echo -e $usage
-    exit 1
-fi
+
 if [ "$TARGETDIR" = "" ]
 then
     echo -e $usage
@@ -45,7 +49,23 @@ if [ -d "$TARGETDIR" ]; then
 fi
 
 mkdir $TARGETDIR
-echo ' ==> Copy files to $TARGETDIR directory'
+echo " Deploying to $TARGETDIR "
 cp -Rf $SRCDIR/.htaccess $SRCDIR/favicon.ico $SRCDIR/index.php $SRCDIR/include $SRCDIR/lib $TARGETDIR
-echo ' ==> Successfully install resto to $TARGETDIR directory'
-echo ' ==> Now, do not forget to check $TARGETDIR/include/config.php configuration !'
+
+if [ "$SECURE" = "ON" ]; then
+    echo " Securing deployment "
+    # securisation de l'installation en deplaçant le fichier config.php dans /etc/httpd/conf.d
+	CONFDIR="/etc/httpd/conf.d"
+	CONFFILE="$TARGETDIR/include/config.php"
+	DIST_CONF_FILE="$CONFDIR/config.php"
+	if [ -f "$DIST_CONF_FILE" ] ; then
+	    cur_date=`date '+%Y%m%d%H%M%S'`
+	    mv $DIST_CONF_FILE $DIST_CONF_FILE-${cur_date}
+	fi
+	
+	mv $CONFFILE $DIST_CONF_FILE
+	chown root:root $DIST_CONF_FILE
+	chmod 644 $DIST_CONF_FILE
+fi
+
+echo ' ==> Successfully installed resto to $TARGETDIR directory'

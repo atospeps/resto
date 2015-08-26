@@ -33,7 +33,6 @@ class RestoRoutePOST extends RestoRoute {
      * 
      *    api/users/connect                             |  Connect user
      *    api/users/disconnect                          |  Disconnect user
-     *    api/users/{userid}/signLicense                |  Sign license for input collection
      *    api/users/resetPassword                       |  Reset password
      * 
      *    collections                                   |  Create a new {collection}            
@@ -77,7 +76,6 @@ class RestoRoutePOST extends RestoRoute {
      * 
      *    api/users/connect                             |  Connect user
      *    api/users/disconnect                          |  Disconnect user
-     *    api/users/{userid}/signLicense                |  Sign license for input collection
      * 
      * @param array $segments
      * @param array $data
@@ -119,12 +117,6 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->POST_apiUsersResetPassword($data);
             }
             
-            /*
-             * api/users/{userid}/signLicense
-             */
-            if (isset($segments[3]) && $segments[3] === 'signLicense' && !isset($segments[4])) {
-                return $this->POST_apiUsersSignLicense($segments[2], $data);
-            }
         }
         /*
          * Process module
@@ -225,29 +217,6 @@ class RestoRoutePOST extends RestoRoute {
             RestoLogUtil::httpError(400);
         }
         
-    }
-    
-    /**
-     * Process api/users/{userid}/signLicense
-     * 
-     * @param string $userid
-     * @param array $data
-     * @return type
-     */
-    private function POST_apiUsersSignLicense($userid, $data) {
-        /*
-         * Only user can sign its license
-         */
-        if ($this->user->profile['userid'] !== $this->userid($userid)) {
-            RestoLogUtil::httpError(403);
-        }
-
-        if (isset($data['collection']) && $this->user->signLicense($data['collection'], true)) {
-            return RestoLogUtil::success('License signed');
-        }
-        else {
-            return RestoLogUtil::error('Cannot sign license');
-        }
     }
     
     /**
@@ -524,6 +493,8 @@ class RestoRoutePOST extends RestoRoute {
         }
 
         $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
+        // Refresh user profile
+        $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
         
         /*
          * Check if the user hasn't exceed his download volume limit

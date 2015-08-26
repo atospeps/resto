@@ -1,4 +1,5 @@
 /* Script de migration de la base de données Resto de la version 1.2 vers 1.2.1 */
+/* Enlever la table signatures. On valide la license que quand on crée le compte utilisateur  */
 /* Rajouter la colonne orbitDirection dans la table features de la collection s1 et de Resto  */
 CREATE OR REPLACE function f_add_col(
    _tbl regclass, _col  text, _type regtype, OUT success bool)
@@ -21,5 +22,7 @@ END IF;
 
 END
 $func$;
+
+DROP TABLE usermanagement.signatures;
 
 SELECT f_add_col('_s1.features', 'orbitDirection', 'text');

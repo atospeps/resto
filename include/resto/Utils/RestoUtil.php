@@ -432,7 +432,12 @@ class RestoUtil {
         if (is_array($strOrArray)) {
             $result = array();
             foreach ($strOrArray as $key => $value) {
-                $result[$key] = RestoUtil::sanitizeString($value);
+                // "_tk" can has any value
+                if (!$key=="_tk") {
+                    $result[$key] = RestoUtil::sanitizeString($value);
+                }else{
+                    $result[$key] = $value;
+                }
             }
 
             return $result;

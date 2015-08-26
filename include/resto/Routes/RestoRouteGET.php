@@ -696,6 +696,7 @@ class RestoRouteGET extends RestoRoute {
          * Or the user has reached his instant download limit
          */
         if ($size > $this->user->profile['instantdownloadvolume'] * 1000000) {
+            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
             return RestoLogUtil::httpError(420, "instant|" . $this->user->profile['instantdownloadvolume']);
         }
         /*
@@ -705,6 +706,7 @@ class RestoRouteGET extends RestoRoute {
                 'userprofile' => $this->user->profile,
                 'size' => $size
         ))) {
+            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
             return RestoLogUtil::httpError(420, "week|" . $this->user->profile['weeklydownloadvolume']);
         
         }else {
@@ -724,14 +726,14 @@ class RestoRouteGET extends RestoRoute {
         if (isset($featureProp['properties']['resourceInfos']['path'])) {
             $filePath = $featureProp['properties']['resourceInfos']['path'];
             if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
-                $this->user->storeQuery('error', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
             // We verify the existence of an external file
         } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
             $filePath = $featureProp['properties']['services']['download']['url'];
             if ( ($fp = fopen($filePath, "rb"))===false ) {
-                $this->user->storeQuery('error', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
         }
@@ -741,6 +743,7 @@ class RestoRouteGET extends RestoRoute {
          * User do not have right to download product
          */
         if (!$this->user->canDownload($collection->name, $feature->identifier)) {
+            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
             RestoLogUtil::httpError(403);
         }
         

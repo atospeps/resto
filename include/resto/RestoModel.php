@@ -743,10 +743,12 @@ abstract class RestoModel {
             if (preg_match('\'' . $this->searchFilters[$filterKey]['pattern'] . '\'', $value) !== 1) {
                 RestoLogUtil::httpError(400, 'Value for "' . $this->searchFilters[$filterKey]['osKey'] . '" must follow the pattern ' . $this->searchFilters[$filterKey]['pattern']);
             }
-        }         /*
+        }         
+        /*
          * Check pattern for number
+         * By know, we bypass "count" as can't manage a correct error display
          */
-        else if (isset($this->searchFilters[$filterKey]['minInclusive']) || isset($this->searchFilters[$filterKey]['maxInclusive'])) {
+        else if ($filterKey != "count" && (isset($this->searchFilters[$filterKey]['minInclusive']) || isset($this->searchFilters[$filterKey]['maxInclusive']))) {
             if (!is_numeric($value)) {
                 RestoLogUtil::httpError(400, 'Value for "' . $this->searchFilters[$filterKey]['osKey'] . '" must be numeric');
             }

@@ -76,10 +76,10 @@ class SentinelUtil {
             /*
              * Inverts North and South
              */
-            $ll = $ul_;
-            $lr = $ur_;
-            $ur = $lr_;
-            $ul = $ll_;
+            $lr = $ul_;
+            $ll = $ur_;
+            $ul = $lr_;
+            $ur = $ll_;
         }
         $polygon = array($ll, $lr, $ur, $ul, $ll);
         return $polygon;
@@ -126,7 +126,7 @@ class SentinelUtil {
             $ll = $footprint[3];
         }
         /*
-         * For descending orbits, the quiclook is flipped vertically (i.e. West/East inversion)
+         * For descending orbits, the quiclook is flipped vertically and horizontally (i.e. West/East and North/South inversions)
          */
         else {
             $lr = $footprint[0];

@@ -226,7 +226,6 @@ class RestoModel_sentinel1 extends RestoModel {
          * the ZIP files (i.e. as produced by the S1 ground segment).
          */
         $polygon = SentinelUtil::readFootprintFromGeolocationGridPoint($geolocationGridPoint, $orbitDirection);
-        $polygon = SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection);
 
         /*
          * Initialize feature

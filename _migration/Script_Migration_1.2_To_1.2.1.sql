@@ -26,3 +26,5 @@ $func$;
 DROP TABLE usermanagement.signatures;
 
 SELECT f_add_col('_s1.features', 'orbitDirection', 'text');
+
+update resto.collections set mapping='{"parentIdentifier":"urn:ogc:def:EOP:ESA::SENTINEL-1:","quicklook":"https:\/\/peps.cnes.fr\/hpss\/peps\/data\/{:quicklook:}_quicklook.gif","metadata":"https:\/\/peps.cnes.fr\/hpss\/peps\/data\/{:quicklook:}_Metadata.xml","resource":"\/hpss\/peps\/data\/{:quicklook:}.zip","resourceMimeType":"application\/zip","wms":"https:\/\/peps.cnes.fr\/cgi-bin\/mapserver?map=WMS_S1&data={:quicklook:}"}' where collection='S1';

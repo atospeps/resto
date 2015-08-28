@@ -56,8 +56,10 @@ if [ -d "$TARGETDIR" ]; then
             exit $rc
         fi  
     fi
-    
-    tar czf ${BACKUPDIR%%/}/resto_$(date +"%Y-%m-%d").tgz $TARGETDIR
+    BASE=`basename $TARGETDIR`
+    DIR=`dirname $TARGETDIR`
+    echo "Creating a backup in $BACKUPDIR"
+    tar czf ${BACKUPDIR%%/}/resto-$(date +"%Y-%m-%d").tgz -C $DIR $BASE
     rc=$?
     if [[ $? != 0 ]]; then
         echo "ERROR : cannot save $TARGETDIR in $BACKUPDIR"
@@ -65,10 +67,6 @@ if [ -d "$TARGETDIR" ]; then
     fi          
     rm -rf $TARGETDIR
     
-    if [ "$(ls $TARGETDIR)" ]; then
-        echo "ERROR : $TARGETDIR is not empty. Cannot install"
-        exit 1
-    fi
 fi
 
 mkdir $TARGETDIR

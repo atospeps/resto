@@ -50,7 +50,7 @@ export PGPASSFILE="$PRG_DIR/.pgpass"
 echo "$HOST:5432:resto:resto:$RESTO_PASS" > "$PGPASSFILE"
 
 logMessage "Récupération de la liste des produits catalogués"
-psql -t -U resto resto -c "select identifier, title, quicklook from _s1.features;" > "$PRG_DIR/products.txt"
+psql -t -U resto resto -c "select identifier, title, quicklook from _s1.features order by startdate desc;;" > "$PRG_DIR/products.txt"
 
 rm "$PGPASSFILE"
 

@@ -29,7 +29,6 @@ class RestoUtil {
         'json' => 'application/json',
         'xml' => 'application/xml',
         'meta4' => 'application/metalink4+xml',
-        'octet-stream' => 'application/octet-stream'
     );
     
     /**

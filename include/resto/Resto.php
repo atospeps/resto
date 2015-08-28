@@ -238,24 +238,24 @@ class Resto {
     private function answer($response, $responseStatus) {
         
         /*
-         * HTTP 1.1 headers
-         */
-        header('HTTP/1.1 ' . $responseStatus . ' ' . (isset(RestoLogUtil::$codes[$responseStatus]) ? RestoLogUtil::$codes[$responseStatus] : RestoLogUtil::$codes[200]));
-        header('Pragma: no-cache');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Expires: Fri, 1 Jan 2010 00:00:00 GMT');
-        header('Content-Type: ' . RestoUtil::$contentTypes[$this->inError ? 'json' : $this->context->outputFormat]);
-        
-        /*
-         * Set headers including cross-origin resource sharing (CORS)
-         * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
-         */
-        $this->setCORSHeaders();
-        
-        /*
          * Stream data
          */
         if (isset($response)) {
+        	/*
+        	 * HTTP 1.1 headers
+        	 */
+        	header('HTTP/1.1 ' . $responseStatus . ' ' . (isset(RestoLogUtil::$codes[$responseStatus]) ? RestoLogUtil::$codes[$responseStatus] : RestoLogUtil::$codes[200]));
+        	header('Pragma: no-cache');
+        	header('Cache-Control: no-cache, no-store, must-revalidate');
+        	header('Expires: Fri, 1 Jan 2010 00:00:00 GMT');
+        	header('Content-Type: ' . RestoUtil::$contentTypes[$this->inError ? 'json' : $this->context->outputFormat]);
+
+
+        	/*
+        	 * Set headers including cross-origin resource sharing (CORS)
+        	 * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        	 */
+        	$this->setCORSHeaders();
             echo $response;
         }
         

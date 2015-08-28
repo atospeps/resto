@@ -22,11 +22,18 @@ export PRG_DIR=`(cd ${EXEC_DIR} ; echo $PWD)`
 #PRG_DIR correspond au chemin complet vers _install
 SRCDIR="${PRG_DIR}/.."
 SECURE="OFF"
-usage="## RESTo deployment\n\n  Usage $0 -t <RESTO_TARGET> [ -s ] \n\n\t -s : secure installation  \n"
-while getopts "st:h" options; do
+
+USER="exppeps"
+GROUP="peps"
+
+usage="## RESTo deployment\n\n  Usage $0 -t <RESTO_TARGET> -u <unix_user> -g <unix group> -b <BACKUPDIR> [ -s ] \n\n\t -s : secure installation  \n"
+while getopts "st:u:g:b:h" options; do
     case $options in
         s ) SECURE="ON";;
         t ) TARGETDIR=`echo $OPTARG`;;
+        u ) USER=`echo $OPTARG`;;
+        g ) GROUP=`echo $OPTARG`;;
+        b ) BACKUPDIR=`echo $OPTARG`;;
         h ) echo -e $usage;;
         \? ) echo -e $usage
             exit 1;;
@@ -42,6 +49,22 @@ then
 fi
 
 if [ -d "$TARGETDIR" ]; then
+    if [ ! -d "$BACKUPDIR" ]; then
+        mkdir $BACKUPDIR
+        if [[ $? != 0 ]]; then
+            echo "ERROR : cannot create backup dir $BACKUPDIR"
+            exit $rc
+        fi  
+    fi
+    
+    tar czf ${BACKUPDIR%%/}/resto_$(date +"%Y-%m-%d").tgz $TARGETDIR
+    rc=$?
+    if [[ $? != 0 ]]; then
+        echo "ERROR : cannot save $TARGETDIR in $BACKUPDIR"
+        exit $rc
+    fi          
+    rm -rf $TARGETDIR
+    
     if [ "$(ls $TARGETDIR)" ]; then
         echo "ERROR : $TARGETDIR is not empty. Cannot install"
         exit 1
@@ -67,5 +90,9 @@ if [ "$SECURE" = "ON" ]; then
 	chown root:root $DIST_CONF_FILE
 	chmod 644 $DIST_CONF_FILE
 fi
+
+echo "Applying unix user's rights."
+chown -R $USER:$GROUP $TARGETDIR
+chmod -R 750 $TARGETDIR
 
 echo ' ==> Successfully installed resto to $TARGETDIR directory'

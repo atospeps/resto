@@ -62,11 +62,27 @@ do
     
     metadatapath="${ARCHIVE_PATH}/${path}_Metadata_updated.xml"
     if [ ! -f "$metadatapath" ]
-    then 
-        metadatapath="${ARCHIVE_PATH}/${path}_Metadata.xml"
-        if [ ! -f "$metadatapath" ]
+    then
+		oldmetadatapath="${ARCHIVE_PATH}/${path}_Metadata.xml"
+        if [ ! -f "$oldmetadatapath" ]
         then
             metadatapath=""
+		else
+			if grep -Fq "<adsHeader>" $oldmetadatapath
+			then
+				# vieux metadata, ajout du title et du resourceSize
+				logMessage "Mise a jour du fichier $oldmetadatapath"
+				zippath="${ARCHIVE_PATH}/${path}.zip"
+				
+				filesize=`du -b "$zippath" | cut -f1`
+				logMessage "Taille de l'archive : $filesize"
+				sed "/<product>/a<title>$title</title>\n<resourceSize>$filesize</resourceSize>" $oldmetadatapath > $metadatapath
+				logMessage "Fichier créé : $metadatapath"
+			else
+				# metadata d'un produit acquis en 1.2.1
+				logMessage "Metadata v1.2.1 $oldmetadatapath"
+				metadatapath="${ARCHIVE_PATH}/${path}_Metadata.xml"
+			fi
         fi
     fi
     if [ "$metadatapath" = "" ]
@@ -74,7 +90,12 @@ do
         logMessage "Pas de fichier metadata trouve pour le produit $title, il ne sera pas mis à jour."
     else    
         logMessage "Mise a jour du produit $title"
-        updateResult=`"$PRG_DIR/updateResource.sh" -c S1 -i $identifier -f "$metadatapath" -u $AUTH`
+		if [ "$HTTPS" = "1" ]
+		then
+			updateResult=`"$PRG_DIR/updateResource.sh" -c S1 -i $identifier -f "$metadatapath" -u $AUTH -s`
+		else
+			updateResult=`"$PRG_DIR/updateResource.sh" -c S1 -i $identifier -f "$metadatapath" -u $AUTH`
+		fi
         echo $updateResult >> "$REPORT_FILE"
         if [[ "$updateResult" == *"Error"* ]]
         then
@@ -84,3 +105,4 @@ do
         fi
     fi
 done <  "$PRG_DIR/products.txt"
+

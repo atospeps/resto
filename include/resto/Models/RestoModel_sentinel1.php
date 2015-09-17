@@ -129,6 +129,7 @@ class RestoModel_sentinel1 extends RestoModel {
     <swath>IW</swath>
     <polarisation>VV VH</polarisation>
     <missiontakeid>38865</missiontakeid>
+    <instrument>Multi-Spectral Instrument</instrument>
     <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
     </product>
      *
@@ -173,6 +174,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missiontakeid')->item(0)->nodeValue,
+                		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )

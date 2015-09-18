@@ -89,6 +89,11 @@ if [ "$SECURE" = "ON" ]; then
 	chmod 644 $DIST_CONF_FILE
 fi
 
+# deploiement du fichier version s'il existe
+if [ -f $SRCDIR/version.txt ]; then
+    cp $SRCDIR/version.txt $TARGETDIR
+fi
+
 echo "Applying unix user's rights."
 chown -R $USER:$GROUP $TARGETDIR
 chmod -R 750 $TARGETDIR

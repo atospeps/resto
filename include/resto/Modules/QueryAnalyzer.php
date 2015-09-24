@@ -155,7 +155,7 @@ class QueryAnalyzer extends RestoModule {
         $this->whenProcessor = new WhenProcessor($this->queryManager);
         $this->whatProcessor = new WhatProcessor($this->queryManager, $this->options);
         if (isset($context->modules['Gazetteer'])) {
-            $this->whereProcessor = new WhereProcessor($this->queryManager, new Gazetteer($context, $user, $context->modules['Gazetteer']));
+            $this->whereProcessor = new WhereProcessor($this->queryManager, RestoUtil::instantiate($context->modules['Gazetteer']['className'], array($this->context, $this->user)));
         }
         
     }
@@ -163,17 +163,17 @@ class QueryAnalyzer extends RestoModule {
     /**
      * Run module - this function should be called by Resto.php
      * 
-     * @param array $elements : route element
+     * @param array $segments : route segments
      * @param array $data : POST or PUT parameters
      * 
      * @return string : result from run process in the $context->outputFormat
      */
-    public function run($elements) {
+    public function run($segments, $data = array()) {
         
         /*
          * Only GET method on 'search' route with json outputformat is accepted
          */
-        if ($this->context->method !== 'GET' || count($elements) !== 0) {
+        if ($this->context->method !== 'GET' || count($segments) !== 0) {
             RestoLogUtil::httpError(404);
         }
         $query = isset($this->context->query['searchTerms']) ? $this->context->query['searchTerms'] : (isset($this->context->query['q']) ? $this->context->query['q'] : null);
@@ -192,13 +192,6 @@ class QueryAnalyzer extends RestoModule {
         
         $startTime = microtime(true);
         
-        /*
-         * QueryAnalyzer only apply on searchTerms filter
-         */
-        if (!isset($query)) {
-            RestoLogUtil::httpError(400, 'Missing mandatory searchTerms');
-        }
-       
         return array(
             'query' => $query,
             'language' => $this->context->dictionary->language,
@@ -206,6 +199,27 @@ class QueryAnalyzer extends RestoModule {
             'processingTime' => microtime(true) - $startTime
         );
         
+    }
+    
+    /**
+     * Returns location from geohash/geouid
+     * 
+     * @param string $hashOrUid
+     */
+    public function whereFromGeohashOrGeouid($hashOrUid) {
+        if (isset($this->context->modules['GazetteerPro'])) {
+            $gazetteerPro = RestoUtil::instantiate($this->context->modules['GazetteerPro']['className'], array($this->context, $this->user));
+            $location = $gazetteerPro->search(array(
+                'q' => $hashOrUid,
+                'wkt' => true,
+                'preserve' => true,
+                'tolerance' => 0.05,
+                'snap' => true,
+                'lang' => $this->context->dictionary->language === 'en' ? 'en' : $this->context->dictionary->language . ',en'
+            ));
+            return $location['results'];
+        }
+        return array();
     }
     
     /**
@@ -217,9 +231,28 @@ class QueryAnalyzer extends RestoModule {
     private function process($query) {
         
         /*
+         * Empty $query
+         */
+        if (empty($query)) {
+            return array(
+                'What' => array(),
+                'When' => array(),
+                'Where' => array(),
+                'Errors' => array()
+            );
+        }
+        
+        /*
          * Initialize QueryManager
          */
         $this->queryManager->initialize($this->queryToWords($query));
+        
+        /*
+         * Extract type:value keywords
+         */
+        if ($this->queryManager->hasKeywords) {
+            return $this->processKeywords();
+        }
         
         /*
          * Extract (in this order !) "what", "when" and "where" elements from query
@@ -243,6 +276,53 @@ class QueryAnalyzer extends RestoModule {
             'What' => $this->whatProcessor->getResult(),
             'When' => $this->whenProcessor->getResult(),
             'Where' => isset($this->whereProcessor) ? $this->whereProcessor->getResult() : array(),
+            'Errors' => $this->getErrors()
+        );
+        
+    }
+    
+    /**
+     * Process "type:value" keywords
+     */
+    private function processKeywords() {
+        $results = array();
+        $where = array();
+        for ($i = 0, $ii = $this->queryManager->length; $i < $ii; $i++) {
+            $exploded = explode(':', $this->queryManager->words[$i]['word']);
+            if (count($exploded) === 2 && !empty($exploded[0]) && !empty($exploded[1])) {
+                $this->queryManager->words[$i]['processed'] = true;
+                $filterName = 'searchTerms';
+                foreach ($this->queryManager->model->searchFilters as $key => $filter) {
+                    if (strtolower($filter['osKey']) === strtolower($exploded[0])) {
+                        $filterName = $key;
+                        break;
+                    }
+                }
+                if ($filterName === 'searchTerms') {
+                    
+                    /*
+                     * Special case for geohash
+                     */
+                    if ($exploded[0] === 'geohash') {
+                        $where = $this->whereFromGeohashOrGeouid($this->queryManager->words[$i]['word']);
+                    }
+                    else {
+                        if (!isset($results[$filterName])) {
+                            $results[$filterName] = array();
+                        }
+                        $results[$filterName][] = $this->queryManager->words[$i]['word'];
+                    }
+                }
+                else {
+                    $results[$filterName] = (isset($results[$filterName]) ? $results[$filterName] . ' ' : '') . $exploded[1];
+                }
+            }
+        }
+        
+        return array(
+            'What' => $results,
+            'When' => array(),
+            'Where' => $where,
             'Errors' => $this->getErrors()
         );
         

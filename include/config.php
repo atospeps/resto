@@ -42,6 +42,23 @@ return array(
         'languages' => array('en', 'fr'),
         
         /*
+         * OpenSearch description for "all collections" search service
+         * (i.e. API call to /api/collections/search)
+         */
+        'osDescription' => array(
+            'en' => array(
+                'ShortName' => 'resto',
+                'LongName' => 'resto search service',
+                'Description' => 'Search on all collections',
+                'Tags' => 'resto',
+                'Developper' => 'resto team',
+                'Contact' => 'restoadmin@localhost',
+                'Query' => 'europe 2015',
+                'Attribution' => 'resto framework. Copyright 2015, All Rights Reserved'
+            )
+        ),
+        
+        /*
          * Debug mode
          */
         'debug' => false,
@@ -93,6 +110,11 @@ return array(
         'resetPasswordUrl' => 'http://localhost/rocket/#/resetPassword',
         
         /*
+         * Url to call for search HTML client
+         */
+        'htmlSearchUrl' => 'http://localhost/rocket/#/search',
+        
+        /*
          * Upload directory (for POST with attachement request)
          */
         'uploadDirectory' => '/tmp/resto_uploads',
@@ -104,6 +126,19 @@ return array(
          *   - 'nginx' : stream through Nginx using the X-accel method
          */
         'streamMethod' => 'php',
+        
+        /*
+         * Automatic user validation on activation
+         * 
+         * If set to 'true' the user is automatically validated on activation
+         * 
+         * If set to 'false' the user is not validated on activation.
+         * Validation should then be done throught Administration module
+         * 
+         * Note: a non validated user can connect but cannot download products
+         * under license
+         */
+        'userAutoValidation' => true,
         
         /*
          * List of http origin that have CORS access to server
@@ -141,7 +176,7 @@ return array(
         'dbname' => 'resto',
         
         /*
-         * Database host - if not specified connect through socket instead of TCP/IP
+         * Database host - if not specified connect through unix domain socket (IPC socket) instead of TCP/IP socket
          */
         //'host' => 'localhost',
         
@@ -213,6 +248,15 @@ return array(
     'modules' => array(
         
         /*
+         * Query Analyzer module - convert natural language query to EO query
+         */
+        'Admin' => array(
+            'activate' => true,
+            'route' => 'admin',
+            'options' => array()
+        ),
+        
+        /*
          * OAuth authentication module
          */
         'Auth' => array(
@@ -272,7 +316,7 @@ return array(
                 'database' => array(
                     'dbname' => 'itag',
                     /*
-                     * Database host - if not specified connect through socket instead of TCP/IP
+                     * Database host - if not specified connect through unix domain socket (IPC socket) instead of TCP/IP socket
                      */
                     //'host' => 'localhost',
                     'user' => 'itag',
@@ -293,7 +337,7 @@ return array(
                 'database' => array(
                     'dbname' => 'itag',
                     /*
-                     * Database host - if not specified connect through socket instead of TCP/IP
+                     * Database host - if not specified connect through unix domain socket (IPC socket) instead of TCP/IP socket
                      */
                     //'host' => 'localhost',
                     'user' => 'itag',
@@ -313,7 +357,7 @@ return array(
                 'database' => array(
                     'dbname' => 'itag',
                     /*
-                     * Database host - if not specified connect through socket instead of TCP/IP
+                     * Database host - if not specified connect through unix domain socket (IPC socket) instead of TCP/IP socket
                      */
                     //'host' => 'localhost',
                     'user' => 'itag',
@@ -321,7 +365,8 @@ return array(
                 ),
                 'taggers' => array(
                     'Political' => array(),
-                    'LandCover' => array()
+                    'LandCover' => array(),
+                    'Physical' => array()
                 )
             )
         )

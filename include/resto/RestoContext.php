@@ -35,11 +35,6 @@ class RestoContext {
      */
     public $dictionary;
 
-    /*
-     * Available languages
-     */
-    public $languages = array('en');
-    
     /**
      * HTTP method
      */
@@ -69,42 +64,6 @@ class RestoContext {
      * Query
      */
     public $query = array();
-    
-    /**
-     * Reset password page url
-     */
-    public $resetPasswordUrl = 'http://localhost/resto-client/#/resetPassword';
-    
-    /**
-     * Store query
-     */
-    public $storeQuery = false;
-   
-    /*
-     * Server timezone
-     */
-    public $timezone = 'Europe/Paris';
-    
-    /*
-     * Application name
-     */
-    public $title = 'resto';
-    
-    /*
-     * Upload directory
-     */
-    public $uploadDirectory = '/tmp/resto_uploads';
-    
-    /*
-     * Stream method 
-     */
-    public $streamMethod = 'php';
-    
-    /*
-     *  JSON Web Token passphrase
-     * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
-     */
-    private $passphrase;
     
     /*
      * JSON Web Token duration (in seconds)
@@ -159,7 +118,7 @@ class RestoContext {
      * @param json $jsonData
      * @return string
      */
-    public function createToken($identifier, $jsonData) {
+    public function createJWT($identifier, $jsonData) {
         return JWT::encode(array(
             'iss' => 'resto:server',
             'sub' => $identifier,
@@ -177,6 +136,38 @@ class RestoContext {
      */
     public function decodeJWT($token) {
         return JWT::decode($token, $this->passphrase, $this->tokenEncryptions);
+    }
+    
+    /**
+     * Decode and verify signed JSON Web Token
+     * 
+     * @param string $token
+     * @return array
+     */
+    public function checkJWT($token) {
+        
+        if (!isset($token)) {
+            return false;
+        }
+        
+        try {
+
+            $profile = json_decode(json_encode((array) $this->context->decodeJWT($token)), true);
+
+            /*
+             * Token is valid - i.e. signed by server and still in the validity period
+             * Check if it is not revoked
+             */
+            if (isset($profile['data']['email']) && !$this->context->dbDriver->check(RestoDatabaseDriver::TOKEN_REVOKED, array('token' => $token))) {
+                return true;
+            }
+            else {
+                return false;
+            }
+
+        } catch (Exception $ex) {
+            return false;
+        }
     }
     
     /**
@@ -234,36 +225,27 @@ class RestoContext {
          * HTTP Method is one of GET, POST, PUT or DELETE
          */
         $this->method = strtoupper(filter_input(INPUT_SERVER, 'REQUEST_METHOD', FILTER_SANITIZE_STRING));
-        
+       
         /*
-         * True to store queries within database
+         * Get general configuration
          */
-        if (isset($config['general']['storeQuery'])) {
-            $this->storeQuery = $config['general']['storeQuery'];
-        }
-                
-        /*
-         * Passphrase for JSON Web Token signing/veryfying
-         */
-        $this->passphrase = $config['general']['passphrase'];
-        
-        /*
-         * JSON Web Token accepted encryption algorithms
-         */
-        $this->tokenEncryptions = $config['general']['tokenEncryptions'];
-        
-        /*
-         * JSON Web Token duration
-         */
-        if (isset($config['general']['tokenDuration'])) {
-            $this->tokenDuration = $config['general']['tokenDuration'];
-        }
-        
-        /*
-         * Available languages
-         */
-        if (isset($config['general']['languages'])) {
-            $this->languages = $config['general']['languages'];
+        foreach (array_values(array(
+            'htmlSearchUrl',
+            'languages',
+            'osDescription',
+            'passphrase',
+            'resetPasswordUrl',
+            'storeQuery',
+            'streamMethod',
+            'title',
+            'tokenDuration',
+            'tokenEncryptions',
+            'uploadDirectory',
+            'userAutoValidation'
+            )) as $key) {
+            if (isset($config['general'][$key])) {
+                $this->$key = $config['general'][$key];
+            }
         }
         
         /*
@@ -273,34 +255,6 @@ class RestoContext {
             $this->mail = $config['mail'];
         }
       
-        /*
-         * Reset password url
-         */
-        if (isset($config['general']['resetPasswordUrl'])) {
-            $this->resetPasswordUrl = $config['general']['resetPasswordUrl'];
-        }
-        
-        /*
-         * Title
-         */
-        if (isset($config['general']['title'])) {
-            $this->title = $config['general']['title'];
-        }
-        
-        /*
-         * Upload directory
-         */
-        if (isset($config['general']['uploadDirectory'])) {
-            $this->uploadDirectory = $config['general']['uploadDirectory'];
-        }
-        
-        /*
-         * Stream method
-         */
-        if (isset($config['general']['streamMethod'])) {
-            $this->streamMethod = $config['general']['streamMethod'];
-        }
-        
         /*
          * Initialize modules
          */
@@ -355,14 +309,14 @@ class RestoContext {
         }
         
         /*
-         * Trim all values
+         * Trim all values and remove empty values
          */
-        if (!function_exists('trim_value')) {
-            function trim_value(&$value) {
-                $value = trim($value);
+        foreach ($query as $key => $value) {
+            $query[$key] = trim($value);
+            if ($query[$key] === '') {
+                unset($query[$key]);
             }
         }
-        array_walk_recursive($query, 'trim_value');
         
         $this->query = $query;
         
@@ -490,15 +444,23 @@ class RestoContext {
             /*
              * Only activated module are registered
              */
-            if (isset($modulesConfig[$moduleName]['activate']) && $modulesConfig[$moduleName]['activate'] === true && class_exists($moduleName)) {
-                
-                $modules[$moduleName] = isset($modulesConfig[$moduleName]['options']) ? $modulesConfig[$moduleName]['options'] : array();
+            if (isset($modulesConfig[$moduleName]['activate']) && $modulesConfig[$moduleName]['activate'] === true) {
                 
                 /*
-                 * Add route to module
+                 * Check for className
                  */
-                if (isset($modulesConfig[$moduleName]['route'])) {
-                    $modules[$moduleName] = array_merge($modules[$moduleName], array('route' => $modulesConfig[$moduleName]['route']));
+                $className = isset($modulesConfig[$moduleName]['className']) ? $modulesConfig[$moduleName]['className'] : $moduleName;
+                if (class_exists($moduleName)) {
+                
+                    $modules[$moduleName] = isset($modulesConfig[$moduleName]['options']) ? array_merge($modulesConfig[$moduleName]['options'], array('className' => $className)) : array('className' => $className);
+
+                    /*
+                     * Add route to module
+                     */
+                    if (isset($modulesConfig[$moduleName]['route'])) {
+                        $modules[$moduleName] = array_merge($modules[$moduleName], array('route' => $modulesConfig[$moduleName]['route']));
+                    }
+                
                 }
                 
             }

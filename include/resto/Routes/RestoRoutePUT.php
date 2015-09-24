@@ -17,6 +17,14 @@
 
 /**
  * RESTo REST router for PUT requests
+ * 
+ *    collections/{collection}                      |  Update {collection}
+ *    collections/{collection}/{feature}            |  Update {feature}
+ *    
+ *    user                                          |  Modify user profile
+ *    user/cart/{itemid}                            |  Modify item in user cart
+ *    user/groups                                   |  Modify user groups (only admin)
+ *   
  */
 class RestoRoutePUT extends RestoRoute {
     
@@ -28,14 +36,8 @@ class RestoRoutePUT extends RestoRoute {
     }
    
     /**
-     * 
      * Process HTTP PUT request
-     *  
-     *    collections/{collection}                      |  Update {collection}
-     *    collections/{collection}/{feature}            |  Update {feature}
-     *    
-     *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
-     *    
+     *
      * @param array $segments
      */
     public function route($segments) {
@@ -51,8 +53,8 @@ class RestoRoutePUT extends RestoRoute {
         switch($segments[0]) {
             case 'collections':
                 return $this->PUT_collections($segments, $data);
-            case 'users':
-                return $this->PUT_users($segments, $data);
+            case 'user':
+                return $this->PUT_user($segments, $data);
             default:
                 return $this->processModuleRoute($segments, $data);
         }
@@ -91,25 +93,28 @@ class RestoRoutePUT extends RestoRoute {
         }
         
         /*
-         * Check credentials
+         * Only owner of the collection can update it
          */
-        if (!$this->user->canPut($collection->name, $featureIdentifier)) {
+        if (!$this->user->hasRightsTo(RestoUser::UPDATE, array('collection' => $collection))) {
             RestoLogUtil::httpError(403);
         }
-
+        
         /*
          * collections/{collection}
          */
         if (!isset($feature)) {
+            
             $collection->loadFromJSON($data, true);
-            $this->storeQuery('update', $collection->name, null);
+            
+            if ($this->context->storeQuery === true) {
+                $this->user->storeQuery($this->context->method, 'update', $collection->name, null, $this->context->query, $this->context->getUrl());
+            }
             return RestoLogUtil::success('Collection ' . $collection->name . ' updated');
         }
         /*
          * collections/{collection}/{feature}
          */
         else {
-            //$this->storeQuery('update', $collection->name, $featureIdentifier);
             RestoLogUtil::httpError(501);
         }
         
@@ -119,56 +124,63 @@ class RestoRoutePUT extends RestoRoute {
     /**
      * 
      * Process HTTP PUT request on users
-     * 
-     *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
+     *
+     *    user
+     *    user/cart/{itemid}                            |  Modify item in user cart
      * 
      * @param array $segments
      * @param array $data
      */
-    private function PUT_users($segments, $data) {
+    private function PUT_user($segments, $data) {
         
         /*
-         * Mandatory {itemid}
+         * user
          */
-        if (!isset($segments[3])) {
-            RestoLogUtil::httpError(404);
+        if (!isset($segments[1])) {
+            
+            /*
+             * For normal user (i.e. non admin), some properties cannot be modified after validation
+             */
+            if (!$this->user->isAdmin()) {
+
+                /*
+                 * Already validated => avoid updating administrative properties
+                 */
+                if (isset($this->user->profile['validatedby'])) {
+                    unset($data['activated'], $data['validatedby'], $data['validationdate'], $data['country'], $data['organization'], $data['organizationcountry'], $data['flags']);
+                }
+
+                /*
+                 * These properties can only be changed by admin
+                 */
+                unset($data['groups']);
+                
+            }
+
+            /*
+             * Ensure that user can only update its profile
+             */
+            $data['email'] = $this->user->profile['email'];
+
+            $this->context->dbDriver->update(RestoDatabaseDriver::USER_PROFILE, array('profile' => $data));
+
+            return RestoLogUtil::success('Update profile for user ' . $this->user->profile['email']);
         }
-        
-        if ($segments[2] === 'cart') {
-            return $this->PUT_userCart($segments[1], $segments[3], $data);
-        }
-        else {
-            RestoLogUtil::httpError(404);
-        }
-        
-    }
-    
-    
-    /**
-     * 
-     * Process HTTP PUT request on users cart
-     * 
-     *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
-     * 
-     * @param string $emailOrId
-     * @param string $itemId
-     * @param array $data
-     */
-    private function PUT_userCart($emailOrId, $itemId, $data) {
-        
+
         /*
-         * Cart can only be modified by its owner or by admin
+         * user/cart/{itemid}
          */
-        $user = $this->getAuthorizedUser($emailOrId);
-         
-        if ($user->updateCart($itemId, $data, true)) {
-            return RestoLogUtil::success('Item ' . $itemId . ' updated', array(
-                'itemId' => $itemId,
-                'item' => $data
-            ));
-        }
-        else {
-            return RestoLogUtil::error('Cannot update item ' . $itemId);
+        else if ($segments[1] === 'cart' && isset($segments[2])) {
+            if ($this->user->getCart()->update($segments[2], $data, true)) {
+                return RestoLogUtil::success('Item ' . $segments[2] . ' updated', array(
+                            'itemId' => $segments[2],
+                            'item' => $data
+                ));
+            } else {
+                return RestoLogUtil::error('Cannot update item ' . $segments[2]);
+            }
+        } else {
+            RestoLogUtil::httpError(404);
         }
         
     }

@@ -85,7 +85,7 @@ class RestoFeatureCollection {
         $this->context = $context;
         $this->user = $user;
         if (isset($this->context->modules['QueryAnalyzer'])) {
-            $this->queryAnalyzer = new QueryAnalyzer($this->context, $this->user);
+            $this->queryAnalyzer = RestoUtil::instantiate($this->context->modules['QueryAnalyzer']['className'], array($this->context, $this->user));
         }
  
         $this->initialize($collections);
@@ -122,7 +122,7 @@ class RestoFeatureCollection {
         /*
          * Initialize ATOM feed
          */
-        $atomFeed = new RestoATOMFeed($this->description['properties']['id'], isset($this->description['properties']['title']) ? $this->description['properties']['title'] : '', $this->getATOMSubtitle());
+        $atomFeed = new RestoATOMFeed($this->description['properties']['id'], $this->context->title, $this->getATOMSubtitle());
        
         /*
          * Set collection elements
@@ -207,7 +207,7 @@ class RestoFeatureCollection {
          */   
         else {
             $forceCount = isset($this->context->query['_rc']) ? filter_var($this->context->query['_rc'], FILTER_VALIDATE_BOOLEAN) : false;
-            $this->loadFeatures($analysis['searchFilters'], $limit, $offset, $forceCount);
+            $this->loadFeatures($analysis['appliedFilters'], $limit, $offset, $forceCount);
         }
         
         /*
@@ -226,10 +226,28 @@ class RestoFeatureCollection {
      */
     private function setDescription($analysis, $offset, $limit) {
         
+        $count = count($this->restoFeatures);
+        
         /*
-         * Query is made from request parameters
+         * Recompute totalCount
          */
-        $query = $this->cleanFilters($analysis['searchFilters']);
+        if ($this->totalCount === -1 && $count < $limit) {
+            $this->totalCount = $count;
+        }
+        /*
+         * Convert resto model to search service "osKey"
+         */
+        $query = array(
+            'originalFilters' => $this->toOSKeys($analysis['originalFilters']),
+            'appliedFilters' => $this->toOSKeys($analysis['appliedFilters'])
+        );
+        
+        /*
+         * Analysis
+         */
+        if (isset($analysis['analysis'])) {
+            $query['analysis'] = $analysis['analysis'];
+        }
         
         /*
          * Sort results
@@ -237,17 +255,12 @@ class RestoFeatureCollection {
         $this->description = array(
             'type' => 'FeatureCollection',
             'properties' => array(
-                'title' => $analysis['analysis']['query'],
-                'id' => RestoUtil::UUIDv5((isset($this->defaultCollection) ? $this->defaultCollection->name : '*') . ':' . json_encode($query)),
-                'totalResults' => $this->totalCount !== -1 ? $this->totalCount : null,
+                'id' => RestoUtil::UUIDv5((isset($this->defaultCollection) ? $this->defaultCollection->name : '*') . ':' . json_encode($this->cleanFilters($analysis['appliedFilters']))),
+                'totalResults' => $this->totalCount,
                 'startIndex' => $offset + 1,
-                'itemsPerPage' => count($this->restoFeatures),
-                'query' => array(
-                    'searchFilters' => $analysis['searchFilters'],
-                    'analysis' => $analysis['analysis'],
-                    'processingTime' => microtime(true) - $this->requestStartTime
-                ),
-                'links' => $this->getLinks($limit, $offset)
+                'itemsPerPage' => $count,
+                'query' => array_merge($query, array('processingTime' => microtime(true) - $this->requestStartTime)),
+                'links' => $this->getLinks($count, $limit, $offset)
             )
         );
     }
@@ -313,10 +326,10 @@ class RestoFeatureCollection {
          * Get features array from database
          */
         $featuresArray = $this->context->dbDriver->get(RestoDatabaseDriver::FEATURES_DESCRIPTIONS, array(
-            'context' => $this->context,
-            'user' => $this->user,
-            'collection' => isset($this->defaultCollection) ? $this->defaultCollection : null,
-            'filters' => $params,
+                'context' => $this->context,
+                'user' => $this->user,
+                'collection' => isset($this->defaultCollection) ? $this->defaultCollection : null,
+                'filters' => $params,
                 'options' => array(
                     'limit' => $limit,
                     'offset' => $offset,
@@ -353,6 +366,7 @@ class RestoFeatureCollection {
      *  - change parameter keys to model parameter key
      *  - remove unset parameters
      *  - remove all HTML tags from input to avoid XSS injection
+     *  - check that filter value is valid regarding the model definition
      */
     private function getOriginalFilters() {
         $params = array();
@@ -360,6 +374,7 @@ class RestoFeatureCollection {
             foreach (array_keys($this->defaultModel->searchFilters) as $filterKey) {
                 if ($key === $this->defaultModel->searchFilters[$filterKey]['osKey']) {
                     $params[$filterKey] = preg_replace('/<.*?>/', '', $value);
+                    $this->defaultModel->validateFilter($filterKey, $params[$filterKey]);
                 }
             }
         }
@@ -387,11 +402,12 @@ class RestoFeatureCollection {
     /**
      * Get navigation links (i.e. next, previous, first, last)
      * 
+     * @param integer $count
      * @param integer $limit
      * @param integer $offset
      * @return array
      */
-    private function getLinks($limit, $offset) {
+    private function getLinks($count, $limit, $offset) {
         
         /*
          * Base links are always returned
@@ -401,7 +417,7 @@ class RestoFeatureCollection {
         /*
          * Get paging infos
          */
-        $paging = $this->getPaging($limit, $offset);
+        $paging = $this->getPaging($count, $limit, $offset);
         
         /*
          * Start page cannot be lower than 1
@@ -510,15 +526,15 @@ class RestoFeatureCollection {
     /**
      * Get start, next and last page from limit and offset
      * 
+     * @param integer $count
      * @param integer $limit
      * @param integer $offset
      */
-    private function getPaging($limit, $offset) {
-        $count = count($this->restoFeatures);
+    private function getPaging($count, $limit, $offset) {
         $paging = array(
             'startPage' => 1,
             'nextPage' => 1,
-            'totalPage' => 1,
+            'totalPage' => 0,
             'count' => $count
         );
         if ($count > 0) {
@@ -564,7 +580,7 @@ class RestoFeatureCollection {
      */
     private function getATOMSubtitle() {
         $subtitle = '';
-        if (isset($this->description['properties']['totalResults'])) {
+        if (isset($this->description['properties']['totalResults']) && $this->description['properties']['totalResults'] !== -1) {
             $subtitle = $this->context->dictionary->translate($this->description['properties']['totalResults'] === 1 ? '_oneResult' : '_multipleResult', $this->description['properties']['totalResults']);
         }
         $previous = isset($this->description['properties']['links']['previous']) ? '<a href="' . RestoUtil::updateUrlFormat($this->description['properties']['links']['previous'], 'atom') . '">' . $this->context->dictionary->translate('_previousPage') . '</a>&nbsp;' : '';
@@ -581,50 +597,47 @@ class RestoFeatureCollection {
     private function analyze($params) {
         
         /*
-         * No searchTerms specify - leave input search filters untouched
+         * Store original params
          */
-        if (empty($params['searchTerms'])) {
-            return array(
-                'searchFilters' => $params,
-                'analysis' => array(
-                    'query' => ''
-                )
-            );
-        }
+        $originalFilters = $params;
         
         /*
          * Analyse query
          */
-        $analysis = $this->queryAnalyzer->analyze($params['searchTerms']);
+        $analysis = $this->queryAnalyzer->analyze(isset($params['searchTerms']) ? $params['searchTerms'] : null);
+        
+        /*
+         * Special case for geo:geometry containing geouid
+         * 
+         */
+        $hashTodiscard = null;
+        if (!empty($params['geo:geometry']) && strpos($params['geo:geometry'],'geouid:') === 0) {
+            $where = $this->queryAnalyzer->whereFromGeohashOrGeouid($params['geo:geometry']);
+            if (count($where) > 0) {
+                $hashTodiscard = $where[0]['hash'];
+                $params['geo:geometry'] = $where[0]['geo:geometry'];
+            }
+            $analysis['analyze']['Where'] = array_merge($where, $analysis['analyze']['Where']);
+        }
         
         /*
          * Not understood - return error
          */
-        if (empty($analysis['analyze']['What']) && empty($analysis['analyze']['When']) && empty($analysis['analyze']['Where'])) {
+        if (isset($params['searchTerms']) && empty($analysis['analyze']['What']) && empty($analysis['analyze']['When']) && empty($analysis['analyze']['Where'])) {
             return array(
                 'notUnderstood' => true,
-                'searchFilters' => $params,
+                'originalFilters' => $originalFilters,
+                'appliedFilters' => $params,
                 'analysis' => $analysis
             );
         }
         
         /*
-         * What
+         * Where, When, What
          */
-        $params = $this->setWhatFilters($analysis['analyze']['What'], $params);
-        
-        /*
-         * When
-         */
-        $params = $this->setWhenFilters($analysis['analyze']['When'], $params);
-        
-        /*
-         * Where
-         */
-        $params = $this->setWhereFilters($analysis['analyze']['Where'], $params);
-        
         return array(
-            'searchFilters' => $params,
+            'originalFilters' => $originalFilters,
+            'appliedFilters' => $this->setWhereFilters($analysis['analyze']['Where'], $this->setWhenFilters($analysis['analyze']['When'], $this->setWhatFilters($analysis['analyze']['What'], $params)), $hashTodiscard),
             'analysis' => $analysis
         );
     }
@@ -692,8 +705,10 @@ class RestoFeatureCollection {
      * 
      * @param array $where
      * @param array $params
+     * @param string $hashTodiscard
      */
-    private function setWhereFilters($where, $params) {
+    private function setWhereFilters($where, $params, $hashTodiscard = null) {
+        
         for ($i = count($where); $i--;) {
             
             /*
@@ -704,21 +719,47 @@ class RestoFeatureCollection {
                 $params['geo:lat'] = $where[$i]['geo:lat'];
             }
             /*
-             * Searching for keywords is faster than geometry
+             * Searching for hash/keywords is faster than geometry
              */
             else if (isset($where[$i]['searchTerms'])) {
                 $params['searchTerms'][] = $where[$i]['searchTerms'];
+            }
+            else if (isset($where[$i]['hash'])) {
+                if (!isset($hashTodiscard) || $where[$i]['hash'] !== $hashTodiscard) {
+                    $params['searchTerms'][] = 'hash:' . $where[$i]['hash'];
+                }
             }
             /*
              * Geometry
              */
             else {
-                $params['geo:geometry'] = $where[$i]['geometry'];
+                $params['geo:geometry'] = $where[$i]['geo:geometry'];
             }
         }
-        $params['searchTerms'] = join(' ', $params['searchTerms']);
+        if (count($params['searchTerms']) > 0) {
+            $params['searchTerms'] = join(' ', $params['searchTerms']);
+        }
+        else {
+            unset($params['searchTerms']);
+        }
         return $params;
     }
     
+    /**
+     * Convert array of filter names to array of OpenSearch keys
+     * 
+     * @param array $filterNames
+     * @return array
+     */
+    private function toOSKeys($filterNames) {
+        $arr = array();
+        foreach ($filterNames as $key => $value) {
+            if (isset($this->defaultModel->searchFilters[$key])) {
+                $arr[$this->defaultModel->searchFilters[$key]['osKey']] = $value;
+            }
+            
+        }
+        return $arr;
+    }
     
 }

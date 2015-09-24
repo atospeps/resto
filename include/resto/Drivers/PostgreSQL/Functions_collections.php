@@ -21,18 +21,15 @@
 class Functions_collections {
     
     private $dbDriver = null;
-    private $dbh = null;
     
     /**
      * Constructor
      * 
-     * @param array $config
-     * @param RestoCache $cache
+     * @param RestoDatabaseDriver $dbDriver
      * @throws Exception
      */
     public function __construct($dbDriver) {
         $this->dbDriver = $dbDriver;
-        $this->dbh = $dbDriver->dbh;
     }
 
     /**
@@ -43,20 +40,30 @@ class Functions_collections {
      * @throws Exception
      */
     public function getCollectionsDescriptions($collectionName = null) {
-         
+        
         $cached = $this->dbDriver->cache->retrieve(array('getCollectionsDescriptions', $collectionName));
         if (isset($cached)) {
             return $cached;
         }
+        
+        /*
+         * First get licenses
+         */
+        $licenses = $this->dbDriver->get(RestoDatabaseDriver::LICENSES);
+        
+        /*
+         * Then collections
+         */
         $collectionsDescriptions = array();
-        $descriptions = $this->dbDriver->query('SELECT collection, status, model, mapping, license FROM resto.collections' . (isset($collectionName) ? ' WHERE collection=\'' . pg_escape_string($collectionName) . '\'' : '') . ' ORDER BY collection');
+        $descriptions = $this->dbDriver->query('SELECT collection, status, owner, model, mapping, licenseid FROM resto.collections' . (isset($collectionName) ? ' WHERE collection=\'' . pg_escape_string($collectionName) . '\'' : '') . ' ORDER BY collection');
         while ($collection = pg_fetch_assoc($descriptions)) {
             $collectionsDescriptions[$collection['collection']] = array(
                 'name' => $collection['collection'],
                 'model' => $collection['model'],
                 'status' => $collection['status'],
+                'owner' => $collection['owner'],
                 'propertiesMapping' => json_decode($collection['mapping'], true),
-                'license' => isset($collection['license']) ? json_decode($collection['license'], true) : null,
+                'license' => isset($licenses[$collection['licenseid']]) ? $licenses[$collection['licenseid']] : null,
                 'osDescription' => $this->getOSDescriptions($collection['collection'])
             );
         }
@@ -79,7 +86,7 @@ class Functions_collections {
      */
     public function collectionExists($name) {
         $query = 'SELECT collection FROM resto.collections WHERE collection=\'' . pg_escape_string($name) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         return !empty($results);
     }
     
@@ -112,6 +119,7 @@ class Functions_collections {
             $query = 'BEGIN;';
             $query .= 'DELETE FROM resto.osdescriptions WHERE collection=\'' . pg_escape_string($collection->name) . '\';';
             $query .= 'DELETE FROM resto.collections WHERE collection=\'' . pg_escape_string($collection->name) . '\';';
+            $query .= 'DELETE FROM usermanagement.rights WHERE ownertype=\'group\' AND owner=\'default\' AND targettype=\'collection\' AND target=\'' . pg_escape_string($collection->name) . '\';';
             
             /*
              * Do not drop schema if product table is not empty
@@ -137,9 +145,11 @@ class Functions_collections {
      * Save collection to database
      * 
      * @param RestoCollection $collection
+     * @param Array $rights
+     * 
      * @throws Exception
      */
-    public function storeCollection($collection) {
+    public function storeCollection($collection, $rights) {
         
         $schemaName = '_' . strtolower($collection->name);
         
@@ -166,6 +176,17 @@ class Functions_collections {
             $this->storeCollectionDescription($collection);
             
             /*
+             * Store default rights for collection
+             */
+            $this->dbDriver->store(RestoDatabaseDriver::RIGHTS, array(
+                'rights' => $rights,
+                'ownerType' => 'group',
+                'owner' => 'default',
+                'targetType' => 'collection',
+                'target' => $collection->name
+            ));
+            
+            /*
              * Close transaction
              */
             $this->dbDriver->query('COMMIT');
@@ -175,15 +196,15 @@ class Functions_collections {
              */
             if (!$this->dbDriver->check(RestoDatabaseDriver::SCHEMA, array('name' => $schemaName))) {
                 $this->dbDriver->query('ROLLBACK');
-                throw new Exception();
+                RestoLogUtil::httpError(2000);
             }
             if (!$this->collectionExists($collection->name)) {
                 $this->dbDriver->query('ROLLBACK');
-                throw new Exception();
+                RestoLogUtil::httpError(2000);
             }
             
         } catch (Exception $e) {
-            RestoLogUtil::httpError(2000);
+            RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
     }
     
@@ -256,11 +277,10 @@ class Functions_collections {
             $this->dbDriver->query('CREATE TABLE ' . $schemaName . '.features (' . (count($table) > 0 ? join(',', $table) . ',' : '') . 'CHECK( collection = \'' . $collection->name . '\')) INHERITS (resto.features);');
             $indices = array(
                 'identifier' => 'btree',
-                'visible' => 'btree',
+                'visibility' => 'btree',
                 'platform' => 'btree',
                 'resolution' => 'btree',
                 'startDate' => 'btree',
-                //'completionDate' => 'btree',
                 'cultivatedCover' => 'btree',
                 'desertCover' => 'btree',
                 'floodedCover' => 'btree',
@@ -276,7 +296,7 @@ class Functions_collections {
             );
             foreach ($indices as $key => $indexType) {
                 if (!empty($key)) {
-                    $this->dbDriver->query('CREATE INDEX ' . $schemaName . '_features_' . $collection->model->getDbKey($key) . '_idx ON ' . $schemaName . '.features USING ' . $indexType . ' (' . $collection->model->getDbKey($key) . ($key === 'startDate' || $key === 'completionDate' ? ' DESC)' : ')'));
+                    $this->dbDriver->query('CREATE INDEX ' . $schemaName . '_features_' . $collection->model->getDbKey($key) . '_idx ON ' . $schemaName . '.features USING ' . $indexType . ' (' . $collection->model->getDbKey($key) . ($key === 'startDate' ? ' DESC)' : ')'));
                 }
             }
             $this->dbDriver->query('GRANT SELECT ON TABLE ' . $schemaName . '.features TO resto');
@@ -284,47 +304,57 @@ class Functions_collections {
     }
     
     /**
+     * Store Collection description 
      * 
      * @param RestoCollection $collection
+     * 
      */
     private function storeCollectionDescription($collection) {
         
-        /*
-         * Insert collection within collections table
-         * 
-         * CREATE TABLE resto.collections (
-         *  collection          TEXT PRIMARY KEY,
-         *  creationdate        TIMESTAMP,
-         *  model               TEXT DEFAULT 'Default',
-         *  status              TEXT DEFAULT 'public',
-         *  license             TEXT,
-         *  mapping             TEXT
-         * );
-         * 
-         */
-        $license = isset($collection->license) && count($collection->license) > 0 ? '\'' . pg_escape_string(json_encode($collection->license)) . '\'' : 'NULL';
-        if (!$this->collectionExists($collection->name)) {
-            $this->dbDriver->query('INSERT INTO resto.collections (collection, creationdate, model, status, license, mapping) VALUES(' . join(',', array('\'' . pg_escape_string($collection->name) . '\'', 'now()', '\'' . pg_escape_string($collection->model->name) . '\'', '\'' . pg_escape_string($collection->status) . '\'', $license, '\'' . pg_escape_string(json_encode($collection->propertiesMapping)) . '\'')) . ')');
+        $licenseId = 'NULL';
+        if (isset($collection->license)) {
+            $licenseDescription = $collection->license->toArray();
+            $licenseId = '\'' . pg_escape_string($licenseDescription['licenseId']) . '\'';
         }
+        
+        /*
+         * Create collection
+         */
+        if (!$this->collectionExists($collection->name)) {
+            $toBeSet = array(
+                'collection' => '\'' . pg_escape_string($collection->name) . '\'',
+                'creationdate' => 'now()',
+                'model' => '\'' . pg_escape_string($collection->model->name) . '\'',
+                'licenseid' => $licenseId, 
+                'mapping' => '\'' . pg_escape_string(json_encode($collection->propertiesMapping)) . '\'',
+                'status' => '\'' . pg_escape_string($collection->status) . '\'',
+                'owner' => '\'' . pg_escape_string($collection->owner) . '\''
+            );
+            $this->dbDriver->query('INSERT INTO resto.collections (' . join(',', array_keys($toBeSet)) . ') VALUES(' . join(',', array_values($toBeSet)) . ')');
+        }
+        /*
+         * TODO - review this code
+         * Update collection fields (status, mapping and licenseid)
+         */
         else {
-            $this->dbDriver->query('UPDATE resto.collections SET status = \'' . pg_escape_string($collection->status) . '\', mapping = \'' . pg_escape_string(json_encode($collection->propertiesMapping)) . '\', license=' . $license . ' WHERE collection = \'' . pg_escape_string($collection->name) . '\'');
+            $this->dbDriver->query('UPDATE resto.collections SET status = \'' . pg_escape_string($collection->status) . '\', mapping = \'' . pg_escape_string(json_encode($collection->propertiesMapping)) . '\', licenseid=' . $licenseId . ' WHERE collection = \'' . pg_escape_string($collection->name) . '\'');
         }
 
         /*
          * Insert OpenSearch descriptions within osdescriptions table
-         * (one description per lang
+         * (one description per lang)
          * 
          * CREATE TABLE resto.osdescriptions (
-         *  collection          VARCHAR(50),
-         *  lang                VARCHAR(2),
-         *  shortname           VARCHAR(50),
-         *  longname            VARCHAR(255),
-         *  description         TEXT,
-         *  tags                TEXT,
-         *  developper          VARCHAR(50),
-         *  contact             VARCHAR(50),
-         *  query               VARCHAR(255),
-         *  attribution         VARCHAR(255)
+         *  collection          TEXT,
+         *  lang                TEXT,
+         *  shortname           VARCHAR(16),
+         *  longname            VARCHAR(48),
+         *  description         VARCHAR(1024),
+         *  tags                VARCHAR(256),
+         *  developper          VARCHAR(64),
+         *  contact             TEXT,
+         *  query               TEXT,
+         *  attribution         VARCHAR(256),
          * );
          */
         $this->dbDriver->query('DELETE FROM resto.osdescriptions WHERE collection=\'' . pg_escape_string($collection->name) . '\'');
@@ -338,9 +368,33 @@ class Functions_collections {
                 '\'' . pg_escape_string($collection->name) . '\'',
                 '\'' . pg_escape_string($lang) . '\''
             );
+            
+            /*
+             * OpenSearch 1.1 draft 5 constraints
+             * (http://www.opensearch.org/Specifications/OpenSearch/1.1)
+             */
+            $validProperties = array(
+                'ShortName' => 16,
+                'LongName' => 48,
+                'Description' => 1024,
+                'Tags' => 256,
+                'Developper' => 64,
+                'Contact' => -1,
+                'Query' => -1,
+                'Attribution' => 256
+            );
             foreach (array_keys($description) as $key) {
-                $osFields[] = strtolower($key);
-                $osValues[] = '\'' . pg_escape_string($description[$key]) . '\'';
+                
+                /*
+                 * Throw exception if property is invalid
+                 */
+                if (isset($validProperties[$key])) {
+                    if ($validProperties[$key] !== -1 && strlen($description[$key]) > $validProperties[$key]) {
+                        RestoLogUtil::httpError(400, 'OpenSearch property ' . $key . ' length is greater than ' . $validProperties[$key] . ' characters');
+                    }
+                    $osFields[] = strtolower($key);
+                    $osValues[] = '\'' . pg_escape_string($description[$key]) . '\'';
+                }
             }
             $this->dbDriver->query('INSERT INTO resto.osdescriptions (' . join(',', $osFields) . ') VALUES(' . join(',', $osValues) . ')');
         }
@@ -361,4 +415,5 @@ class Functions_collections {
         }
         return false;
     }
+    
 }

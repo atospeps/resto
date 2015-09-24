@@ -21,18 +21,15 @@
 class Functions_general {
     
     private $dbDriver = null;
-    private $dbh = null;
     
     /**
      * Constructor
      * 
-     * @param array $config
-     * @param RestoCache $cache
+     * @param RestoDatabaseDriver $dbDriver
      * @throws Exception
      */
     public function __construct($dbDriver) {
         $this->dbDriver = $dbDriver;
-        $this->dbh = $dbDriver->dbh;
     }
 
     /**
@@ -44,7 +41,7 @@ class Functions_general {
      */
     public function schemaExists($name) {
         $query = 'SELECT 1 FROM pg_namespace WHERE nspname = \'' . pg_escape_string($name) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         return !empty($results);
     }
 
@@ -58,7 +55,7 @@ class Functions_general {
      */
     public function tableExists($name, $schema = 'public') {
         $query = 'SELECT 1 FROM pg_tables WHERE schemaname=\'' . pg_escape_string($schema) . '\' AND tablename=\'' . pg_escape_string($name) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         return !empty($results);
     }
     
@@ -72,7 +69,7 @@ class Functions_general {
      */
     public function tableIsEmpty($name, $schema = 'public') {
         $query = 'SELECT count(*) as count FROM ' . pg_escape_string($schema) . '.' . pg_escape_string($name) . '';
-        $results = $this->dbDriver->query(($query));
+        $results = $this->dbDriver->query($query);
         $result = pg_fetch_assoc($results);
         return (integer) $result['count'] === 0 ? true : false;
     }
@@ -118,30 +115,31 @@ class Functions_general {
    
    
     /**
-     * Return true if resource is shared (checked with proof)
+     * Returns shared link initiator email if resource is shared (checked with proof)
+     * Returns false otherwise
      * 
      * @param string $resourceUrl
      * @param string $token
      * @return boolean
      */
-    public function isValidSharedLink($resourceUrl, $token) {
-        
+    public function getSharedLinkInitiator($resourceUrl, $token) {
         if (!isset($resourceUrl) || !isset($token)) {
             return false;
         }
-        $query = 'SELECT 1 FROM usermanagement.sharedlinks WHERE url=\'' . pg_escape_string($resourceUrl) . '\' AND token=\'' . pg_escape_string($token) . '\' AND validity > now()';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        return !empty($results);
-        
+        $query = 'SELECT email FROM usermanagement.sharedlinks WHERE url=\'' . pg_escape_string($resourceUrl) . '\' AND token=\'' . pg_escape_string($token) . '\' AND validity > now()';
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+        return !empty($results) ? $results[0]['email'] : false;
     }
     
     /**
      * Create a shared resource and return it
      * 
+     * @param string $identifier
      * @param string $resourceUrl
+     * @param integer $duration
      * @return array
      */
-    public function createSharedLink($resourceUrl, $duration = 86400) {
+    public function createSharedLink($identifier, $resourceUrl, $duration = 86400) {
         
         if (!isset($resourceUrl) || !RestoUtil::isUrl($resourceUrl)) {
             return null;
@@ -149,7 +147,7 @@ class Functions_general {
         if (!is_int($duration)) {
             $duration = 86400;
         }
-        $results = $this->dbDriver->fetch($this->dbDriver->query('INSERT INTO usermanagement.sharedlinks (url, token, validity) VALUES (\'' . pg_escape_string($resourceUrl) . '\',\'' . (RestoUtil::encrypt(mt_rand() . microtime())) . '\',now() + ' . $duration . ' * \'1 second\'::interval) RETURNING token', 500, 'Cannot share link'));
+        $results = $this->dbDriver->fetch($this->dbDriver->query('INSERT INTO usermanagement.sharedlinks (url, token, email, validity) VALUES (\'' . pg_escape_string($resourceUrl) . '\',\'' . (RestoUtil::encrypt(mt_rand() . microtime())) . '\',\'' . pg_escape_string($identifier) . '\',now() + ' . $duration . ' * \'1 second\'::interval) RETURNING token', 500, 'Cannot share link'));
         if (count($results) === 1) {
             return array(
                 'resourceUrl' => $resourceUrl,
@@ -164,26 +162,48 @@ class Functions_general {
     /**
      * Save query to database
      * 
-     * @param string $userid : User id
+     * @param string $identifier
      * @param array $query
      * @throws Exception
      */
-    public function storeQuery($userid, $query) {
-        $values = array(
-            $userid,
-            (isset($query['method']) ? "'" . pg_escape_string($query['method']) . "'" : 'NULL'),
-            (isset($query['service']) ? "'" . pg_escape_string($query['service']) . "'" : 'NULL'),
-            (isset($query['collection']) ? "'" . pg_escape_string($query['collection']) . "'" : 'NULL'),
-            (isset($query['resourceid']) ? "'" . pg_escape_string($query['resourceid']) . "'" : 'NULL'),
-            (isset($query['query']) ? "'" . pg_escape_string(json_encode($query['query'])) . "'" : 'NULL'),
-            "now()",
-            (isset($query['url']) ? "'" . pg_escape_string($query['url']) . "'" : 'NULL'),
-            (isset($query['ip']) ? "'" . pg_escape_string($query['ip']) . "'" : '127.0.0.1')  
+    public function storeQuery($identifier, $query) {
+        
+        $toBeSet = array(
+            'email' => '\'' . pg_escape_string($identifier) . '\'',
+            'method' => isset($query['method']) ? '\'' . pg_escape_string($query['method']) . '\'' : 'NULL',
+            'service' => isset($query['service']) ? '\'' . pg_escape_string($query['service']) . '\'' : 'NULL',
+            'collection' => isset($query['collection']) ? '\'' . pg_escape_string($query['collection']) . '\'' : 'NULL',
+            'resourceid' => isset($query['resourceid']) ? '\'' . pg_escape_string($query['resourceid']) . '\'' : 'NULL',
+            'query' => isset($query['query']) ? '\'' . pg_escape_string(json_encode($query['query'])) . '\'' : 'NULL',
+            'querytime' => 'now()',
+            'url' => isset($query['url']) ? '\'' . pg_escape_string($query['url']) . '\'' : 'NULL',
+            'ip' => isset($query['ip']) ? '\'' . pg_escape_string($query['ip']) . '\'' : '127.0.0.1'  
         );
-        $this->dbDriver->query('INSERT INTO usermanagement.history (userid,method,service,collection,resourceid,query,querytime,url,ip) VALUES (' . join(',', $values) . ')');
+        $this->dbDriver->query('INSERT INTO usermanagement.history (' . join(',', array_keys($toBeSet)) . ') VALUES (' . join(',', array_values($toBeSet)) . ')');
         return true;
     }
     
-     
+    /**
+     * Return true if token is revoked
+     * 
+     * @param string $token
+     */
+    public function isTokenRevoked($token) {
+        $query = 'SELECT 1 FROM usermanagement.revokedtokens WHERE token= \'' . pg_escape_string($token) . '\'';
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+        return !empty($results);
+    }
+
+    /**
+     * Revoke token
+     * 
+     * @param string $token
+     */
+    public function revokeToken($token) {
+        if (isset($token) && !$this->isTokenRevoked($token)) {
+            $this->dbDriver->query('INSERT INTO usermanagement.revokedtokens (token) VALUES(\'' . pg_escape_string($token) . '\')');
+        }
+        return true;
+    }
     
 }

@@ -34,21 +34,22 @@ abstract class RestoDatabaseDriver {
     const FACET = 9;
     const FACETS = 10;
     const FEATURE = 11;
-    const FEATURES = 12;
-    const FEATURES_DESCRIPTIONS = 13;
-    const FEATURE_DESCRIPTION = 14;
-    const GROUPS = 15;
-    const HANDLER = 16;
-    const KEYWORDS = 18;
-    const LICENSE_SIGNED = 19;
+    const FEATURES_DESCRIPTIONS = 12;
+    const FEATURE_DESCRIPTION = 13;
+    const GROUPS = 14;
+    const HANDLER = 15;
+    const HISTORY = 16;
+    const KEYWORDS = 17;
+    const LICENSE = 18;
+    const LICENSES = 19;
     const ORDER = 20;
     const ORDERS = 21;
     const QUERY = 22;
     const RIGHTS = 23;
-    const RIGHTS_FULL = 24;
-    const SCHEMA = 25;
-    const SHARED_LINK = 26;
-    const SIGN_LICENSE = 27;
+    const SCHEMA = 24;
+    const SHARED_LINK = 25;
+    const SIGNATURE = 26;
+    const SIGNATURES = 27;
     const STATISTICS = 28;
     const TABLE = 29;
     const TABLE_EMPTY = 30;
@@ -56,6 +57,8 @@ abstract class RestoDatabaseDriver {
     const USER = 32;
     const USER_PASSWORD = 33;
     const USER_PROFILE = 34;
+    const USERS_PROFILES = 35;
+    const GROUP = 36;
     
     /*
      * Results per page

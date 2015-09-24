@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Copyright 2014 Jérôme Gasperi
  *
@@ -19,22 +20,19 @@
  * RESTo PostgreSQL users functions
  */
 class Functions_users {
-    
+
     private $dbDriver = null;
-    private $dbh = null;
-    
+
     /**
      * Constructor
      * 
-     * @param array $config
-     * @param RestoCache $cache
+     * @param RestoDatabaseDriver $dbDriver
      * @throws Exception
      */
     public function __construct($dbDriver) {
         $this->dbDriver = $dbDriver;
-        $this->dbh = $dbDriver->dbh;
     }
-    
+
     /**
      * Return encrypted user password
      * 
@@ -47,36 +45,69 @@ class Functions_users {
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         return count($results) === 1 ? $results[0]['password'] : null;
     }
-        
+
     /**
      * Get user profile
      * 
      * @param string $identifier : can be email (or string) or integer (i.e. uid)
      * @param string $password : if set then profile is returned only if password is valid
-     * @return array : this function should return array('userid' => -1, 'groupname' => 'unregistered')
-     *                 if user is not found in database
+     * @return array : this function return HTTP 404 if user is not found in database
      * @throws exception
      */
     public function getUserProfile($identifier, $password = null) {
-        
+
         /*
          * Unregistered users
          */
         if (!isset($identifier) || !$identifier || $identifier === 'unregistered') {
             RestoLogUtil::httpError(404);
         }
-        
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), country, organization, topics, activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)). '\'' : '');
+
+        $query = 'SELECT userid, email, groups, username, givenname, lastname, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') as registrationdate, country, organization, organizationcountry, flags, topics, activated, validatedby, to_char(validationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') as validationdate FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter($identifier) . (isset($password) ? ' AND password=\'' . pg_escape_string(RestoUtil::encrypt($password)) . '\'' : '');
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
-        
+
         if (count($results) === 0) {
             RestoLogUtil::httpError(404);
         }
-        
+
         $results[0]['activated'] = (integer) $results[0]['activated'];
-        
+        $results[0]['groups'] = substr($results[0]['groups'], 1, -1);
+
         return $results[0];
+    }
+
+    /**
+     * Get full profiles for all users
+     * 
+     * @return array
+     * @throws exception
+     */
+    public function getUsersProfiles($data = array()) {
         
+        $results = $this->dbDriver->query('SELECT userid, email, groups, username, givenname, lastname, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') as registrationdate, country, organization, organizationcountry, flags, topics, activated, validatedby, to_char(validationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') as validationdate FROM usermanagement.users' . (isset($data['groupid']) ? ' WHERE \'' . pg_escape_string($data['groupid']) . '\' = any(groups)' : (isset($data['keywords']) ? ' WHERE email LIKE \'' . pg_escape_string($data['keywords']) .'\' OR username LIKE \''  . pg_escape_string($data['keywords']) .'\' OR givenname LIKE \''  . pg_escape_string($data['keywords']) .'\' OR lastname LIKE \''  . pg_escape_string($data['keywords']) .'\' OR country LIKE \''  . pg_escape_string($data['keywords']) .'\' OR organization LIKE \''  . pg_escape_string($data['keywords']) .'\'' : '')) . (isset($data['limit']) ? ' LIMIT ' . pg_escape_string($data['limit']) : '') . (isset($data['offset']) ? ' OFFSET ' . pg_escape_string($data['offset']) : '') );
+        $profiles = array();
+        while ($profile = pg_fetch_assoc($results)) {
+            $profile['groups'] = substr($profile['groups'], 1, -1);
+
+            $profiles[] = array(
+                'userid' => $profile['userid'],
+                'email' => $profile['email'],
+                'groups' => $profile['groups'],
+                'username' => $profile['username'],
+                'givenname' => $profile['givenname'],
+                'lastname' => $profile['lastname'],
+                'registrationdate' => $profile['registrationdate'],
+                'country' => $profile['country'],
+                'organization' => $profile['organization'],
+                'organizationcountry' => $profile['organizationcountry'],
+                'flags' => $profile['flags'],
+                'topics' => $profile['topics'],
+                'activated' => (integer) $profile['activated'],
+                'validatedby' => $profile['validatedby'],
+                'validationdate' => $profile['validationdate']
+            );
+        }
+        return $profiles;
     }
 
     /**
@@ -89,10 +120,10 @@ class Functions_users {
      */
     public function userExists($email) {
         $query = 'SELECT 1 FROM usermanagement.users WHERE email=\'' . pg_escape_string($email) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         return !empty($results);
     }
-    
+
     /**
      * Save user profile to database i.e. create new entry if user does not exist
      * 
@@ -101,29 +132,36 @@ class Functions_users {
      * @throws exception
      */
     public function storeUserProfile($profile) {
-       
+
         if (!is_array($profile) || !isset($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot save user profile - invalid user identifier');
         }
         if ($this->userExists($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot save user profile - user already exist');
         }
+
+        /*
+         * Normalize email
+         */
         $email = trim(strtolower($profile['email']));
-        $values = "'" . pg_escape_string($email) . "',";
-        $values .= "'" . (isset($profile['password']) ? RestoUtil::encrypt($profile['password']) : str_repeat('*', 40)) . "',";
-        $values .= "'" . (isset($profile['groupname']) ? pg_escape_string($profile['groupname']) : 'default') . "',";
-        foreach (array_values(array('username', 'givenname', 'lastname', 'country', 'organization', 'topics')) as $field) {
-            $values .= (isset($profile[$field]) ? "'". $profile[$field] . "'" : 'NULL') . ",";
+
+        $toBeSet = array(
+            'email' => '\'' . pg_escape_string($email) . '\'',
+            'password' => '\'' . (isset($profile['password']) ? RestoUtil::encrypt($profile['password']) : str_repeat('*', 40)) . '\'',
+            'groups' => '\'{' . (isset($profile['groups']) ? pg_escape_string($profile['groups']) : 'default') . '}\'',
+            'activationcode' => '\'' . pg_escape_string(RestoUtil::encrypt($email . microtime())) . '\'',
+            'activated' => $profile['activated'],
+            'validatedby' => isset($profile['validatedby']) ? $profile['validatedby'] : 'NULL',
+            'validationdate' => isset($profile['validatedby']) ? 'now()' : 'NULL',
+            'registrationdate' => 'now()'
+        );
+        foreach (array_values(array('username', 'givenname', 'lastname', 'country', 'organization', 'topics', 'organizationcountry', 'flags')) as $field) {
+            $toBeSet[$field] = (isset($profile[$field]) ? "'" . $profile[$field] . "'" : 'NULL');
         }
-        $values .= "'" . pg_escape_string(RestoUtil::encrypt($email . microtime())) . "',";
-        $values .= $profile['activated'] . ',now()';
-        
-        // TODO change to pg_fetch_assoc ?
-        $results = $this->dbDriver->query('INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,country,organization,topics,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode');
-        return pg_fetch_array($results);
-        
+
+        return pg_fetch_array($this->dbDriver->query('INSERT INTO usermanagement.users (' . join(',', array_keys($toBeSet)) . ') VALUES (' . join(',', array_values($toBeSet)) . ') RETURNING userid, activationcode'));
     }
-    
+
     /**
      * Update user profile to database
      * 
@@ -132,110 +170,97 @@ class Functions_users {
      * @throws exception
      */
     public function updateUserProfile($profile) {
-       
+
         if (!is_array($profile) || !isset($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
 
         /*
-         * Only password, groupname and activated fields can be updated
+         * The following parameters cannot be updated :
+         *   - email
+         *   - userid 
+         *   - activationcode
+         *   - registrationdate
          */
         $values = array();
-        if (isset($profile['password'])) {
-            $values[] = 'password=\'' . RestoUtil::encrypt($profile['password']) . '\'';
+        foreach (array_values(array('username', 'givenname', 'lastname', 'groups', 'country', 'organization', 'topics', 'organizationcountry', 'flags')) as $field) {
+            if (isset($profile[$field])) {
+                switch ($field) {
+                    case 'password':
+                        $values[] = 'password=\'' . RestoUtil::encrypt($profile['password']) . '\'';
+                        break;
+                    case 'activated':
+                        $values[] = 'activated=' . $profile['activated'];
+                        break;
+                    default:
+                        $values[] = $field . '=\'' . pg_escape_string($profile[$field]) . '\'';
+                }
+            }
         }
-        if (isset($profile['groupname'])) {
-            $values[] = 'groupname=\'' . pg_escape_string($profile['groupname']) . '\'';
+
+        $results = array();
+        if (count($values) > 0) {
+            $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) . '\' RETURNING userid'));
         }
-        if (isset($profile['activated'])) {
-            $values[] = 'activated=' . $profile['activated'];
-        }
-        
-        $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
-        
+
         return count($results) === 1 ? $results[0]['userid'] : null;
-        
     }
 
     /**
-     * Return true if token is revoked
+     * Add groups to user $userid
      * 
-     * @param string $token
-     */
-    public function isTokenRevoked($token) {
-        $query = 'SELECT 1 FROM usermanagement.revokedtokens WHERE token= \'' . pg_escape_string($token) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        return !empty($results);
-    }
-
-    /**
-     * Revoke token
-     * 
-     * @param string $token
-     */
-    public function revokeToken($token) {
-        if (isset($token) && !$this->isTokenRevoked($token)) {
-            $this->dbDriver->query('INSERT INTO usermanagement.revokedtokens (token) VALUES(\'' . pg_escape_string($token) . '\')');
-        }
-        return true;
-    }
-
-    /**
-     * Check if user signed collection license
-     * 
-     * @param string $identifier
-     * @param string $collectionName
-     * 
-     * @return boolean
-     */
-    public function isLicenseSigned($identifier, $collectionName) {
-        $query = 'SELECT 1 FROM usermanagement.signatures WHERE email= \'' . pg_escape_string($identifier) . '\' AND collection= \'' . pg_escape_string($collectionName) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        return !empty($results);
-    }
-    
-    /**
-     * Sign license for collection collectionName
-     * 
-     * @param string $identifier : user identifier 
-     * @param string $collectionName
-     * @return boolean
+     * @param integer $userid
+     * @param string $groups
+     * @return null
      * @throws Exception
      */
-    public function signLicense($identifier, $collectionName) {
-        
-        if (!$this->dbDriver->check(RestoDatabaseDriver::COLLECTION, array(
-            'collectionName' => $collectionName
-        ))) {
-            RestoLogUtil::httpError(500, 'Cannot sign license');
-        }
-        $results = $this->dbDriver->query('SELECT email FROM usermanagement.signatures WHERE email=\'' . pg_escape_string($identifier) . '\' AND collection=\'' . pg_escape_string($collectionName) . '\'');
-        if (pg_fetch_assoc($results)) {
-            $this->dbDriver->query('UPDATE usermanagement.signatures SET signdate=now() WHERE email=\'' . pg_escape_string($identifier) . '\' AND collection=\'' . pg_escape_string($collectionName) . '\'');
-        }
-        else {
-            $this->dbDriver->query('INSERT INTO usermanagement.signatures (email, collection, signdate) VALUES (\'' . pg_escape_string($identifier) . '\',\'' . pg_escape_string($collectionName) . '\',now())');
-        }
-        return true;
+    public function storeUserGroups($userid, $groups) {
+        return $this->storeOrRemoveUserGroups('store', $userid, $groups);
     }
-    
+
+    /**
+     * Remove groups for user $userid
+     * 
+     * @param integer $userid
+     * @param string $groups
+     * @return null
+     * @throws Exception
+     */
+    public function removeUserGroups($userid, $groups) {
+        return $this->storeOrRemoveUserGroups('remove', $userid, $groups);
+    }
+
     /**
      * Activate user
      * 
-     * @param string $userid : can be userid or base64(email)
+     * @param string $userid
      * @param string $activationcode
+     * @param boolean $autoValidateUser
      * 
      * @throws Exception
      */
-    public function activateUser($userid, $activationcode = null) {
-        $query = 'UPDATE usermanagement.users SET activated=1 WHERE userid=\'' . pg_escape_string($userid) . '\'' . (isset($activationcode) ? ' AND activationcode=\'' . pg_escape_string($activationcode) . '\'' :'') . ' RETURNING userid';
-        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
-        if (count($results) === 1) {
-            return true;
+    public function activateUser($userid, $activationcode, $autoValidateUser = false) {
+
+        $toBeSet = array(
+            'activated=1'
+        );
+
+        /*
+         * User is validated on activation
+         */
+        if ($autoValidateUser) {
+            $toBeSet = array_merge($toBeSet, array(
+                'validatedby=\'auto\'',
+                'validationdate=now()'
+            ));
         }
-        return false;
+
+        $query = 'UPDATE usermanagement.users SET ' . join(',', $toBeSet) . ' WHERE userid=\'' . pg_escape_string($userid) . '\'' . (isset($activationcode) ? ' AND activationcode=\'' . pg_escape_string($activationcode) . '\'' : '') . ' RETURNING userid';
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+
+        return count($results) === 1 ? true : false;
     }
-    
+
     /**
      * Deactivate user
      * 
@@ -243,14 +268,9 @@ class Functions_users {
      * @throws Exception
      */
     public function deactivateUser($userid) {
-        $query = 'UPDATE usermanagement.users SET activated=0 WHERE userid=\'' . pg_escape_string($userid) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
-        if (count($results) === 1) {
-            return true;
-        }
-        return false;
+        return count($this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET activated=0 WHERE userid=\'' . pg_escape_string($userid) . '\''))) === 1 ? true : false;
     }
-    
+
     /**
      * Return filter on user
      * 
@@ -259,5 +279,71 @@ class Functions_users {
     private function useridOrEmailFilter($identifier) {
         return ctype_digit($identifier) ? 'userid=' . $identifier : 'email=\'' . pg_escape_string($identifier) . '\'';
     }
-    
+
+    /**
+     * Store or remove groups for user $userid
+     * 
+     * @param string $storeOrRemove
+     * @param integer $userid
+     * @param string $groups
+     * @return null
+     * @throws Exception
+     */
+    private function storeOrRemoveUserGroups($storeOrRemove, $userid, $groups) {
+
+        if (!isset($userid)) {
+            RestoLogUtil::httpError(500, 'Cannot ' . $storeOrRemove . ' groups - invalid user identifier : ' . $userid);
+        }
+        if (empty($groups)) {
+            RestoLogUtil::httpError(500, 'Cannot ' . $storeOrRemove . ' groups - empty input groups');
+        }
+
+        $profile = $this->getUserProfile($userid);
+        if (!isset($profile)) {
+            RestoLogUtil::httpError(500, 'Cannot ' . $storeOrRemove . ' groups - user profile not found for : ' . $userid);
+        }
+
+        /*
+         * Explode existing groups into an associative array
+         */
+        $userGroups = !empty($profile['groups']) ? array_flip(explode(',', $profile['groups'])) : array();
+
+        /*
+         * Explode input groups
+         */
+        $newGroups = array();
+        $rawNewGroups = explode(',', $groups);
+        for ($i = 0, $ii = count($rawNewGroups); $i < $ii; $i++) {
+            if ($rawNewGroups[$i] !== '') {
+                $newGroups[$rawNewGroups[$i]] = 1;
+            }
+        }
+
+        /*
+         * Store - merge new groups with user groups
+         */
+        if ($storeOrRemove === 'store') {
+            $newGroups = array_keys(array_merge($newGroups, $userGroups));
+        }
+
+        /*
+         * Remove - note that 'default' group cannot be removed
+         */ else {
+            foreach (array_keys($newGroups) as $key) {
+                if ($key !== 'default') {
+                    unset($userGroups[$key]);
+                }
+            }
+            $newGroups = array_keys($userGroups);
+        }
+
+        /*
+         * Update user profile
+         */
+        $results = count($newGroups) > 0 ? implode(',', $newGroups) : null;
+        $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET groups=' . (isset($results) ? '\'{' . pg_escape_string($results) . '}\'' : 'NULL') . ' WHERE userid=\'' . $userid . '\''));
+
+        return $results;
+    }
+
 }

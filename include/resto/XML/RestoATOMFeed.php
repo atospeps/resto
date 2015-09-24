@@ -17,6 +17,11 @@
 
 class RestoATOMFeed extends RestoXML {
     
+    /*
+     * GeoRSS Where or Simple
+     */
+    private $useGeoRSSSimple = true;
+    
     /**
      * Constructor
      * 
@@ -202,7 +207,7 @@ class RestoATOMFeed extends RestoXML {
         /*
          * Date of creation is now
          */
-        $this->writeElement('updated', date('Y-m-dTH:i:sO'));
+        $this->writeElement('updated', date('Y-m-d\TH:i:s\Z'));
     }
     
     /**
@@ -229,9 +234,9 @@ class RestoATOMFeed extends RestoXML {
          * Base elements
          */
         $this->writeElements(array(
+            'title' => $feature['properties']['title'], 
             'id' => $feature['id'], // ! THIS SHOULD BE AN ABSOLUTE UNIQUE  AND PERMANENT IDENTIFIER !!
             'dc:identifier' => $feature['id'], // Local identifier - i.e. last part of uri
-            'title' => isset($feature['properties']['title']) ? $feature['properties']['title'] : '',
             'published' => $feature['properties']['published'],
             'updated' => $feature['properties']['updated'],
             /*
@@ -248,9 +253,9 @@ class RestoATOMFeed extends RestoXML {
         $this->addGmlTime($feature['properties']['startDate'], $feature['properties']['completionDate']);
         
         /*
-         * georss:polygon
+         * Add georss
          */
-        $this->addGeorssPolygon($feature['geometry']['coordinates']);
+        $this->addGeoRSS($feature['geometry']['type'], $feature['geometry']['coordinates']);
 
     }
     
@@ -271,36 +276,89 @@ class RestoATOMFeed extends RestoXML {
     }
     
     /**
-     * Add georss:polygon from geojson entry
+     * Add GeoRSS element
+     * 
+     * @param string $type
+     * @param array $coordinates
+     */
+    private function addGeoRSS($type, $coordinates) {
+        $geometry = array();
+        switch ($type) {
+            case 'Polygon':
+            case 'LineString':
+                foreach ($coordinates as $key) {
+                    foreach ($key as $value) {
+                        $geometry[] = $value[1] . ' ' . $value[0];
+                    }
+                }
+                break;
+            default:
+                $geometry[] = $value[1] . ' ' . $value[0];
+        }
+        
+        $this->useGeoRSSSimple ? $this->addGeoRSSSimple($type, join(' ', $geometry)) : $this->addGeoRSSWhere($type, join(' ', $geometry));
+    }
+    
+    /**
+     * Add georss:where from geojson entry
      * 
      * WARNING !
      *
      *  GeoJSON coordinates order is longitude,latitude
      *  GML coordinates order is latitude,longitude
      * 
-     *  @param array $coordinates
+     *  @param string $type
+     *  @param string $geometry
      */
-    private function addGeorssPolygon($coordinates) {
-        if (isset($coordinates)) {
-            $geometry = array();
-            foreach ($coordinates as $key) {
-                foreach ($key as $value) {
-                    $geometry[] = $value[1] . ' ' . $value[0];
-                }
-            }
-            $this->startElement('georss:where');
-            $this->startElement('gml:Polygon');
-            $this->startElement('gml:exterior');
-            $this->startElement('gml:LinearRing');
-            $this->startElement('gml:posList');
-            $this->writeAttributes(array('srsDimensions' => '2'));
-            $this->text(join(' ', $geometry));
-            $this->endElement(); // gml:posList
-            $this->endElement(); // gml:LinearRing
-            $this->endElement(); // gml:exterior
-            $this->endElement(); // gml:Polygon
-            $this->endElement(); // georss:where
+    private function addGeoRSSWhere($type, $geometry) {
+        $this->startElement('georss:where');
+        $this->startElement('gml:' . $type);
+        switch ($type) {
+            case 'Polygon':
+                $this->startElement('gml:exterior');
+                $this->startElement('gml:LinearRing');
+                $this->startElement('gml:posList');
+                $this->writeAttributes(array('srsDimensions' => '2'));
+                $this->text($geometry);
+                $this->endElement(); // gml:posList
+                $this->endElement(); // gml:LinearRing
+                $this->endElement(); // gml:exterior
+                break;
+            case 'LineString':
+                $this->startElement('gml:LinearString');
+                $this->startElement('gml:posList');
+                $this->text($geometry);
+                $this->endElement(); // gml:posList
+                $this->endElement(); // gml:LineString
+                break;
+            case 'Point':
+                $this->startElement('gml:pos');
+                $this->text($geometry);
+                $this->endElement(); // gml:pos
+                break;
         }
+        $this->endElement(); // gml:<$type>
+        $this->endElement(); // georss:where
+    }
+    
+    /**
+     * Add georss simple
+     * 
+     * WARNING !
+     *
+     *  GeoJSON coordinates order is longitude,latitude
+     *  GML coordinates order is latitude,longitude
+     * 
+     *  @param string $type
+     *  @param string geometry
+     */
+    private function addGeoRSSSimple($type, $geometry) {
+        if ($type === 'LineString') {
+            $type = 'Line';
+        }
+        $this->startElement('georss:' . strtolower($type));
+        $this->text($geometry);
+        $this->endElement(); // georss:<$type>
     }
     
     /**
@@ -395,7 +453,7 @@ class RestoATOMFeed extends RestoXML {
              */
             $this->startElement('media:group');
             if (isset($feature['properties']['thumbnail'])) {
-                $this->addMedia('THUMNAIL', $feature['properties']['thumbnail']);
+                $this->addMedia('THUMBNAIL', $feature['properties']['thumbnail']);
             }
             if (isset($feature['properties']['quicklook'])) {
                 $this->addMedia('QUICKLOOK', $feature['properties']['quicklook']);
@@ -444,7 +502,7 @@ class RestoATOMFeed extends RestoXML {
         $this->startElement('os:Query');
         $this->writeAttributes(array('role' => 'request'));
         if (isset($properties['query'])) {
-            $this->writeAttributes($properties['query']['original']);
+            $this->writeAttributes($properties['query']['originalFilters']);
         }
         $this->endElement();
     }

@@ -41,6 +41,11 @@ class RestoCollections {
      */
     private $model;
     
+    /*
+     * Statistics
+     */
+    private $statistics;
+    
     /**
      * Constructor 
      * 
@@ -87,12 +92,36 @@ class RestoCollections {
     }
     
     /**
-     * Add a collection
+     * Create a collection and store it within database
      * 
-     * @param RestoCollection $collection
+     * @param array $object : collection description as json file
      */
-    public function add($collection) {
-        $this->collections[$collection->name] = $collection;
+    public function create($object) {
+        
+        $name = isset($object['name']) ? $object['name'] : null;
+        
+        /*
+         * Check that collection does not exist
+         */
+        if (isset($name) && isset($this->collections[$name])) {
+            RestoLogUtil::httpError(2003);
+        }
+        
+        /*
+         * Load collection
+         */
+        $collection = new RestoCollection($name, $this->context, $this->user);
+        $collection->loadFromJSON($object, true);
+        
+        /*
+         * Store query
+         */
+        if ($this->context->storeQuery === true) {
+            $this->user->storeQuery($this->context->method, 'create', $name, null, $this->context->query, $this->context->getUrl());
+        }
+        
+        return true;
+        
     }
     
     /**
@@ -122,11 +151,23 @@ class RestoCollections {
             $collection->model = RestoUtil::instantiate($collectionsDescriptions[$key]['model'], array($collection->context, $collection->user));
             $collection->osDescription = $collectionsDescriptions[$key]['osDescription'];
             $collection->status = $collectionsDescriptions[$key]['status'];
-            $collection->license = $collectionsDescriptions[$key]['license'];
+            $collection->owner = $collectionsDescriptions[$key]['owner'];
+            $collection->license = new RestoLicense($this->context, $collectionsDescriptions[$key]['license']['licenseId'], false);
+            $collection->license->setDescription($collectionsDescriptions[$key]['license'], false);
             $collection->propertiesMapping = $collectionsDescriptions[$key]['propertiesMapping'];
-            $this->add($collection);
+            $this->collections[$collection->name] = $collection;
         }
         return $this;
+    }
+    
+    /**
+     * Return collections statistics
+     */
+    public function getStatistics() {
+        if (!isset($this->statistics)) {
+            $this->statistics = $this->context->dbDriver->get(RestoDatabaseDriver::STATISTICS, array('collectionName' => null, 'facetFields' => $this->model->getFacetFields())); 
+        }
+        return $this->statistics;
     }
     
     /**
@@ -136,13 +177,25 @@ class RestoCollections {
      */
     public function toJSON($pretty) {
         $collections = array(
-            'collections' => array(),
-            'statistics' => $this->context->dbDriver->get(RestoDatabaseDriver::STATISTICS, array('collectionName' => null, 'facetFields' => $this->model->getFacetFields()))
+            'synthesis' => array(
+                'name' => '*',
+                'osDescription' => isset($this->context->osDescription[$this->context->dictionary->language]) ? $this->context->osDescription[$this->context->dictionary->language] : $this->context->osDescription['en'],
+                'statistics' => $this->context->dbDriver->get(RestoDatabaseDriver::STATISTICS, array('collectionName' => null, 'facetFields' => $this->model->getFacetFields()))
+            ),
+            'collections' => array()
         );
         foreach(array_keys($this->collections) as $key) {
-            $collections['collections'][] = $this->collections[$key]->toArray(false);
+            $collections['collections'][] = $this->collections[$key]->toArray(true);
         }
         return RestoUtil::json_format($collections, $pretty);
+    }
+    
+    /**
+     * Output collections description as an XML OpenSearch document
+     */
+    public function toXML() {
+        $osdd = new RestoOSDD($this->context, $this->model, $this->getStatistics(), null);
+        return $osdd->toString();
     }
     
 }

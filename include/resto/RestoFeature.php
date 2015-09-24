@@ -45,6 +45,11 @@ class RestoFeature {
      */
     private $featureArray;
     
+    /*
+     * License
+     */
+    private $license;
+    
     /**
      * Constructor 
      * 
@@ -64,7 +69,18 @@ class RestoFeature {
         $this->initialize($options);
     }
     
-    /*
+    /**
+     * Return feature license
+     */
+    public function getLicense() {
+        if (!isset($this->license)) {
+            $this->license = new RestoLicense($this->context, $this->featureArray['properties']['license']['licenseId'], false);
+            $this->license->setDescription($this->featureArray['properties']['license'], false);
+        }
+        return $this->license;
+    }
+    
+    /**
      * Return true if Feature is valid, false otherwise
      */
     public function isValid() {
@@ -126,7 +142,7 @@ class RestoFeature {
     public function toArray($publicOutput = false) {
         if ($publicOutput) {
             $feature = $this->featureArray;
-            unset($feature['properties']['resourceInfos']);
+            unset($feature['properties']['resourceInfos'], $feature['properties']['wmsInfos']);
             return $feature;
         }
         return $this->featureArray;
@@ -149,7 +165,7 @@ class RestoFeature {
         /*
          * Initialize ATOM feed
          */
-        $atomFeed = new RestoATOMFeed($this->featureArray['id'], isset($this->description['properties']['title']) ? $this->description['properties']['title'] : '', 'resto feature');
+        $atomFeed = new RestoATOMFeed($this->featureArray['id'], $this->featureArray['properties']['title'], 'resto feature');
         
         /*
          * Entry for feature
@@ -419,5 +435,5 @@ class RestoFeature {
             $this->collection = new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true));
         }
     }
-  
+    
 }

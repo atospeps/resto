@@ -17,6 +17,13 @@
 
 /**
  * RESTo REST router for DELETE requests
+ * 
+ * 
+ *    collections/{collection}                      |  Delete {collection}
+ *    collections/{collection}/{feature}            |  Delete {feature}
+ *    
+ *    user/cart/{itemid}                            |  Remove {itemid} from user cart
+ *    
  */
 class RestoRouteDELETE extends RestoRoute {
     
@@ -28,22 +35,16 @@ class RestoRouteDELETE extends RestoRoute {
     }
    
     /**
-     * 
      * Process HTTP DELETE request
-     * 
-     *    collections/{collection}                      |  Delete {collection}
-     *    collections/{collection}/{feature}            |  Delete {feature}
-     *    
-     *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
-     *    
+     *
      * @param array $segments
      */
     public function route($segments) {
         switch($segments[0]) {
             case 'collections':
                 return $this->DELETE_collections($segments);
-            case 'users':
-                return $this->DELETE_users($segments);
+            case 'user':
+                return $this->DELETE_user($segments);
             default:
                 return $this->processModuleRoute($segments);
         }
@@ -51,7 +52,7 @@ class RestoRouteDELETE extends RestoRoute {
     
     /**
      * 
-     * Process HTTP DELETE request on collections
+     * Process collections
      * 
      *    collections/{collection}                      |  Delete {collection}
      *    collections/{collection}/{feature}            |  Delete {feature}
@@ -79,9 +80,9 @@ class RestoRouteDELETE extends RestoRoute {
         }
         
         /*
-         * Check credentials
+         * Only owner of a collection can delete it
          */
-        if (!$this->user->canDelete($collection->name, isset($feature) ? $feature->identifier : null)) {
+        if (!$this->user->hasRightsTo(RestoUser::UPDATE, array('collection' => $collection))) {
             RestoLogUtil::httpError(403);
         }
 
@@ -89,16 +90,32 @@ class RestoRouteDELETE extends RestoRoute {
          * collections/{collection}
          */
         if (!isset($feature)) {
+            
             $collection->removeFromStore();
-            $this->storeQuery('remove', $collection->name, null);
+            
+            /*
+             * Store query
+             */
+            if ($this->context->storeQuery === true) {
+                $this->user->storeQuery($this->context->method, 'remove', $collection->name, null, $this->context->query, $this->context->getUrl());
+            }
+            
             return RestoLogUtil::success('Collection ' . $collection->name . ' deleted');
         }
         /*
          * collections/{collection}/{feature}
          */
         else {
+            
             $feature->removeFromStore();
-            $this->storeQuery('remove', $collection->name, $feature->identifier);
+            
+            /*
+             * Store query
+             */
+            if ($this->context->storeQuery === true) {
+                $this->user->storeQuery($this->context->method, 'remove', $collection->name, $feature->identifier, $this->context->query, $this->context->getUrl());
+            }
+            
             return RestoLogUtil::success('Feature ' . $feature->identifier . ' deleted', array(
                 'featureIdentifier' => $feature->identifier
             ));
@@ -106,93 +123,38 @@ class RestoRouteDELETE extends RestoRoute {
         
     }
     
-    
     /**
      * 
-     * Process HTTP DELETE request on users
+     * Process user
      * 
-     *    users/{userid}/cart                           |  Remove all cart items
-     *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
+     *    user/cart                                     |  Remove all cart items
+     *    user/cart/{itemid}                            |  Remove {itemid} from user cart
      * 
      * @param array $segments
      */
-    private function DELETE_users($segments) {
+    private function DELETE_user($segments) {
         
-        if ($segments[2] === 'cart') {
-            return $this->DELETE_userCart($segments[1], isset($segments[3]) ? $segments[3] : null);
+        if ($segments[1] === 'cart') {
+            
+            /*
+             * Clear all cart items
+             */
+            if (!isset($segments[2])) {
+                return $this->user->getCart()->clear(true) ? RestoLogUtil::success('Cart cleared') : RestoLogUtil::error('Cannot clear cart');
+            }
+            
+            /*
+             * Delete itemId only
+             */
+            else {
+                return $this->user->getCart()->remove($segments[2], true) ? RestoLogUtil::success('Item removed from cart', array('itemid' => $itemId)) : RestoLogUtil::error('Item cannot be removed', array('itemid' => $itemId));
+                
+            }
         }
         else {
             RestoLogUtil::httpError(404);
         }
         
-    }
-    
-    /**
-     * 
-     * Process HTTP DELETE request on users cart
-     * 
-     *    users/{userid}/cart                           |  Remove all cart items
-     *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
-     * 
-     * @param string $emailOrId
-     * @param string $itemId
-     */
-    private function DELETE_userCart($emailOrId, $itemId) {
-        
-        /*
-         * Cart can only be modified by its owner or by admin
-         */
-        $user = $this->getAuthorizedUser($emailOrId);
-                
-        /*
-         * users/{userid}/cart
-         */
-        if (!isset($itemId)) {
-            return $this->DELETE_userCartAllItems($user);
-        }
-        /*
-         * users/{userid}/cart/{itemId}
-         */
-        else {
-            return $this->DELETE_userCartItem($user, $itemId);
-        }
-     
-    }
-    
-    /**
-     * 
-     * Delete one item
-     * 
-     * @param RestoUser $user
-     * @param string $itemId
-     */
-    private function DELETE_userCartItem($user, $itemId) {
-        if ($user->removeFromCart($itemId, true)) {
-            return RestoLogUtil::success('Item removed from cart', array(
-                'itemid' => $itemId
-            ));
-        }
-        else {
-            return RestoLogUtil::error('Item cannot be removed', array(
-                'itemid' => $itemId
-            ));
-        }
-    }
-    
-    /**
-     * 
-     * Delete all items within cart
-     * 
-     * @param RestoUser $user
-     * @param string $itemId
-     */
-    private function DELETE_userCartAllItems($user) {
-        if ($user->clearCart(true)) {
-            return RestoLogUtil::success('Cart cleared');
-        }
-        else {
-            return RestoLogUtil::error('Cannot clear cart');
-        }
     }
     
 }

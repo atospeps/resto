@@ -282,7 +282,7 @@ class RestoUtil {
         } catch (Exception $e) {
             RestoLogUtil::httpError(500, $className . ' is not instantiable');
         }
-        
+       
         switch (count($params)) {
             case 1:
                 return $class->newInstance($params[0]);
@@ -308,7 +308,7 @@ class RestoUtil {
         /*
          * No file is posted - check HTTP request body
          */
-        if (count($_FILES) === 0 || !is_array($_FILES['file'])) {
+        if (count($_FILES) === 0) {
             return RestoUtil::readStream();
         }
         /*
@@ -361,7 +361,7 @@ class RestoUtil {
             return $output;
         }
         
-        return explode(' ', $str);
+        return explode(' ', str_replace('"', '', $str));
     }
     
     /**
@@ -405,43 +405,12 @@ class RestoUtil {
         if (is_array($strOrArray)) {
             $result = array();
             foreach ($strOrArray as $key => $value) {
-                
-                /*
-                 * Remove html tags
-                 */
-                if (is_string($value)) {
-                    $result[$key] = strip_tags($value);
-                }
-                /*
-                 * Let value untouched
-                 */
-                else {
-                    $result[$key] = $value;
-                }
+                $result[$key] = RestoUtil::sanitizeString($value);
             }
             return $result;
         }
-        else {
-
-            /*
-             * No Hexadecimal allowed
-             */
-            if (ctype_xdigit($strOrArray)) {
-                return null;
-            }
-            /*
-             * Remove html tags
-             */
-            else if (is_string($strOrArray)) {
-                return strip_tags($strOrArray);
-            }
-            /*
-             * Let value untouched
-             */
-            else {
-                return $strOrArray;
-            }
-        }
+        
+        return RestoUtil::sanitizeString($strOrArray);
         
     }
     
@@ -481,6 +450,24 @@ class RestoUtil {
         return $output;
     }
     
+    /**
+     * Send mail
+     * 
+     * @param array $params
+     */
+    public static function sendMail($params) {
+        $headers = 'From: ' . $params['senderName'] . ' <' . $params['senderEmail'] . '>' . "\r\n";
+        $headers .= 'Reply-To: doNotReply <' . $params['senderEmail'] . '>' . "\r\n";
+        $headers .= 'X-Mailer: PHP/' . phpversion() . "\r\n";
+        $headers .= 'X-Priority: 3' . "\r\n";
+        $headers .= 'MIME-Version: 1.0' . "\r\n";
+        $headers .= 'Content-type: text/html; charset=UTF-8' . "\r\n";
+        if (mail($params['to'], $params['subject'], $params['message'] , $headers, '-f' . $params['senderEmail'])) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Pretty print a json string
      * Code from https://github.com/ryanuber/projects/blob/master/PHP/JSON/jsonpp.php
@@ -526,6 +513,9 @@ class RestoUtil {
      * @throws Exception
      */
     private static function readFile($uploadDirectory, $deleteAfterRead = true) {
+        if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
+            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+        }
         try {
             $fileToUpload = is_array($_FILES['file']['tmp_name']) ? $_FILES['file']['tmp_name'][0] : $_FILES['file']['tmp_name'];
             if (is_uploaded_file($fileToUpload)) {
@@ -568,8 +558,37 @@ class RestoUtil {
          * Assume that input data format is JSON by default
          */
         $json = json_decode($content, true);
-        
+
         return $json === null ? explode("\n", $content) : $json;
     }
     
+    /**
+     * Sanitize string
+     * 
+     * @param string $str
+     * @return string
+     */
+    private static function sanitizeString($str) {
+
+        /*
+         * Remove html tags and NULL (i.e. \0)
+         */
+        if (is_string($str)) {
+            
+            /*
+             * No Hexadecimal allowed i.e. nothing that starts with 0x
+             */
+            if (strlen($str) > 1 && substr($str, 0, 2) === '0x') {
+                return null;
+            }
+            
+            return strip_tags(str_replace(chr(0), '', $str));
+        }
+
+        /*
+         * Let value untouched
+         */
+        return $str;
+    }
+
 }

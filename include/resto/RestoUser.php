@@ -17,6 +17,11 @@
 
 class RestoUser{
     
+    const CREATE = 'create'; 
+    const DOWNLOAD = 'download';
+    const UPDATE = 'update';
+    const VISUALIZE = 'visualize';
+    
     /*
      * User profile
      */
@@ -33,14 +38,23 @@ class RestoUser{
     public $token = null;
     
     /*
-     * User cart
+     * Reference to cart object
      */
     private $cart;
     
     /*
-     * Resto rights
+     * Reference to rights object
      */
     private $rights;
+    
+    /*
+     * Fallback rights if no collection is found
+     */
+    private $fallbackRights = array(
+        'download' => 0,
+        'visualize' => 0,
+        'create' => 0
+    );
     
     /**
      * Constructor
@@ -53,177 +67,106 @@ class RestoUser{
         $this->context = $context;
         
         /*
-         * Assign default profile for unauthentified user
+         * Set profile
          */
-        if (!isset($profile) || !isset($profile['userid'])) {
-            $this->profile = array(
-                'userid' => -1,
-                'groupname' => 'unregistered',
-                'activated' => 0
-            );
-        }
-        else {
-            $this->profile = $profile;
-        }
-        
+        $this->profile = (!isset($profile) || !isset($profile['userid'])) ? array(
+            'userid' => -1,
+            'email' => 'unregistered',
+            'groups' => 'default',
+            'activated' => 0
+                ) : $profile;
+
         /*
-         * Set rights and cart for identified user
+         * Set cart
          */
-        if ($this->profile['userid'] === -1) {
-            $this->rights = new RestoRights('unregistered', 'unregistered', $this->context);
+        $this->cart = new RestoCart($this, true);
+        
+    }
+    
+    /**
+     * Return true if user has administration rights
+     * 
+     * @return boolean
+     */
+    public function isAdmin() {
+        $exploded = explode(',', $this->profile['groups']);
+        for ($i = count($exploded);$i--;) {
+            if (trim($exploded[$i]) === 'admin') {
+                return true;
+            }
         }
-        else {
-            $this->rights = new RestoRights($this->profile['email'], $this->profile['groupname'], $this->context);
-            $this->cart = new RestoCart($this, $this->context, true);
-        }
-        
+        return false;
     }
     
     /**
-     * Returns rights for collection and/or identifier
+     * Return true if user is validated by admin - false otherwise
      * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     */
-    public function getRights($collectionName = null, $featureIdentifier = null) {
-        return $this->profile['activated'] === 0 ? $this->rights->groupRights['unregistered'] : $this->rights->getRights($collectionName, $featureIdentifier);
-    }
-    
-    /**
-     * Returns full rights for collection and/or identifier
-     * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     */
-    public function getFullRights($collectionName = null, $featureIdentifier = null) {
-        return $this->profile['activated'] === 0 ? array('*' => $this->rights->groupRights['unregistered']) : $this->rights->getFullRights($collectionName, $featureIdentifier);
-    }
-    
-    /**
-     * Store user query to database
-     * 
-     * @param string $method
-     * @param string $service
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     * @param array $query
-     * @param string $url
-     */
-    public function storeQuery($method, $service, $collectionName, $featureIdentifier, $query, $url){
-        try {
-            $remoteAdress = filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING); 
-            $this->context->dbDriver->store(RestoDatabaseDriver::QUERY, array(
-                'userid' => $this->profile['userid'],
-                'query' => array(
-                    'method' => $method,
-                    'service' => $service,
-                    'collection' => $collectionName,
-                    'resourceid' => $featureIdentifier,
-                    'query' => $query,
-                    'url' => $url,
-                    'ip' => $remoteAdress,
-                ))
-            );
-        } catch (Exception $e) {}
-    }
-    
-    /**
-     * Can User visualize ?
-     * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     * @param string $token
      * @return boolean
      */
-    public function canVisualize($collectionName = null, $featureIdentifier = null, $token = null){
-        return $this->canDownloadOrVisualize('visualize', $collectionName, $featureIdentifier, $token);
-    }
-    
-    /**
-     * Can User download ? 
-     * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     * @param string $token
-     * @return boolean
-     */
-    public function canDownload($collectionName = null, $featureIdentifier = null, $token = null){
-        return $this->canDownloadOrVisualize('download', $collectionName, $featureIdentifier, $token);
-    }
-    
-    /**
-     * Can User POST ?
-     * 
-     * @param string $collectionName
-     * @return boolean
-     */
-    public function canPost($collectionName = null){
-        $rights = $this->rights->getRights($collectionName);
-        return $rights['post'];
-    }
-    
-    /**
-     * Can User PUT ?
-     * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     * @return boolean
-     */
-    public function canPut($collectionName, $featureIdentifier = null){
-        $rights = $this->rights->getRights($collectionName, $featureIdentifier);
-        return $rights['put'];
-    }
-    
-    /**
-     * Can User DELETE ?
-     * 
-     * @param string $collectionName
-     * @param string $featureIdentifier
-     * @return boolean
-     */
-    public function canDelete($collectionName, $featureIdentifier = null){
-        $rights = $this->rights->getRights($collectionName, $featureIdentifier);
-        return $rights['delete'];
-    }
-    
-    /**
-     * Check if user has to sign license for collection
-     * 
-     * @param array $collectionDescription
-     */
-    public function hasToSignLicense($collectionDescription) {
-        
-        /*
-         * Collection has not license => never need to sign one
-         */
-        if (empty($collectionDescription['license'])) {
-            return false;
-        }
-        
-        /*
-         * Unregistered user always have to sign
-         */
-        if (!isset($this->profile['email'])) {
-            return true;
-        }
-        
-        /*
-         * Check in database
-         */
-        return !$this->context->dbDriver->check(RestoDatabaseDriver::LICENSE_SIGNED, array('email' => $this->profile['email'], 'collectionName' => $collectionDescription['name']));
-        
-    }
-    
-    /**
-     * Sign license for collection
-     * 
-     * @param string $collectionName
-     */
-    public function signLicense($collectionName) {
-        if ($this->context->dbDriver->execute(RestoDatabaseDriver::SIGN_LICENSE, array('email' => $this->profile['email'], 'collectionName' => $collectionName))) {
+    public function isValidated() {
+        if ($this->profile['userid'] !== -1 && isset($this->profile['validatedby'])) {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Do user has rights to :
+     *   - 'download' feature,
+     *   - 'view' feature,
+     *   - 'create' collection,
+     *   - 'update' collection (i.e. add/delete feature and/or delete collection)
+     * 
+     * @param string $action
+     * @param array $params
+     * @return boolean 
+     */
+    public function hasRightsTo($action, $params = array()) {
+        switch ($action) {
+            case RestoUser::DOWNLOAD:
+            case RestoUser::VISUALIZE:
+                return $this->hasDownloadOrVisualizeRights($action, isset($params['collectionName']) ? $params['collectionName'] : null, isset($params['featureIdentifier']) ? $params['featureIdentifier'] : null);
+            case RestoUser::CREATE:
+                return $this->hasCreateRights();
+            case RestoUser::UPDATE:
+                if (isset($params['collection'])) {
+                    return $this->hasUpdateRights($params['collection']);
+                }
+            default:
+                break;
+        }
+        return false;
+    }
+    
+    /**
+     * Activate user
+     * 
+     * @param string $activationCode
+     * @param string $redirectUrl
+     * 
+     */
+    public function activate($activationCode = null) {
+        if ($this->context->dbDriver->execute(RestoDatabaseDriver::ACTIVATE_USER, array('userid' => $this->profile['userid'], 'activationCode' => isset($activationCode) ? $activationCode : null, 'userAutoValidation' => $this->context->userAutoValidation))) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    /**
+     * Connect user
+     */
+    public function connect() {
+        if ($this->profile['userid'] !== -1 && $this->profile['activated'] === 1) {
+            $this->token = $this->context->createJWT($this->profile['userid'], $this->profile);
+            return array(
+                'token' => $this->token
+            );
+        }
+        else {
+            RestoLogUtil::httpError(403);
+        }
     }
     
     /**
@@ -244,50 +187,173 @@ class RestoUser{
     }
     
     /**
-     * Add item to cart
-     * 
-     * @param array $data
-     * @param boolean $synchronize
-     */
-    public function addToCart($data, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->add($data, $synchronize) : false;
-    }
-    
-    /**
-     * Add item to cart
-     * 
-     * @param string $itemId
-     * @param array $item
-     * @param boolean $synchronize
-     */
-    public function updateCart($itemId, $item, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->update($itemId, $item, $synchronize) : false;
-    }
-    
-    /**
-     * Remove item from cart
-     * 
-     * @param string $itemId
-     * @param boolean $synchronize
-     */
-    public function removeFromCart($itemId, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->remove($itemId, $synchronize) : false;
-    }
-    
-    /**
-     * Clear cart
-     * 
-     * @param boolean $synchronize
-     */
-    public function clearCart($synchronize = false) {
-        return isset($this->cart) ? $this->cart->clear($synchronize) : false;
-    }
-    
-    /**
      * Return user orders
      */
     public function getOrders() {
         return $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array('email' => $this->profile['email']));
+    }
+    
+    /**
+     * Returns rights
+     * 
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     */
+    public function getRights($collectionName = null, $featureIdentifier = null) {
+        
+        /*
+         * Compute rights if they are not already set
+         */
+        if (!isset($this->rights)) {
+            $this->rights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('user' => $this));
+        }
+        
+        /*
+         * Return specific rights for feature
+         */
+        if (isset($collectionName) && isset($featureIdentifier)) {
+            if (isset($this->rights['features'][$featureIdentifier])) {
+                return $this->rights['features'][$featureIdentifier];
+            }
+            return $this->getRights($collectionName);
+        }
+        
+        /*
+         * Return specific rights for collection
+         */
+        if (isset($collectionName)) {
+            return isset($this->rights['collections'][$collectionName]) ? $this->rights['collections'][$collectionName] : (isset($this->rights['collections']['*']) ? $this->rights['collections']['*'] : $this->fallbackRights);
+        }
+        
+        /*
+         * Return rights for all collections/features
+         */
+        return $this->rights;
+    }
+    
+    /**
+     * Set/update user rights
+     * 
+     * @param array $rights
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     * @throws Exception
+     */
+    public function setRights($rights, $collectionName = null, $featureIdentifier = null) {
+        $this->context->dbDriver->store(RestoDatabaseDriver::RIGHTS, $this->getRightsArray($rights, $collectionName, $featureIdentifier));
+        $this->rights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('user' => $this));
+        return true;
+    }
+    
+    /**
+     * Remove user rights
+     * 
+     * @param array $rights
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     * @throws Exception
+     */
+    public function removeRights($rights, $collectionName = null, $featureIdentifier = null) {
+        $this->context->dbDriver->remove(RestoDatabaseDriver::RIGHTS, $this->getRightsArray($rights, $collectionName, $featureIdentifier));
+        $this->rights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('user' => $this));
+        return true;
+    }
+    
+    
+    /**
+     * Add groups to user
+     * 
+     * @param string $groups
+     * @return array
+     * @throws Exception
+     */
+    public function addGroups($groups) {
+        return RestoLogUtil::success('Groups updated', array(
+                'email' => $this->profile['email'],
+                'groups' => $this->context->dbDriver->store(RestoDatabaseDriver::GROUPS, array(
+                    'userid' => $this->profile['userid'],
+                    'groups' => $groups
+                ))
+        ));
+    }
+    
+    /**
+     * Remove groups from user
+     * 
+     * @param string $groups
+     * @return array
+     * @throws Exception
+     */
+    public function removeGroups($groups) {
+        return RestoLogUtil::success('Groups updated', array(
+                'email' => $this->profile['email'],
+                'groups' => $this->context->dbDriver->remove(RestoDatabaseDriver::GROUPS, array(
+                    'userid' => $this->profile['userid'],
+                    'groups' => $groups
+                ))
+        ));
+    }
+    
+   /**
+     * Return user signatures
+     * 
+     * @throws Exception
+     */
+    public function getSignatures() {
+        
+        /*
+         * Get all licenses
+         */
+        $licenses = $this->context->dbDriver->get(RestoDatabaseDriver::LICENSES);
+        
+        /*
+         * Get user signatures
+         */
+        $signed = $this->context->dbDriver->get(RestoDatabaseDriver::SIGNATURES, array(
+            'email' => $this->profile['email']
+        ));
+        
+        /*
+         * Merge signatures with licences
+         */
+        $signatures = array();
+        for ($i = count($signed); $i--;) {
+            if (isset($licenses[$signed[$i]['licenseId']])) {
+                $signatures[$signed[$i]['licenseId']] = array(
+                    'lastSignatureDate' => $signed[$i]['lastSignatureDate'],
+                    'counter' => $signed[$i]['counter'],
+                    'license' => $licenses[$signed[$i]['licenseId']]
+                );
+            }
+        }
+
+        return $signatures;
+        
+    }
+    
+    /**
+     * Sign license
+     * 
+     *  @param RestoLicense $license
+     */
+    public function signLicense($license) {
+        
+        /*
+         * User can sign license if it does not reach the signature quota
+         */
+        if ($this->context->dbDriver->execute(RestoDatabaseDriver::SIGNATURE, array(
+            'email' => $this->profile['email'],
+            'licenseId' => $license['licenseId'],
+            'signatureQuota' => $license['signatureQuota']
+        ))) {
+            return RestoLogUtil::success('License signed', array(
+                'email' => $this->profile['email'],
+                'license' => $license
+            ));
+        }
+        else {
+            return RestoLogUtil::error('Cannot sign license');
+        }
     }
     
     /**
@@ -310,35 +376,154 @@ class RestoUser{
     }
     
     /**
+     * Send reset password link to user email adress
+     * 
+     */
+    public function sendResetPasswordLink() {
+
+        /*
+         * Only existing local user can change there password
+         */
+        if (!$this->context->dbDriver->check(RestoDatabaseDriver::USER, array('email' => $this->profile['email'])) || $this->context->dbDriver->get(RestoDatabaseDriver::USER_PASSWORD, array('email' => $this->profile['email'])) === str_repeat('*', 40)) {
+            RestoLogUtil::httpError(3005);
+        }
+
+        /*
+         * Send email with reset link
+         */
+        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array(
+            'email' => $this->profile['email'],
+            'resourceUrl' => $this->context->resetPasswordUrl . '/' . base64_encode($this->profile['email']),
+            'duration' => isset($this->context->sharedLinkDuration) ? $this->context->sharedLinkDuration : null
+        ));
+        $fallbackLanguage = isset($this->context->mail['resetPassword'][$this->context->dictionary->language]) ? $this->context->dictionary->language : 'en';
+        if (!RestoUtil::sendMail(array(
+                    'to' => $this->profile['email'],
+                    'senderName' => $this->context->mail['senderName'],
+                    'senderEmail' => $this->context->mail['senderEmail'],
+                    'subject' => $this->context->dictionary->translate($this->context->mail['resetPassword'][$fallbackLanguage]['subject'], $this->context->title),
+                    'message' => $this->context->dictionary->translate($this->context->mail['resetPassword'][$fallbackLanguage]['message'], $this->context->title, $shared['resourceUrl'] . '?_tk=' . $shared['token'])
+                ))) {
+            RestoLogUtil::httpError(3003);
+        }
+
+        return RestoLogUtil::success('Reset link sent to ' . $this->profile['email']);
+    }
+
+    /**
+     * Store user query to database
+     * 
+     * @param string $method
+     * @param string $service
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     * @param array $query
+     * @param string $url
+     */
+    public function storeQuery($method, $service, $collectionName, $featureIdentifier, $query, $url){
+        try {
+            $remoteAdress = filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING); 
+            $this->context->dbDriver->store(RestoDatabaseDriver::QUERY, array(
+                'email' => $this->profile['email'],
+                'query' => array(
+                    'method' => $method,
+                    'service' => $service,
+                    'collection' => $collectionName,
+                    'resourceid' => $featureIdentifier,
+                    'query' => $query,
+                    'url' => $url,
+                    'ip' => $remoteAdress,
+                ))
+            );
+        } catch (Exception $e) {}
+    }
+    
+    /**
      * Can User download or visualize 
      * 
      * @param string $action
      * @param string $collectionName
      * @param string $featureIdentifier
-     * @param string $token
      * @return boolean
      */
-    private function canDownloadOrVisualize($action, $collectionName = null, $featureIdentifier = null, $token = null){
-        
-        /*
-         * Token case - bypass user rights
-         */
-        if (isset($token)) {
-            if (!isset($collectionName) || !isset($featureIdentifier)) {
-                return false;
-            }
-            if ($this->context->dbDriver->check(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->baseUrl . '/' . $this->context->path, 'token' => $token))) {
-                return true;
-            }
-        }
-        
-        /*
-         * Normal case - checke user rights
-         */
-        $rights = $this->rights->getRights($collectionName, $featureIdentifier);
+    private function hasDownloadOrVisualizeRights($action, $collectionName, $featureIdentifier = null){
+        $rights = $this->getRights($collectionName, $featureIdentifier);
         return $rights[$action];
     }
     
+    /**
+     * Can user create collection ?
+     * 
+     * @return boolean
+     */
+    private function hasCreateRights() {
+        $rights = $this->getRights();
+        return isset($rights['collections']['*']) ? $rights['collections']['*']['create'] : 0;
+    }
+    
+    /**
+     * A user can update a collection if he is the owner of the collection
+     * or if he is an admin
+     * 
+     * @param RestoCollection $collection
+     * @return boolean
+     */
+    private function hasUpdateRights($collection) {
+        
+        if (!$this->hasCreateRights()) {
+            return false;
+        }
+        /*
+         * Only collection owner and admin can update the collection
+         */
+        else if (!$this->isAdmin() && $collection->owner !== $this->profile['email']) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Return rights array for add/update/delete
+     * 
+     * @param array $rights
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     * 
+     * @return string
+     */
+    private function getRightsArray($rights, $collectionName = null, $featureIdentifier = null) {
+        
+        /*
+         * Default target is all collections
+         */
+        $target = '*';
+        
+        /*
+         * Check that collection/feature exists
+         */
+        if (isset($collectionName)) {
+            if (!$this->context->dbDriver->check(RestoDatabaseDriver::COLLECTION, array('collectionName' => $collectionName))) {
+                RestoLogUtil::httpError(404, 'Collection does not exist');
+            }
+            $target = $collectionName;
+        }
+        if (isset($featureIdentifier)) {
+            if (!$this->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array('featureIdentifier' => $featureIdentifier))) {
+                RestoLogUtil::httpError(404, 'Feature does not exist');
+            }
+            $target = $featureIdentifier;
+        }
+        
+        return array(
+            'rights' => $rights,
+            'ownerType' => 'user',
+            'owner' => $this->profile['email'],
+            'targetType' => isset($featureIdentifier) ? 'feature' : 'collection',
+            'target' => $target
+        );
+        
+    }
     
 }
 

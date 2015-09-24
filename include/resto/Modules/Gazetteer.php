@@ -29,6 +29,7 @@ class Gazetteer extends RestoModule {
     const REGION_PRECISION = 0.1;
     const COUNTRY_PRECISION = 0.3;
     const CONTINENT_PRECISION = 0.5;
+    const PHYSICAL_PRECISION = 0.3;
     
     /*
      * List of toponym fields returned
@@ -84,17 +85,17 @@ class Gazetteer extends RestoModule {
     /**
      * Run module - this function should be called by Resto.php
      * 
-     * @param array $elements : route elements
+     * @param array $segments : route segments
      * @param array $data : POST or PUT parameters
      * 
      * @return string : result from run process in the $context->outputFormat
      */
-    public function run($elements) {
-       
+    public function run($segments, $data = array()) {
+        
         /*
          * Only GET method on 'search' route with json outputformat is accepted
          */
-        if ($this->context->method !== 'GET' || count($elements) !== 0) {
+        if ($this->context->method !== 'GET' || count($segments) !== 0) {
             RestoLogUtil::httpError(404);
         }
         
@@ -171,6 +172,7 @@ class Gazetteer extends RestoModule {
          */
         $type = isset($params['type']) ? $params['type'] : null;
         switch ($type) {
+            
             /*
              * State only
              */
@@ -196,6 +198,12 @@ class Gazetteer extends RestoModule {
                 $this->results = $this->getContinents($query['toponym'], Gazetteer::CONTINENT_PRECISION);
                 break;
             /*
+             * Physical only
+             */
+            case 'physical':
+                $this->results = $this->getPhysical($query['toponym'], Gazetteer::PHYSICAL_PRECISION);
+                break;
+            /*
              * Search for all
              */
             default:
@@ -207,7 +215,8 @@ class Gazetteer extends RestoModule {
                     $this->results = array_merge($this->results, $this->getContinents($query['toponym'], Gazetteer::CONTINENT_PRECISION));
                     $this->results = array_merge($this->results, $this->getCountries($query['toponym'], Gazetteer::COUNTRY_PRECISION));
                     $this->results = array_merge($this->results, $this->getRegions($query['toponym'], Gazetteer::REGION_PRECISION));
-                    $this->results = array_merge($this->results, $this->getStates($query['toponym'], Gazetteer::STATE_PRECISION));   
+                    $this->results = array_merge($this->results, $this->getStates($query['toponym'], Gazetteer::STATE_PRECISION));
+                    $this->results = array_merge($this->results, $this->getPhysical($query['toponym'], Gazetteer::PHYSICAL_PRECISION));
                 }
         }
         
@@ -312,6 +321,32 @@ class Gazetteer extends RestoModule {
                 );
             }
         }
+        return $output;
+    }
+    
+    /**
+     * Search for physical features
+     * 
+     * @param string $name
+     * @param float $tolerance (tolerance for polygon simplification in degrees)
+     */
+    private function getPhysical($name, $tolerance = 0) {
+        
+        $keyword = $this->context->dictionary->getKeyword($name, RestoDictionary::getPhysicals());
+        $query = 'SELECT name, featurecla as type, normalize(name) as normalized, ' . $this->getFormatFunction() . '(' . $this->simplify('geom', $tolerance, true) . ') as geometry FROM datasources.physical WHERE normalize(name)=normalize(\'' . $keyword['keyword'] . '\') order by name';
+        $output = array();
+        if (isset($keyword)) {
+            $results = pg_query($this->dbh, $query);
+            while ($row = pg_fetch_assoc($results)) {
+                $output[] = array(
+                    'name' => $this->context->dictionary->getKeywordFromValue($row['normalized'], $row['type']),
+                    'type' => $row['type'],
+                    'searchTerms' => $row['type'] . ':' . $row['normalized'],
+                    'geo:geometry' => $this->outputAsWKT ? $row['geometry'] : json_decode($row['geometry'], true)
+                );
+            }
+        }
+        
         return $output;
     }
     

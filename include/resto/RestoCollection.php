@@ -51,14 +51,7 @@ class RestoCollection {
     public $osDescription = null;
     
     /*
-     * Collection licenses (i.e. conditions of use)
-     * 
-     * Structure
-     *      array(
-     *          'en' => //license url
-     *          'fr' => //license url
-     *          ...
-     *      )
+     * Collection license 
      */
     public $license;
     
@@ -155,10 +148,10 @@ class RestoCollection {
         return array(
             'name' => $this->name,
             'status' => $this->status,
+            'owner' => $this->owner,
             'model' => $this->model->name,
-            'license' => isset($this->license) ? $this->license : null,
-            'osDescription' => $this->osDescription,
-            //'propertiesMapping' => $this->propertiesMapping,
+            'license' => isset($this->license) ? $this->license->toArray() : null,
+            'osDescription' => isset($this->osDescription[$this->context->dictionary->language]) ? $this->osDescription[$this->context->dictionary->language] : $this->osDescription['en'],
             'statistics' => $setStatistics ? $this->getStatistics() : array()
         );
     }
@@ -176,26 +169,10 @@ class RestoCollection {
      * Output collection description as an XML OpenSearch document
      */
     public function toXML() {
-        $osdd = new RestoOSDD($this);
+        $osdd = new RestoOSDD($this->context, $this->model, $this->getStatistics(), $this);
         return $osdd->toString();
     }
  
-    /**
-     * Return license in the current language
-     */
-    public function getLicense() {
-        if (!isset($this->license)) {
-            return null;
-        }
-        if (!isset($this->license[$this->context->dictionary->language])) {
-            if (isset($this->license['en'])) {
-                return $this->license['en'];
-            }
-            return null;
-        }
-        return $this->license[$this->context->dictionary->language];
-    }
-    
     /**
      * Load collection parameters from input collection description 
      * Collection description is a JSON file with the following structure
@@ -204,6 +181,11 @@ class RestoCollection {
      *          "name": "Charter",
      *          "controller": "RestoCollection_Default",
      *          "status": "public",
+     *          "licenseId": "license",
+     *          "rights":{
+     *              "download":0,
+     *              "visualize":1
+     *          },
      *          "osDescription": {
      *              "en": {
      *                  "ShortName": "International Charter Space and Major Disasters",
@@ -247,14 +229,19 @@ class RestoCollection {
         $this->status = isset($object['status']) && $object['status'] === 'private' ? 'private' : 'public';
         
         /*
+         * Collection owner is the current user
+         */
+        $this->owner = $this->user->profile['email'];
+        
+        /*
          * OpenSearch Description
          */
         $this->osDescription = $object['osDescription'];
         
         /*
-         * Licence
+         * Licence - set to 'unlicensed' if not specified
          */
-        $this->license = isset($object['license']) ? $object['license'] : null;
+        $this->license = new RestoLicense($this->context, isset($object['licenseId']) ? $object['licenseId'] : 'unlicensed');
         
         /*
          * Properties mapping
@@ -264,7 +251,7 @@ class RestoCollection {
         /*
          * Save on database
          */
-        $this->saveToStore($synchronize);
+        $this->saveToStore(isset($object['rights']) ? $object['rights'] : array(), $synchronize);
         
     }
    
@@ -298,9 +285,10 @@ class RestoCollection {
         $this->model = RestoUtil::instantiate($descriptions[$this->name]['model'], array());
         $this->osDescription = $descriptions[$this->name]['osDescription'];
         $this->status = $descriptions[$this->name]['status'];
-        $this->license = $descriptions[$this->name]['license'];
+        $this->owner = $descriptions[$this->name]['owner'];
+        $this->license = new RestoLicense($this->context, $descriptions[$this->name]['license']['licenseId'], false);
+        $this->license->setDescription($descriptions[$this->name]['license'], false);
         $this->propertiesMapping = $descriptions[$this->name]['propertiesMapping'];
-        
     }
     
     /**
@@ -358,7 +346,7 @@ class RestoCollection {
         /*
          * At least an english OpenSearch Description object is mandatory
          */
-        if (!is_array($object['osDescription']) || !is_array($object['osDescription']['en'])) {
+        if (!isset($object['osDescription']) || !is_array($object['osDescription']) || !isset($object['osDescription']['en']) || !is_array($object['osDescription']['en'])) {
             RestoLogUtil::httpError(500, 'English OpenSearch description is mandatory');
         }
         
@@ -367,12 +355,13 @@ class RestoCollection {
     /**
      * Save collection to database if synchronize is set to true
      * 
+     * @param array $rights
      * @param boolean $synchronize
      * @return boolean
      */
-    private function saveToStore($synchronize) {
+    private function saveToStore($rights, $synchronize) {
         if ($synchronize) {
-            $this->context->dbDriver->store(RestoDatabaseDriver::COLLECTION, array('collection' => $this));
+            $this->context->dbDriver->store(RestoDatabaseDriver::COLLECTION, array('collection' => $this, 'rights' => $rights));
             return true;
         }
         return false;

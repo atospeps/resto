@@ -24,7 +24,12 @@ class QueryManager {
      * Words
      */
     public $words = array();
-
+    
+    /*
+     * True if keywords are present
+     */
+    public $hasKeywords = false;
+    
     /*
      * Query length
      */
@@ -63,6 +68,9 @@ class QueryManager {
      */
     public function initialize($words) {
         for ($i = 0, $ii = count($words); $i < $ii; $i++) {
+            if (strpos($words[$i], ':') !== false) {
+                $this->hasKeywords = true;
+            }
             $this->words[$i] = array(
                 'word' => $words[$i],
                 'processed' => false
@@ -165,10 +173,22 @@ class QueryManager {
      */
     public function getLocationKeyword($name) {
         return $this->dictionary->getKeyword($name, array(
-            RestoDictionary::CONTINENT,
-            RestoDictionary::COUNTRY,
-            RestoDictionary::REGION,
-            RestoDictionary::STATE
+                    RestoDictionary::CONTINENT,
+                    RestoDictionary::COUNTRY,
+                    RestoDictionary::REGION,
+                    RestoDictionary::STATE,
+                    RestoDictionary::BAY,
+                    RestoDictionary::CHANNEL,
+                    RestoDictionary::FJORD,
+                    RestoDictionary::GULF,
+                    RestoDictionary::INLET,
+                    RestoDictionary::LAGOON,
+                    RestoDictionary::OCEAN,
+                    RestoDictionary::REEF,
+                    RestoDictionary::RIVER,
+                    RestoDictionary::SEA,
+                    RestoDictionary::SOUND,
+                    RestoDictionary::STRAIT
         ));
     }
     

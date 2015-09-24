@@ -28,19 +28,23 @@
  * General url template
  * --------------------
  *     
- *      http(s)://host/resto/search/collections/{collection}/?key1=value1&key2=value2&...
- *      \__________________/\______________________________/\___________________________/
- *            baseUrl                   path                             query
+ *      http(s)://host/resto/api/collections/{collection}/search.json?key1=value1&key2=value2&...
+ *      \__________________/\__________________________________/\____/\___________________________/
+ *            baseUrl                   path                    format          query
  *
  *      Where :
  * 
- *          {collection} is the name of the collection (e.g. 'Charter', 'SPIRIT', etc.).
- *          {feature} is the identifier of a product within a {collection}
+ *          {collection} is the name of the collection (e.g. 'Charter', 'SPIRIT', etc.)
  * 
- * List of "path"
- * --------------
+ * List of "paths"
+ * ---------------
  * 
- *  Available routes are described in RestoRoute.php
+ *  Available routes are described per  HTTP verbs in
+ *      Routes/RestoRouteGET.php
+ *      Routes/RestoRoutePOST.php
+ *      Routes/RestoRoutePUT.php
+ *      Routes/RestoRouteDELETE.php
+ * 
  *    
  * Query
  * -----
@@ -55,10 +59,11 @@
  *    |______________________________________________________________________________________________
  *    | _pretty            |     boolean    | (For JSON output only) true to return pretty print JSON
  *    | _tk                |     string     | (For download/visualize/resetPassword) token for resource access
- *    |                                     | (For /api/users/checkToken) JWT profile token 
+ *    |                                     | (For /api/user/checkToken) JWT profile token 
+ *    | _emailorid         |     string     | (For /api/user and /user endpoints) user "userid" or user "email"
  *    | _rc                |     boolean    | (For search) true to perform the total count of search results
  *    | _fromCart          |     boolean    | (For orders) true to order the content of the cart
- *    | _clear             |     boolean    | (For POST /users/{userid}/cart) true to remove cart items before inserting new items
+ *    | _clear             |     boolean    | (For POST /user/cart) true to remove cart items before inserting new items
  *    | _bearer            |     string     | (For authentication) JWT token - has preseance over header authentication (see rocket)
  *    | callback           |     string     | (For JSON output only) name of callback funtion for JSON-P
  * 
@@ -97,7 +102,7 @@ class Resto {
     /*
      * RESTo major version number
      */
-    const VERSION = '2.0';
+    const VERSION = '2.1RC1';
     
     /*
      * Default output format if not specified in request
@@ -190,6 +195,7 @@ class Resto {
             /*
              * GET
              */
+            case 'HEAD':
             case 'GET':
                 $route = new RestoRouteGET($this->context, $this->user);
                 break;
@@ -237,24 +243,30 @@ class Resto {
      */
     private function answer($response, $responseStatus) {
         
-        /*
-         * HTTP 1.1 headers
-         */
-        header('HTTP/1.1 ' . $responseStatus . ' ' . (isset(RestoLogUtil::$codes[$responseStatus]) ? RestoLogUtil::$codes[$responseStatus] : RestoLogUtil::$codes[200]));
-        header('Cache-Control:  no-cache');
-        header('Content-Type: ' . RestoUtil::$contentTypes[$this->inError ? 'json' : $this->context->outputFormat]);
-        
-        /*
-         * Set headers including cross-origin resource sharing (CORS)
-         * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
-         */
-        $this->setCORSHeaders();
-        
-        /*
-         * Stream data
-         */
         if (isset($response)) {
-            echo $response;
+
+            /*
+             * HTTP 1.1 headers
+             */
+            header('HTTP/1.1 ' . $responseStatus . ' ' . (isset(RestoLogUtil::$codes[$responseStatus]) ? RestoLogUtil::$codes[$responseStatus] : RestoLogUtil::$codes[200]));
+            header('Pragma: no-cache');
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            header('Expires: Fri, 1 Jan 2010 00:00:00 GMT');
+            header('Content-Type: ' . RestoUtil::$contentTypes[$this->inError ? 'json' : $this->context->outputFormat]);
+            
+            /*
+             * Set headers including cross-origin resource sharing (CORS)
+             * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+             */
+            $this->setCORSHeaders();
+
+            /*
+             * Stream data unless HTTP HEAD is requested
+             */
+            if ($this->context->method !== 'HEAD') {
+                echo $response;
+            }
+            
         }
         
     }
@@ -319,7 +331,7 @@ class Resto {
      */
     private function authenticateBasic($token) {
         list($username, $password) = explode(':', base64_decode($token), 2);
-        if (!empty($username) && !empty($password)) {
+        if (!empty($username) && !empty($password) && (bool) preg_match('//u', $username) && (bool) preg_match('//u', $password) && strpos($username, '\'') === false) { 
             try {
                 $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array(
                     'email' => strtolower($username),
@@ -348,8 +360,8 @@ class Resto {
              * If issuer_id is specified in the request then assumes a third party token.
              * In this case, transform this third party token into a resto token
              */
-            if (isset($this->context->query['issuerId'])) {
-                $auth = new Auth($this->context, null);
+            if (isset($this->context->query['issuerId']) && isset($this->context->modules['Auth'])) {
+                $auth = RestoUtil::instantiate($this->context->modules['Auth']['className'],$this->context, null);
                 $token = $auth->getProfileToken($this->context->query['issuerId'], $token);
             }
             

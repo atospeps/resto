@@ -45,9 +45,28 @@ class RestoOrder{
      * @param RestoContext $context
      */
     public function __construct($user, $context, $orderId){
+        /*
+         * Context is mandatory
+         */
+        if (!isset($context) || !is_a($context, 'RestoContext')) {
+            RestoLogUtil::httpError(500, 'Context must be defined');
+        }
+        /*
+         * User is mandatory
+         */
+        if (!isset($user) || !is_a($user, 'RestoUser')) {
+            RestoLogUtil::httpError(500, 'User must be defined');
+        }
+        
         $this->user = $user;
         $this->context = $context;
         $this->order = $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array('email' => $this->user->profile['email'], 'orderId' => $orderId));
+        /*
+         * Is order id associated to a valid order
+         */
+        if(!isset($this->order['orderId'])){
+            RestoLogUtil::httpError(500, 'Order with id=' . $orderId . ' does not exist');
+        }
     }
     
     /**
@@ -64,13 +83,13 @@ class RestoOrder{
     }
     
     /**
-     * Return the cart as a metalink XML file
+     * Return order as a metalink XML file
      * 
      * Warning ! a link is created only for resource that can be downloaded by users
      */
     public function toMETA4() {
         
-        $meta4 = new RestoMetalink($this->context);
+        $meta4 = new RestoMetalink($this->context, $this->user);
         
         /*
          * One metalink file per item - if user has rights to download file
@@ -96,7 +115,7 @@ class RestoOrder{
             $last = count($segments) - 1;
             if ($last > 2) {
                 list($modifier) = explode('.', $segments[$last], 1);
-                if ($modifier !== 'download' || !$this->user->canDownload($segments[$last - 2], $segments[$last - 1])) {
+                if ($modifier !== 'download' || !$this->user->hasRightsTo(RestoUser::DOWNLOAD, array('collectionName' => $segments[$last - 2], 'featureIdentifier' => $segments[$last - 1]))) {
                     continue;
                 }
             }

@@ -36,6 +36,11 @@ class RestoFeatureUtil {
     private $collections;
     
     /*
+     * Array of licenses
+     */
+    private $licenses;
+    
+    /*
      * Search url endpoint
      */
     private $searchUrl;
@@ -48,11 +53,25 @@ class RestoFeatureUtil {
      * @param RestoCollection $collection
      */
     public function __construct($context, $user, $collection) {
+        
         $this->context = $context;
         $this->user =$user;
+        
+        /*
+         * Initialize collections array with input collection
+         */
         if (isset($collection)) {
             $this->collections[$collection->name] = $collection;
         }
+        
+        /*
+         * Retrieve licences
+         */
+        $this->licences = $this->context->dbDriver->get(RestoDatabaseDriver::LICENSES);
+        
+        /*
+         * REST searchUrl based on collection name
+         */
         $this->searchUrl = $this->context->baseUrl . '/api/collections' . (isset($collection) ? '/' . $collection->name : '' ) . '/search.json';
     } 
    
@@ -115,14 +134,16 @@ class RestoFeatureUtil {
         $properties = $rawCorrectedArray;
         
         /*
+         * Compute title
+         */
+        if (empty($properties['title'])) {
+            $properties['title'] = isset($properties['productIdentifier']) ? $properties['productIdentifier'] : $properties['identifier'];
+        }
+        
+        /*
          * Update metadata values from propertiesMapping
          */
         $this->updatePaths($properties, $collection);
-        
-        /*
-         * Set unstored keywords - TODO
-         */
-        //$this->setUnstoredKeywords($properties, $collection);
         
         /*
          * Set services
@@ -179,35 +200,6 @@ class RestoFeatureUtil {
     }
     
     /**
-     * Add keywords for dedicated filters
-     * 
-     * @param array $properties
-     * @param RestoCollection $collection
-     */
-    private function setUnstoredKeywords(&$properties, $collection) {
-        
-        foreach (array_keys($collection->model->searchFilters) as $key) {
-            if (isset($collection->model->searchFilters[$key]['keyword']) && isset($properties[$collection->model->searchFilters[$key]['key']])) {
-                
-                /*
-                 * Set multiple words within quotes 
-                 */
-                $name = $this->replaceInTemplate($collection->model->searchFilters[$key]['keyword']['value'], $properties);
-                $splitted = explode(' ', $name);
-                
-                if (count($splitted) > 1) {
-                    $name = '"' . $name . '"';
-                }
-                $properties['keywords'][] = array(
-                    'name' => $name,
-                    'id' => $collection->model->searchFilters[$key]['keyword']['type'] . ':' . $name,
-                    'href' => RestoUtil::updateUrl($this->searchUrl, array($collection->model->searchFilters['searchTerms']['osKey'] => $name))
-                );
-            }
-        }
-    }
-    
-    /**
      * Set services - Visualize / Download / etc.
      * 
      * @param array $properties
@@ -224,7 +216,7 @@ class RestoFeatureUtil {
          * Visualize
          */
         if (isset($properties['wms'])) {
-            $this->setVisualizeService($properties);
+            $this->setVisualizeService($properties, $collection);
         }
         
         /*
@@ -240,8 +232,29 @@ class RestoFeatureUtil {
      * Set visualize service
      * 
      * @param array $properties
+     * @param RestoCollection $collection
      */
-    private function setVisualizeService(&$properties) {
+    private function setVisualizeService(&$properties, $collection) {
+        
+        /*
+         * Save original (i.e. unproxified) infos for WMS
+         */
+        $properties['wmsInfos'] = $properties['wms'];
+            
+        /*
+         * Proxify WMS url depending on user rights
+         */
+        if (method_exists($collection->model,'getWmsUrl')) {
+            $properties['wms'] = $collection->model->proxifyWMSUrl($properties, $this->user, $this->context->baseUrl);
+        }
+        else {
+            $properties['wms'] = $this->proxifyWMSUrl($properties, $this->user, $this->context->baseUrl);
+        }
+
+        if (!isset($properties['wms'])) {
+            unset($properties['wms'], $properties['wmsInfos']);
+        }
+        
         $properties['services']['browse'] = array(
             'title' => 'Display full resolution product on map',
             'layer' => array(
@@ -339,11 +352,11 @@ class RestoFeatureUtil {
               $properties['resourceSize'],
               $properties['resourceChecksum'],
               $properties['bbox3857'],
-              $properties['bbox4326']
+              $properties['bbox4326'],
+              $properties['visibility']
         );
         
     }
-    
     
     /**
      *
@@ -368,9 +381,16 @@ class RestoFeatureUtil {
                     $corrected[$key] = $this->correctKeywords(json_decode($value, true), $this->collections[$rawFeatureArray['collection']]);
                     break;
                 
+                case 'licenseId':
+                    $corrected['license'] = isset($this->licenses[$rawFeatureArray['licenseId']]) ? $this->licenses[$rawFeatureArray['licenseId']] : null;
+                    break;
+        
                 default:
                     $corrected[$key] = $this->castExplicit($key, $value, $this->collections[$rawFeatureArray['collection']]);
             }
+        }
+        if (!isset($corrected['license'])) {
+            $corrected['license'] = $this->collections[$rawFeatureArray['collection']]->license->toArray();
         }
         
         return $corrected;
@@ -488,6 +508,45 @@ class RestoFeatureUtil {
         }
 
         return $sentence;
+    }
+    
+    /**
+     * Proxify WMS URL depending on user rights
+     *
+     * @param $properties
+     * @param $user
+     * @param $baseUrl
+     * @return string relative path in the form of YYYYMMdd/thumbnail_filename with YYYYMMdd is the formated startDate parameter
+     */
+    private function proxifyWMSUrl($properties, $user, $baseUrl) {
+
+        if (!isset($properties['wms'])) {
+            return null;
+        }
+
+        $wmsUrl = RestoUtil::restoUrl($baseUrl, '/collections/' . $properties['collection'] . '/' . $properties['identifier'] . '/wms' ) . '?';
+
+        if (isset($user->token)) {
+            $wmsUrl .= '_bearer=' . $user->token . '&';
+        }
+        $wmsUrl .= substr($properties['wms'], strpos($properties['wms'], '?') + 1);
+
+        /*
+         * If the feature has a license check authentication
+         */
+        if (isset($properties['license']) && $properties['license'] != null) {
+            
+            /*
+             * User is not authenticated
+             * Returns wms url only if license has a 'public' view service
+             */
+            if ($user->profile['userid'] === -1) {
+                return $properties['license']['viewService'] === 'public' ? $wmsUrl : null;
+            }
+        }
+
+        return $wmsUrl;
+        
     }
     
 }

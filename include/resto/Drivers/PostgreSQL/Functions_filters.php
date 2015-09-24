@@ -88,20 +88,24 @@ class Functions_filters {
     
     /**
      * Return search filters based on model and input search parameters
-     * 
+     *
+     * @param RestoUser $user
      * @param RestoModel $model
      * @param Array $params
      * @return boolean
      */
-    public function prepareFilters($model, $params) {
+    public function prepareFilters($user, $model, $params) {
        
-        /*
-         * Only visible features are returned
-         */
-        $filters = array(
-            'visible=1'
-        );
+        $filters = array();
         
+        /**
+         * Append filter for contextual search
+         */
+        $filterCS = $this->prepareFilterQuery_contextualSearch($user, $model);
+        if (isset($filterCS) && $filterCS !== '') {
+            $filters[] = $filterCS;
+        }
+
         /*
          * Process each input search filter excepted excluded filters
          */
@@ -125,14 +129,46 @@ class Functions_filters {
              */
             else if (isset($model->searchFilters[$filterName]['function'])) {
                 $function = $model->searchFilters[$filterName]['function'];
-                $filters[] = $model->$function($params[$filterName]);
+                $filters[] = $model->$function($params[$filterName], $user);
             }
         }
         
         return $filters;
         
     }
-    
+
+    /**
+     * Filter search result on group attribute using
+     * the groups list from user profile
+     * 
+     * @param RestoUser $user
+     * @param RestoModel $model
+     * @return string
+     */
+    private function prepareFilterQuery_contextualSearch($user, $model) {
+        
+        /*
+         * Admin user has no restriction on search
+         */
+        if ($user->isAdmin()) {
+            return null;
+        }
+         
+        /*
+         * Merge user groups with 'public' visibility
+         * Note: feature with 'public' visibility can be seen by every user
+         * (even unregistered)
+         */
+        $visibilities = array();
+        $groups = explode(',', (isset($user->profile['groups']) ? $user->profile['groups'] . ',' : '') . 'public');
+        for ($i = count($groups); $i--;) {
+            $visibilities[] = '\'' . pg_escape_string($groups[$i]) . '\'';
+        }
+ 
+        return $model->properties['visibility']['name'] . ' IN (' . join(',', $visibilities) . ')';
+        
+    }
+
     /**
      * 
      * Prepare an SQL WHERE clause from input filterName
@@ -194,22 +230,7 @@ class Functions_filters {
      * @return type
      */
     private function prepareFilterQuery_date($model, $filterName, $filters) {
-        
-        if (!RestoUtil::isISO8601($filters[$filterName])) {
-            RestoLogUtil::httpError(400, 'Invalid date parameter - ' . $filterName);
-        }
-        
-        /*
-         * Process time:start and time:end filters
-         */
-        switch ($filterName) {
-            case 'time:start':
-                return $model->getDbKey($model->searchFilters['time:start']['key']) . ' >= \'' . pg_escape_string($filters['time:start']) . '\'';
-            case 'time:end':
-                return $model->getDbKey($model->searchFilters['time:end']['key']) . ' <= \'' . pg_escape_string($filters['time:end']) . '\'';
-            default:
-                return null;
-        }
+        return $model->getDbKey($model->searchFilters[$filterName]['key']) . ' ' . $model->searchFilters[$filterName]['operation'] . ' \'' . pg_escape_string($filters[$filterName]) . '\'';
     }
     
     /**
@@ -277,9 +298,12 @@ class Functions_filters {
         for ($i = count($requestParams[$filterName]); $i--;) {
             
             /*
-             * LIKE case
+             * LIKE case only if at least 4 characters
              */
             if ($operation === '=' && substr($requestParams[$filterName][$i], -1) === '%') {
+                if  (strlen($requestParams[$filterName][$i]) < 3) {
+                    RestoLogUtil::httpError(400, '% is only allowed for string with 3+ characters');
+                }
                 $ors[] = $model->getDbKey($model->searchFilters[$filterName]['key']) . ' LIKE ' . $quote . pg_escape_string($requestParams[$filterName][$i]) . $quote;
             }
             /*

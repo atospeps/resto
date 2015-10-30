@@ -122,7 +122,7 @@ class Functions_users {
         		'numtel', 'numfax',	'instantdownloadvolume',
 				'weeklydownloadvolume' 
 		) ) as $field ) {
-			$values .= (isset ( $profile [$field] ) ? "'" . $profile [$field] . "'" : 'NULL') . ",";
+			$values .= (isset ( $profile [$field] ) ? "'" . pg_escape_string($profile[$field]) . "'" : 'NULL') . ",";
 		}
         $values .= "'" . pg_escape_string(RestoUtil::encrypt($email . microtime())) . "',";
         $values .= $profile['activated'] . ',now()';

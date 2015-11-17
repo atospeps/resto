@@ -47,9 +47,9 @@
 class RestoModel_sentinel2 extends RestoModel {
     
     public $extendedProperties = array(
-        'missionTakeId' => array(
-            'name' => 'missiontakeid',
-            'type' => 'INTEGER'
+        's2TakeId' => array(
+            'name' => 's2takeid',
+            'type' => 'TEXT'
         )
     );
     
@@ -97,13 +97,11 @@ class RestoModel_sentinel2 extends RestoModel {
     <stopTime>2015-07-27T04:47:31.061</stopTime>
     <productType>OCN</productType>
     <missionId>S1A</missionId>
-    <processingLevel>2</processingLevel>
+    <processingLevel>1</processingLevel>
     <mode>IW</mode>
     <absoluteOrbitNumber>6992</absoluteOrbitNumber>
     <orbitDirection>ASCENDING</orbitDirection>
-    <swath>IW</swath>
-    <polarisation>VV VH</polarisation>
-    <missiontakeid>38865</missiontakeid>
+    <s2takeid>38865</s2takeid>
     <cloudcover>0.0</cloudcover>
     <instrument>Multi-Spectral Instrument</instrument>
     <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
@@ -132,12 +130,13 @@ class RestoModel_sentinel2 extends RestoModel {
                         'startDate' => $dom->getElementsByTagName('startTime')->item(0)->nodeValue,
                         'completionDate' => $dom->getElementsByTagName('stopTime')->item(0)->nodeValue,
                         'productType' => $dom->getElementsByTagName('productType')->item(0)->nodeValue,
-                        'processingLevel' => 'LEVEL1C',
+                        'processingLevel' => $dom->getElementsByTagName('processingLevel')->item(0)->nodeValue,
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
                 		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
+                		's2TakeId' => $dom->getElementsByTagName('s2takeid')->item(0)->nodeValue,
                         'cloudCover' => $dom->getElementsByTagName('cloudCover')->item(0)->nodeValue,
                 )
         );

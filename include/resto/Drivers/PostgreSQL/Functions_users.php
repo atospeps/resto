@@ -156,7 +156,7 @@ class Functions_users {
             'registrationdate' => 'now()'
         );
         foreach (array_values(array('username', 'givenname', 'lastname', 'country', 'organization', 'topics', 'organizationcountry', 'flags')) as $field) {
-            $toBeSet[$field] = (isset($profile[$field]) ? "'" . $profile[$field] . "'" : 'NULL');
+            $toBeSet[$field] = (isset($profile[$field]) ? "'" . pg_escape_string($profile[$field]) . "'" : 'NULL');
         }
 
         return pg_fetch_array($this->dbDriver->query('INSERT INTO usermanagement.users (' . join(',', array_keys($toBeSet)) . ') VALUES (' . join(',', array_values($toBeSet)) . ') RETURNING userid, activationcode'));
@@ -268,7 +268,47 @@ class Functions_users {
      * @throws Exception
      */
     public function deactivateUser($userid) {
-        return count($this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET activated=0 WHERE userid=\'' . pg_escape_string($userid) . '\''))) === 1 ? true : false;
+        return count($this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET activated=0 WHERE userid=\'' . pg_escape_string($userid) . '\' RETURNING userid'))) === 1 ? true : false;
+    }
+    
+    /**
+     * Validate user
+     * 
+     * @param string $userid
+     * @param string $validatedBy
+     * @return boolean
+     */
+    public function validateUser($userid, $validatedBy) {
+
+        /*
+         * Validate user. 
+         * If user is already validate, update date and validatedby.
+         */
+        $toBeSet = array(
+            'validatedby=\'' . $validatedBy . '\'',
+            'validationdate=now()'
+        );
+        
+        $query = 'UPDATE usermanagement.users SET ' . join(',', $toBeSet) . ' WHERE userid=\'' . pg_escape_string($userid) . '\'' . ' RETURNING userid';
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+
+        return count($results) === 1 ? true : false;
+    }
+    
+    /**
+     * Unvalidate user
+     * 
+     * @param string $userid
+     * @return boolean
+     */
+    public function unvalidateUser($userid){
+        
+        $toBeSet = array(
+            'validatedby=NULL',
+            'validationdate=NULL'
+        );
+        
+        return count($this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $toBeSet) . ' WHERE userid=\'' . pg_escape_string($userid) . '\'  RETURNING userid'))) === 1 ? true : false;
     }
 
     /**

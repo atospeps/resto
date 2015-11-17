@@ -229,6 +229,11 @@ class RestoFeatureCollection {
         $count = count($this->restoFeatures);
         
         /*
+         * Define collectionName
+         */
+        $collectionName = isset($this->defaultCollection) ? $this->defaultCollection->name : '*';
+        
+        /*
          * Recompute totalCount
          */
         if ($this->totalCount === -1 && $count < $limit) {
@@ -238,8 +243,8 @@ class RestoFeatureCollection {
          * Convert resto model to search service "osKey"
          */
         $query = array(
-            'originalFilters' => $this->toOSKeys($analysis['originalFilters']),
-            'appliedFilters' => $this->toOSKeys($analysis['appliedFilters'])
+            'originalFilters' => array_merge($this->toOSKeys($analysis['originalFilters']), array('collection' => $collectionName)),
+            'appliedFilters' => array_merge($this->toOSKeys($analysis['appliedFilters']), array('collection' => $collectionName))
         );
         
         /*
@@ -255,7 +260,7 @@ class RestoFeatureCollection {
         $this->description = array(
             'type' => 'FeatureCollection',
             'properties' => array(
-                'id' => RestoUtil::UUIDv5((isset($this->defaultCollection) ? $this->defaultCollection->name : '*') . ':' . json_encode($this->cleanFilters($analysis['appliedFilters']))),
+                'id' => RestoUtil::UUIDv5($collectionName . ':' . json_encode($this->cleanFilters($analysis['appliedFilters']))),
                 'totalResults' => $this->totalCount,
                 'startIndex' => $offset + 1,
                 'itemsPerPage' => $count,
@@ -602,6 +607,13 @@ class RestoFeatureCollection {
         $originalFilters = $params;
         
         /*
+         * Special case for name alone
+         */
+        if (isset($params['geo:name'])) {
+            $params = $this->extendParamsWithGazetteer($params);
+        }
+        
+        /*
          * Analyse query
          */
         $analysis = $this->queryAnalyzer->analyze(isset($params['searchTerms']) ? $params['searchTerms'] : null);
@@ -616,8 +628,12 @@ class RestoFeatureCollection {
             if (count($where) > 0) {
                 $hashTodiscard = $where[0]['hash'];
                 $params['geo:geometry'] = $where[0]['geo:geometry'];
+                $analysis['analyze']['Where'] = array_merge($where, $analysis['analyze']['Where']);
+                $analysis['analyze']['Explained'] = array_merge(array(
+                    'processor' => 'WhereProcessor::processIn',
+                    'word' => $where[0]['name']
+                ), $analysis['analyze']['Explained']);
             }
-            $analysis['analyze']['Where'] = array_merge($where, $analysis['analyze']['Where']);
         }
         
         /*
@@ -726,7 +742,7 @@ class RestoFeatureCollection {
             }
             else if (isset($where[$i]['hash'])) {
                 if (!isset($hashTodiscard) || $where[$i]['hash'] !== $hashTodiscard) {
-                    $params['searchTerms'][] = 'hash:' . $where[$i]['hash'];
+                    $params['searchTerms'][] = 'geohash:' . $where[$i]['hash'];
                 }
             }
             /*
@@ -761,5 +777,43 @@ class RestoFeatureCollection {
         }
         return $arr;
     }
+    
+    /**
+     * Extend search params with gazetteer results
+     * 
+     * @param RestoContext $context
+     * @param RestoUser $user
+     * @param array $params
+     */
+    private function extendParamsWithGazetteer($params) {
+        if(!isset($params['searchTerms']) && !isset($params['geo:lon']) && !isset($params['geo:geometry']) && !isset($params['geo:box'])) {
+            if (isset($this->context->modules['GazetteerPro'])) {
+                $gazetteer = RestoUtil::instantiate($this->context->modules['GazetteerPro']['className'], array($this->context, $this->user));
+            }
+            else if (isset($this->context->modules['Gazetteer'])) {
+                $gazetteer = RestoUtil::instantiate($this->context->modules['Gazetteer']['className'], array($this->context, $this->user));
+            }
+            if ($gazetteer) {
+                $location = $gazetteer->search(array(
+                    'q' => $params['geo:name'],
+                    'wkt' => true
+                ));
+                if (count($location['results']) > 0) {
+                    if (isset($location['results'][0]['hash'])) {
+                        $params['searchTerms'] = 'geohash:' . $location['results'][0]['hash'];
+                    }
+                    else if (isset($location['results'][0]['geo:geometry'])) {
+                        $params['geo:geometry'] = $location['results'][0]['geo:geometry'];
+                    }
+                    else if (isset($location['results'][0]['geo:lon'])) {
+                        $params['geo:lon'] = $location['results'][0]['geo:lon'];
+                        $params['geo:lat'] = $location['results'][0]['geo:lat'];
+                    }
+                }
+            }
+        }
+        return $params;
+    }
+
     
 }

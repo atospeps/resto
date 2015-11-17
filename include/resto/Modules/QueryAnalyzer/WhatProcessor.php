@@ -220,8 +220,11 @@ class WhatProcessor {
                 }
             }
             $this->queryManager->discardPositionInterval(__METHOD__, $valuedUnitQuantity['startPosition'], $valuedUnitQuantity['endPosition'], isset($valuedUnitQuantity['error']) ? $valuedUnitQuantity['error'] : null);
+            
+            return true;
+            
         }
-        
+        return false;
     }
     
     /**
@@ -272,7 +275,6 @@ class WhatProcessor {
             ));
             $endPosition = $quantity['endPosition'];
         }
-
         /*
          * Keyword ?
          */

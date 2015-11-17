@@ -39,7 +39,8 @@ class RestoDictionary_fr extends RestoDictionary {
         'hiver boreal',
         'printemps boreal',
         'automne boreal',
-        'aujourd hui'
+        'aujourd hui',
+        'avec de'
     );
     
     protected $dictionary = array(
@@ -60,7 +61,7 @@ class RestoDictionary_fr extends RestoDictionary {
          * Location modifiers
          */
         'locationModifiers' => array(
-            'in' => array('en', 'au', 'aux', 'a', 'sur', 'pres de', 'vers' , 'de'),
+            'in' => array('en', 'au', 'aux', 'a', 'sur', 'pres de', 'vers' , 'de', 'du'),
         ),
         /*
          * Quantity modifiers
@@ -68,12 +69,12 @@ class RestoDictionary_fr extends RestoDictionary {
          */
         'quantityModifiers' => array(
             'equal' => array('egal', 'egale', 'egaux'),
-            'with' => array('avec', 'contenant'),
+            'with' => array('avec', 'contenant', 'avec de'),
             'for' => array('pour', 'de', 'sur', 'dans'),
             'between' => array('entre', 'de'),
             'greater' => array('plus', 'plus grand que', 'superieur a', 'superieure a', '>'),
             'lesser' => array('moins', 'plus petit que', '<', 'inferieur a', 'inferieure a'),
-            'without' => array('sans', 'pas')
+            'without' => array('sans', 'pas', 'non')
         ),
         /*
          * Time modifiers
@@ -93,13 +94,13 @@ class RestoDictionary_fr extends RestoDictionary {
         /*
          * Stop words i.e. excluded words
          */
-        'stopWords' => array('le', 'la', 'les', 'de', 'des', 'et', 'ou', 'un', 'une'),
+        'stopWords' => array('le', 'la', 'les', 'de', 'des', 'et', 'ou', 'un', 'une', 'avec', 'du'),
         /*
          * List of words in the query that are
          * considered as 'noise' for the query analysis
          * and thus excluded from the analysis
          */
-        'noise' => array('acquis%', 'compris%', 'zone%'),
+        'noise' => array('acquis%', 'compris%', 'image%'),
         /*
          * Months
          */

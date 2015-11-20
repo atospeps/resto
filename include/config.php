@@ -217,6 +217,15 @@ return array(
      */
     'modules' => array(
     		
+        /*
+         * Administration
+         */
+        'Alerts' => array(
+               'activate' => true,
+               'route' => 'alerts',
+               'options' => array()
+        ),
+            
     	/*
     	 * Administration
     	 */

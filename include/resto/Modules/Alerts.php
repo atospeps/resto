@@ -11,8 +11,9 @@
 * 
 *    |          Resource                                                |     Description
 *    |__________________________________________________________________|______________________________________
-*    |  GET     alerts/user/{userid}                                    |  Display users subscriptions
-*    |  POST    alerts/users                                            |  Create user
+*    |  GET     alerts                                                  |  List all subscriptions
+*    |  POST    alerts                                                  |  Create or edit a subscription
+*    |  POST    alerts/clear                                            |  Delete a subscription
 * 
 */
 

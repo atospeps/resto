@@ -4,10 +4,7 @@
  *
 * Alerts module
 *
-* Gerer les alerts
-* 
-* ** alerts **
-* 
+* Manage alerts
 * 
 *    |          Resource                                                |     Description
 *    |__________________________________________________________________|______________________________________
@@ -67,7 +64,7 @@ class Alerts extends RestoModule {
      */
     public function run($segments, $data = array()) {
         /*
-         * Only GET method on 'search' route with json outputformat is accepted
+         * Only GET method and POST are accepted
          */
         if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
             RestoLogUtil::httpError(404);

@@ -445,6 +445,18 @@ class RestoRoutePOST extends RestoRoute {
          * Cart can only be modified by its owner or by admin
          */
         $user = $this->getAuthorizedUser($emailOrId);
+        $features = array();
+        for ($i = count($data); $i--;) {
+            if (!isset($data[$i]['id'])) {
+                continue;
+            }
+            $features[] = $this->context->dbDriver->get(RestoDatabaseDriver::FEATURE_DESCRIPTION, array(
+                    'context' => $this->context,
+                    'user' => $this->user,
+                    'featureIdentifier' => $data[$i]['id'],
+                    'collection' => isset($data[$i]['collection']) ? new RestoCollection($data[$i]['collection'], $this->context, $this->user, array('autoload' => true)) : null
+            ));
+        }
         
         /*
          * Remove items first
@@ -453,7 +465,7 @@ class RestoRoutePOST extends RestoRoute {
         if ($clear) {
             $user->clearCart(true);
         }
-        $items = $user->addToCart($data, true);
+        $items = $user->addToCart($features, true);
         
         if ($items !== false) {
             return RestoLogUtil::success('Add items to cart', array(
@@ -463,7 +475,6 @@ class RestoRoutePOST extends RestoRoute {
         else {
             return RestoLogUtil::error('Cannot add items to cart');
         }
-        
     }
     
     

@@ -1,4 +1,4 @@
-/* Script de migration de la base de données Resto de la version 1.2.2 vers 1.2.3 */
+/* Script de migration de la base de données Resto de la version 2.2.2 vers 2.2.3 */
 
 UPDATE _s1.features SET processinglevel='LEVEL2' where producttype='OCN';
 

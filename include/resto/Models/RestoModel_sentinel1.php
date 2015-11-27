@@ -166,7 +166,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'startDate' => $dom->getElementsByTagName('startTime')->item(0)->nodeValue,
                         'completionDate' => $dom->getElementsByTagName('stopTime')->item(0)->nodeValue,
                         'productType' => $dom->getElementsByTagName('productType')->item(0)->nodeValue,
-                        'processingLevel' => 'LEVEL1',
+                        'processingLevel' => $dom->getElementsByTagName('processingLevel')->item(0)->nodeValue,
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
@@ -174,6 +174,7 @@ class RestoModel_sentinel1 extends RestoModel {
                         'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missiontakeid')->item(0)->nodeValue,
+                		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )

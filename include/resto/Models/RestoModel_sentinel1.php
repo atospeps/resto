@@ -174,7 +174,6 @@ class RestoModel_sentinel1 extends RestoModel {
                         'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missiontakeid')->item(0)->nodeValue,
-                		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                         'cloudCover' => 0
                 )

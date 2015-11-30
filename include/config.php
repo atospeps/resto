@@ -218,7 +218,7 @@ return array(
     'modules' => array(
     		
         /*
-         * Administration
+         * Alerts
          */
         'Alerts' => array(
                'activate' => true,

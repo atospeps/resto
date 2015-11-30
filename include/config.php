@@ -221,9 +221,18 @@ return array(
          * Alerts
          */
         'Alerts' => array(
-               'activate' => true,
-               'route' => 'alerts',
-               'options' => array()
+            'activate' => true,
+            'route' => 'alerts',
+            'options' => array()
+        ),
+            
+        /*
+         * Alerts
+         */
+        'WPS' => array(
+                'activate' => true,
+                'route' => 'wps',
+                'options' => array()
         ),
             
     	/*

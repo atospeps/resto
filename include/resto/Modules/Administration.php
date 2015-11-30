@@ -643,6 +643,7 @@ class Administration extends RestoModule {
             $postedData['canpost'] = htmlspecialchars(filter_input(INPUT_POST, 'canpost'), ENT_QUOTES);
             $postedData['candelete'] = htmlspecialchars(filter_input(INPUT_POST, 'candelete'), ENT_QUOTES);
             $postedData['filters'] = filter_input(INPUT_POST, 'filters') === 'null' ? null : htmlspecialchars(filter_input(INPUT_POST, 'filters'), ENT_QUOTES);
+            $postedData['wps'] = htmlspecialchars(filter_input(INPUT_POST, 'wps'), ENT_QUOTES);
 
             if (!$this->context->dbDriver->check(RestoDatabaseDriver::FEATURE, $postedData)) {
                 throw new Exception('Feature does not exists', 4004);
@@ -656,7 +657,7 @@ class Administration extends RestoModule {
             /*
              * Posted rights
              */
-            $rights = array('search' => $postedData['search'], 'visualize' => $postedData['visualize'], 'download' => $postedData['download'], 'canput' => $postedData['canput'], 'canpost' => $postedData['canpost'], 'candelete' => $postedData['candelete'], 'filters' => $postedData['filters']);
+            $rights = array('search' => $postedData['search'], 'visualize' => $postedData['visualize'], 'download' => $postedData['download'], 'canput' => $postedData['canput'], 'canpost' => $postedData['canpost'], 'candelete' => $postedData['candelete'], 'filters' => $postedData['filters'], 'wps' => $postedData['wps']);
 
             /*
              * Store rights

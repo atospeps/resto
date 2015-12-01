@@ -26,7 +26,7 @@
     },
     "propertiesMapping":{
         "parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-2:",
-        "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.gif",
+        "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg",
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
         "resourceMimeType": "application/zip"
     }

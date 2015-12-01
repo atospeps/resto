@@ -92,18 +92,23 @@ class Alerts extends RestoModule {
      * @throws Exception
      */
     private function processGET() {
-        // Verify user is set
-        if (isset($this->user->profile['email'])) {
-            $alerts = pg_query($this->dbh, 'SELECT * from usermanagement.alerts WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
-            $result = array ();
-            while ($row = pg_fetch_assoc($alerts)) {
-                $result[] = $row;
+        if (isset($this->segments[0]) && $this->segments[0] = 'exectute') {
+            
+        } else if (!isset($this->segments[0])) {
+            // Verify user is set
+            if (isset($this->user->profile['email'])) {
+                $alerts = pg_query($this->dbh, 'SELECT * from usermanagement.alerts WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
+                $result = array ();
+                while ($row = pg_fetch_assoc($alerts)) {
+                    $result[] = $row;
+                }
+                return $result;
+            } else {
+                RestoLogUtil::httpError(403);
             }
-            return $result;
         } else {
-            RestoLogUtil::httpError(403);
+            RestoLogUtil::httpError(404);
         }
-        
     }
     
     /**
@@ -144,7 +149,7 @@ class Alerts extends RestoModule {
     }
     
     /**
-     * We create an alert
+     * We edit an alert
      *
      * @throws Exception
      */
@@ -154,7 +159,7 @@ class Alerts extends RestoModule {
             try {
                 $alerts = pg_query($this->dbh, 'UPDATE usermanagement.alerts SET 
                         email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . 
-                        '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . 
+                        '\', creation_time=\'' . pg_escape_string($data['creation_time']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . 
                         '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE aid=\'' . pg_escape_string($data['aid']) . '\'');
                 return array ('status' => 'success', 'message' => 'success');
             } catch (Exception $e) {
@@ -166,7 +171,7 @@ class Alerts extends RestoModule {
     }
     
     /**
-     * We create an alert
+     * We delete an alert
      *
      * @throws Exception
      */

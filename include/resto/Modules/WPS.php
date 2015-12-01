@@ -10,9 +10,10 @@
 * 
 *    |          Resource                                                |     Description
 *    |__________________________________________________________________|______________________________________
-*    |  GET     wtc/user/{userid}                                    |  Display users subscriptions
-*    |  POST    wtc/users                                            |  Create user
-* 
+*    |  GET     wps                                                     |  List of all user's jobs
+*    |  POST    wps/execute                                             |  Create a job
+*    |  POST    wps                                                     |  Edit a job
+*    |  POST    wps/clear                                               |  Delete a job
 */
 
 class WPS extends RestoModule {
@@ -97,15 +98,15 @@ class WPS extends RestoModule {
     }
     
     /**
-     * Process on HTTP method GET on /alerts
+     * Process on HTTP method GET on /jobs
      * 
      */
     private function processGET() {
         // Verify user is set
         if (isset($this->user->profile['email'])) {
-            $alerts = pg_query($this->dbh, 'SELECT * from usermanagement.alerts WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
+            $jobs = pg_query($this->dbh, 'SELECT * from usermanagement.jobs WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
             $result = array ();
-            while ($row = pg_fetch_assoc($alerts)) {
+            while ($row = pg_fetch_assoc($jobs)) {
                 $result[] = $row;
             }
             return $result;
@@ -116,35 +117,53 @@ class WPS extends RestoModule {
     }
     
     /**
-     * Process on HTTP method POST on /alerts and alerts/clear
+     * Process on HTTP method POST on /wps, /wps/execute and wps/clear
      *
      */
     private function processPOST($data) {
         /*
          * Get the operation to proceed
          */
-        if (!isset($this->segments[0]) && !isset($data['aid'])) {
-            // If there is no identifier, an alert is created
-            return $this->createAlert($data);
-        } else if (!isset($this->segments[0]) && isset($data['aid'])) {
-            // If there is an aid, we are editing an  existing alert
-            return $this->editAlert($data);
+        if (isset($this->segments[0]) && $this->segments[0] == 'execute' && !isset($data['jid'])) {
+            // If there is no identifier, an job is created
+            return $this->createJob($data);
+        } else if (!isset($this->segments[0]) && isset($data['jid'])) {
+            // If there is an jid, we are editing an  existing job
+            return $this->editJob($data);
         } else if ($this->segments[0] == 'clear') {
-            // With the segment clear, we delete an alert
-            return $this->deleteAlert($data);
+            // With the segment clear, we delete an job
+            return $this->deleteJob($data);
         } else {
             RestoLogUtil::httpError(404);
         }
     }
     
     /**
-     * We create an alert
+     * We create a job
      *
      * @throws Exception
      */
-    private function createAlert($data) {
+    private function createJob($data) {
         try {
-            $alerts = pg_query($this->dbh, 'INSERT INTO usermanagement.alerts WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
+            // Inserting the job into database
+            $jobs = pg_query($this->dbh, 'INSERT INTO usermanagement.jobs WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
+            // We call the WPS Server
+            $status = $this->callWPSServer($url);
+            // If there was any problem with the WPS server
+            if ($status === FALSE) {
+                
+            }else{
+                try {
+                    $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET
+                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) .
+                            '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) .
+                            '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
+                    return array ('status' => 'success', 'message' => 'success');
+                } catch (Exception $e) {
+                    RestoLogUtil::httpError($e->getCode(), $e->getMessage());
+                }
+            } 
+            
             return array('status' => 'success', 'message' => 'success');
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
@@ -152,18 +171,18 @@ class WPS extends RestoModule {
     }
     
     /**
-     * We create an alert
+     * We edit a job
      *
      * @throws Exception
      */
-    private function editAlert($data) {
-        // Edit an alert using the alert id
-        if (isset($data['aid'])) {
+    private function editJob($data) {
+        // Edit a job using the job id
+        if (isset($data['jid'])) {
             try {
-                $alerts = pg_query($this->dbh, 'UPDATE usermanagement.alerts SET 
+                $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET 
                         email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . 
                         '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . 
-                        '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE aid=\'' . pg_escape_string($data['aid']) . '\'');
+                        '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
                 return array ('status' => 'success', 'message' => 'success');
             } catch (Exception $e) {
                 RestoLogUtil::httpError($e->getCode(), $e->getMessage());
@@ -174,15 +193,15 @@ class WPS extends RestoModule {
     }
     
     /**
-     * We create an alert
+     * We create a job
      *
      * @throws Exception
      */
-    private function deleteAlert($data) {
-        // Delete an alert using the alert id
-        if (isset($data['aid'])) {
+    private function deleteJob($data) {
+        // Delete a job using the job id
+        if (isset($data['jid'])) {
             try {
-                $alerts = pg_query($this->dbh, 'DELETE FROM usermanagement.alerts WHERE aid = \'' . pg_escape_string($data['aid']) . '\'');
+                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE jid = \'' . pg_escape_string($data['jid']) . '\'');
                 return array ('status' => 'success', 'message' => 'success');
             } catch (Exception $e) {
                 RestoLogUtil::httpError($e->getCode(), $e->getMessage());
@@ -193,7 +212,7 @@ class WPS extends RestoModule {
     }
     
     /**
-     * Process on HTTP method GET on /alerts
+     * Process on HTTP method GET on /wps
      *
      * @throws Exception
      */
@@ -210,6 +229,38 @@ class WPS extends RestoModule {
             }
         }
     
-    }   
+    }
+
+    /**
+     * We call the WPS server  
+     *
+     */
+    private function callWPSServer($url) {
+        // Call the WPS Server
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FAILONERROR, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $retValue = curl_exec($ch);
+        curl_close($ch);
+        
+        if ($retValue !== FALSE) {
+            // In orer to keep working...
+            // The xml file returned cannot be treated by the xml php functions
+            // We erase the tags which causes problems
+            $tmp1 = str_replace("wps:", "", $retValue);
+            $tmp2 = str_replace("ows:", "", $tmp1);
+        
+            // Transform to aray
+            $xml = new SimpleXMLElement($tmp2);
+            // Get the statusLocation
+            return (string) $xml['statusLocation'];
+
+        }else{
+            return FALSE;
+        }
+    }    
     
 }

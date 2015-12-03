@@ -208,51 +208,32 @@ class Alerts extends RestoModule {
         
         // We iterate over all the results.
         // We will make the research and send the mail
-        while ($row = pg_fetch_assoc($alerts)) {
-            
-            
-            if (isset($row['criterias'])) {
-                $criterias = json_decode($row['criterias']);
+        while ($row = pg_fetch_assoc($alerts)) { 
+            // crete the open search url from the data in the database 
+            $url= $this->getUrl($row);  
+            // we execute the open search
+            $products = $this->openSearchRequest($url);
+            // We decode the results
+            $answer = json_decode($resp, true);
+            // we create the download links and the tokens on the database associated with the user
+            foreach ($answer["features"] as $feature) {
+                $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
             }
+            // We create the content for a meta4 file from the products
+            $content = $this->alertsToMETA4($answer["features"]);
+            //We established all the parameters used on the mail
+            $params['filename'] = 'test.meta4';
+            $params['to'] = $row['email'];
+            $params['message'] = 'Hello here we are!';
+            $params['senderName'] = $this->context->mail['senderName'];
+            $params['senderEmail'] = $this->context->mail['senderEmail'];
+            $params['subject'] = 'testing that';
+            $params['content'] = $content;
             
+            // We send the mail
+            $this->sendAttachedMeta4Mail($params);
 
-            
-            $http = 'http://localhost/resto/api/collections/' . (isset($criterias->collection) ? $criterias->collection .'/'  : '' )  . 
-            'search.json?completionDate=2015-09-04T17:52:53&instrument=HRS&lang=fr&platform=S1A';
-            
         }
-        exit();
-        
-        // Call Resto to get 
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_URL => $http,
-        ));
-        $resp = curl_exec($curl);
-        curl_close($curl);
-        
-        $answer = json_decode($resp, true); 
-        
-        
-        foreach ($answer["features"] as $feature) {
-            $this->createAlertSharedLink($feature['properties']['services']['download']['url'], 'ivan.raichs@gmail.com');
-        }
-        
-        
-        $content = $this->alertsToMETA4($answer["features"]);
-
-
-        $params['filename'] = 'test.meta4';
-        $params['to'] = 'ivan.raichs@atos.net';
-        $params['message'] = 'Hello here we are!';
-        $params['senderName'] = 'Resto Admin';
-        $params['senderEmail'] = 'resto_admin@atos.net';
-        $params['subject'] = 'testing that';
-        $params['content'] = $content;
-        
-        $this->sendAttachedMeta4Mail($params);
-
     }
     
     /**
@@ -367,6 +348,51 @@ class Alerts extends RestoModule {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * From the elements recuperd on the database we create the opensearch url
+     *
+     * @param array $row Element returned from the database
+     */
+    private function getUrl($row) {
+        // We get the criterias to add them at the end of the url
+        if (isset($row['criterias'])) {
+            // We decode the criterias
+            $criterias = json_decode($row['criterias']);
+            // We add the collection to the url
+            $url = 'http://localhost/resto/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
+            // We set the arguments
+            $arguments = array ();
+            foreach ($criterias as $key => $value) {
+                $arguments[] = $key . '=' . $value;
+            }
+            if (!empty($arguments)) {
+                return $url . '?' . join('&', $arguments);
+            } else {
+                return $url;
+            }
+        } else {
+            return 'http://localhost/resto/api/collections/search.json';
+        }
+    }
+    
+    /**
+     * Execute an openserach to the same resto
+     *
+     * @param array $url Request url
+     */
+    private function openSearchRequest($url) {
+        // Call Resto to get
+        $curl = curl_init();
+        curl_setopt_array($curl, array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_URL => $http 
+        ));
+        $products = curl_exec($curl);
+        curl_close($curl);
+        
+        return $products;
     }
     
 }

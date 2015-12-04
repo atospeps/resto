@@ -64,10 +64,7 @@ class Alerts extends RestoModule {
      * @return string : result from run process in the $context->outputFormat
      */
     public function run($segments, $data = array()) {
-        
-        // Verify allowed hosts
-        
-        
+
         /*
          * Only GET method and POST are accepted
          */
@@ -98,6 +95,12 @@ class Alerts extends RestoModule {
      */
     private function processGET() {
         if (isset($this->segments[0]) && $this->segments[0] = 'execute') {
+            // Verify the allowed hosts for the execution.
+            if(isset($this->context->modules["Alerts"]["allowed_execute_hosts"]) && !empty($this->context->modules["Alerts"]["allowed_execute_hosts"])){
+                if (!in_array($_SERVER['REMOTE_ADDR'],$this->context->modules["Alerts"]["allowed_execute_hosts"])) {
+                    RestoLogUtil::httpError(403);
+                }
+            }
           // Execute  
           $this->alertExecute(); 
         } else if (!isset($this->segments[0])) {
@@ -198,10 +201,10 @@ class Alerts extends RestoModule {
             RestoLogUtil::httpError(404);
         }
     }
-
+    
     /**
-     * We execute the alerts. We send the maisl to the users
-     *
+     * We execute the alerts.
+     * We send the maisl to the users
      */
     private function alertExecute() {
         
@@ -212,31 +215,35 @@ class Alerts extends RestoModule {
         
         // We iterate over all the results.
         // We will make the research and send the mail
-        while ($row = pg_fetch_assoc($alerts)) { 
-            // crete the open search url from the data in the database 
-            $url= $this->getUrl($row);  
+        while ($row = pg_fetch_assoc($alerts)) {
+            // crete the open search url from the data in the database
+            $url = $this->getUrl($row);
             // we execute the open search
             $products = $this->openSearchRequest($url);
             // We decode the results
-            $answer = json_decode($resp, true);
-            // we create the download links and the tokens on the database associated with the user
-            foreach ($answer["features"] as $feature) {
-                $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+            $answer = json_decode($products, true);
+            // If there's no result, we don't send any mail
+            if ($answer !== FALSE) {
+                // we create the download links and the tokens on the database associated with the user
+                foreach ($answer["features"] as $feature) {
+                    $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+                }
+                // We create the content for a meta4 file from the products
+                $content = $this->alertsToMETA4($answer["features"], $row['email']);
+                if ($content !== FALSE) {
+                    // We established all the parameters used on the mail
+                    $params['filename'] = 'file.meta4';
+                    $params['to'] = $row['email'];
+                    $params['message'] = $this->setMailMessage($row);
+                    $params['senderName'] = $this->context->mail['senderName'];
+                    $params['senderEmail'] = $this->context->mail['senderEmail'];
+                    $params['subject'] = 'PEPS: Abonnement';
+                    $params['content'] = $content;
+                    
+                    // We send the mail
+                    $this->sendAttachedMeta4Mail($params);
+                }
             }
-            // We create the content for a meta4 file from the products
-            $content = $this->alertsToMETA4($answer["features"]);
-            //We established all the parameters used on the mail
-            $params['filename'] = 'test.meta4';
-            $params['to'] = $row['email'];
-            $params['message'] = 'Hello here we are!';
-            $params['senderName'] = $this->context->mail['senderName'];
-            $params['senderEmail'] = $this->context->mail['senderEmail'];
-            $params['subject'] = 'testing that';
-            $params['content'] = $content;
-            
-            // We send the mail
-            $this->sendAttachedMeta4Mail($params);
-
         }
     }
     
@@ -246,47 +253,57 @@ class Alerts extends RestoModule {
      * 
      * @param array $items : all the products returned byt the open search
      */
-    private function alertsToMETA4($items) {
+    private function alertsToMETA4($items, $email) {
         
         $meta4 = new RestoMetalink($this->context);
         
-        /*
-         * One metalink file per item - if user has rights to download file
-         */
-        foreach ($items as $item) {
-            
-            /*
-             * Invalid item
-             */
+        //One metalink file per item - if user has rights to download file
+        foreach ($items as $item) {          
+            // Invalid item
             if (!isset($item['properties']) || !isset($item['properties']['services']) || !isset($item['properties']['services']['download'])) {
                 continue;
             }
-            
-            /*
-             * Item not downloadable
-             */
+            // Item not downloadable
             if (!isset($item['properties']['services']['download']['url']) || !RestoUtil::isUrl($item['properties']['services']['download']['url'])) {
                 continue;
             }
-            
+            // We explode the url to get rights
             $exploded = parse_url($item['properties']['services']['download']['url']);
             $segments = explode('/', $exploded['path']);
             $last = count($segments) - 1;
             if ($last > 2) {
                 list ($modifier) = explode('.', $segments[$last], 1);
-                if ($modifier !== 'download' || !$this->user->canDownload($segments[$last - 2], $segments[$last - 1])) {
+                if ($modifier !== 'download' || !$this->canAlertsDownload('download', $segments[$last - 2], $segments[$last - 1], $email)) {
                     continue;
                 }
             }
             
-            /*
-             * Add link to the file
-             */
+            // Add link to the file
             $meta4->addLink($item, $this->user->profile['email']);
         }
         
         // We return the content of the meta4 attached file
         return $meta4->toString();
+    }
+    
+    /**
+     * 
+     * 
+     * @param string $action
+     * @param string $collectionName
+     * @param string $featureIdentifier
+     * @return If user has the rights to download a product
+     */
+    private function canAlertsDownload($action, $collectionName = null, $featureIdentifier = null, $email){
+        // We need to establish the user group
+        $result = pg_query($this->dbh, "SELECT groupname FROM usermanagement.users WHERE email='" . $email . "'");
+        $group = pg_fetch_assoc($result);
+        // We load the rights for the user in the alert
+        $rights = new RestoRights($email, $group['groupname'], $this->context);
+        
+        // Normal case - checke user rights
+        $rights = $rights->getRights($collectionName, $featureIdentifier);
+        return $rights[$action];
     }
     
     /**
@@ -369,7 +386,10 @@ class Alerts extends RestoModule {
             // We set the arguments
             $arguments = array ();
             foreach ($criterias as $key => $value) {
+                // We don't insert the collection as an argument
+                if($key != 'collection'){    
                 $arguments[] = $key . '=' . $value;
+                }
             }
             if (!empty($arguments)) {
                 return $url . '?' . join('&', $arguments);
@@ -386,17 +406,29 @@ class Alerts extends RestoModule {
      *
      * @param array $url Request url
      */
-    private function openSearchRequest($url) {
+    private function openSearchRequest($url) { 
         // Call Resto to get
         $curl = curl_init();
         curl_setopt_array($curl, array (
                 CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_URL => $http 
+                CURLOPT_URL => $url 
         ));
         $products = curl_exec($curl);
         curl_close($curl);
-        
         return $products;
+    }
+    
+    /**
+     * Create the message body for the mail
+     * 
+     * @param array $row Element returned from the database
+     */
+    private function setMailMessage($row){
+        $body.= "Peps Alert\n";
+        $body.= "Title: " . $row['title'] . "\n";
+        $body.= "Creation time: " . $row['creation_time'] . "\n";
+        $body.= "Criterias: " . $row['criterias'] . "\n";
+        return $body;
     }
     
 }

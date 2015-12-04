@@ -210,7 +210,7 @@ class Alerts extends RestoModule {
         
         // We get the current date rounding the hours
         $date = date("Y-m-d H:00:00", time());
-        $alerts = pg_query($this->dbh, "SELECT title, creation_time, email, criterias FROM usermanagement.alerts 
+        $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, criterias FROM usermanagement.alerts 
                 WHERE expiration >= '" . $date . "' AND '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval");
         
         // We iterate over all the results.
@@ -241,7 +241,11 @@ class Alerts extends RestoModule {
                     $params['content'] = $content;
                     
                     // We send the mail
-                    $this->sendAttachedMeta4Mail($params);
+                    if($this->sendAttachedMeta4Mail($params)){
+                        //After sending the mail we update the database with the new last_dispatch
+                        pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d H:i:s", time()) . "' WHERE aid=" . $row["aid"]);
+                    }
+                    
                 }
             }
         }

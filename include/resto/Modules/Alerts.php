@@ -64,6 +64,10 @@ class Alerts extends RestoModule {
      * @return string : result from run process in the $context->outputFormat
      */
     public function run($segments, $data = array()) {
+        
+        // Verify allowed hosts
+        
+        
         /*
          * Only GET method and POST are accepted
          */

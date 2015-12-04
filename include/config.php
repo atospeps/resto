@@ -223,7 +223,12 @@ return array(
         'Alerts' => array(
                'activate' => true,
                'route' => 'alerts',
-               'options' => array()
+               'options' => array(
+                   'allowed_hosts' => array(
+                        'localhost',
+                        '127.0.0.1'      
+                    ),
+               )
         ),
             
     	/*

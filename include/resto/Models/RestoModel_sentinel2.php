@@ -110,6 +110,11 @@ class RestoModel_sentinel2 extends RestoModel {
      * @param {DOMDocument} $dom : $dom DOMDocument
      */
     private function parseNew($dom){
+    	
+    	/*
+    	 * Retreives orbit direction
+    	 */
+    	$orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
 
     	$polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
     	
@@ -134,6 +139,7 @@ class RestoModel_sentinel2 extends RestoModel {
                         'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
                         'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
                         'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
+                		'orbitDirection' => $orbitDirection,
                 		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
                 		's2TakeId' => $dom->getElementsByTagName('s2takeid')->item(0)->nodeValue,

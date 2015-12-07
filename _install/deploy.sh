@@ -87,7 +87,13 @@ DIST_CONF_FILE="$CONFDIR/conf/config.php"
 if [ ! -d "$CONFDIR" ]; then
     echo "Creation of $CONFDIR"
     mkdir "$CONFDIR"
+fi
+if [ ! -d "$CONFDIR/conf" ]; then
+    echo "Creation of $CONFDIR/conf"
     mkdir "$CONFDIR/conf"
+fi
+if [ ! -d "$CONFDIR/scripts" ]; then
+    echo "Creation of $CONFDIR/scripts"
     mkdir "$CONFDIR/scripts"
 fi
 if [ -f "$DIST_CONF_FILE" ] ; then

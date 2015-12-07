@@ -226,8 +226,7 @@ return array(
                'options' => array(
                    'allowed_execute_hosts' => array(
                         'localhost',
-                        '127.0.0.1', 
-                        '192.168.56.1'      
+                        '127.0.0.1'     
                     ),
                )
         ),

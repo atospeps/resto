@@ -16,19 +16,18 @@ function displayMessage() {
     echo "$1" >> "$REPORT_FILE"
 }
 
-function logMessage() {
-    echo "$1" >> "$REPORT_FILE"
-}
 
 HOST=localhost
 TARGET_PATH=""
 ARCHIVE_PATH="/hpss/peps/data"
-usage="## Deplace les fichiers .gif et .wld de l'archive HPSS vers le serveur de distribution.\n\n  Usage $0 [-s <source_dir>] -d <dest_dir> -p <resto_db_password>\n"
-while getopts "s:d:p:h:" options; do
+usage="## Deplace les fichiers .gif et .wld de l'archive HPSS vers le serveur de distribution.\n\n  Usage $0 -H <ftp_host> -u <ftp_user:ftp_pwd> [-s <ftp_dir> ] -d <dest_dir> -p <resto_db_password>\n"
+while getopts "H:u:s:d:p:h:" options; do
     case $options in
         s ) ARCHIVE_PATH=${OPTARG};;
         p ) RESTO_PASS=${OPTARG};;
         d ) TARGET_PATH=${OPTARG};;
+        H ) FTP_HOST=${OPTARG};;
+        u ) FTP_USER=${OPTARG};;
         h ) echo -e $usage;;
         \? ) echo -e $usage
             exit 1;;
@@ -37,11 +36,6 @@ while getopts "s:d:p:h:" options; do
     esac
 done
 
-if [ "$RESTO_PASS" = "" ]
-then
-    echo -n "Entrer le mot de passe pour la connexion à la base de données resto avec le user resto : "
-    read -s RESTO_PASS
-fi
 
 if [ "$TARGET_PATH" = "" ]
 then
@@ -49,7 +43,24 @@ then
     echo -e $usage
     exit 1
 fi
+if [ "$FTP_USER" = "" ]
+then
+    echo "Veuillez specifier les informations de connexion au serveur FTP de l'HPSS."
+    echo -e $usage
+    exit 1
+fi
+if [ "$FTP_HOST" = "" ]
+then
+    echo "Veuillez specifier le nom du serveur FTP de l'HPSS."
+    echo -e $usage
+    exit 1
+fi
 
+if [ "$RESTO_PASS" = "" ]
+then
+    echo -n "Entrer le mot de passe pour la connexion à la base de données resto avec le user resto : "
+    read -s RESTO_PASS
+fi
 if [ ! -d "$TARGET_PATH" ]
 then
     echo "\nLe repertoire de destination n'existe pas."
@@ -64,42 +75,40 @@ psql -t -U resto resto -c "select title, quicklook from _s1.features where produ
 
 rm "$PGPASSFILE"
 
-displayMessage "Deplacement des fichiers gif et wld de l'archive \"$ARCHIVE_PATH\" vers \"$TARGET_PATH\""
-cd "$ARCHIVE_PATH"
+displayMessage "Deplacement des fichiers gif et wld de l'archive \"ftp://$FTP_HOST/$ARCHIVE_PATH\" vers \"$TARGET_PATH\""
 
 totalProduct=0
 quicklook=0
 worldfile=0
 
+FTP_URL="ftp://$FTP_HOST/${ARCHIVE_PATH}"
+
 while read line
 do
     title=`echo $line | cut -d\  -f 1`
     path=`echo $line | cut -d\  -f 3`
-    
-    subpath=`echo ${path%$title}`
-    quicklookpath="${ARCHIVE_PATH}/${path}_quicklook.gif"
-    if [ -f "$quicklookpath" ]
-    then
-        mkdir -p "$TARGET_PATH/${path}"
-        cp "$quicklookpath" "$TARGET_PATH/${path}_quicklook.gif"
-        logMessage "Fichier quicklook copié : $quicklookpath"
-        quicklook=$((quicklook+1))
+    if [ "$path" != "" ]; then
+	    subpath=`echo ${path%$title}`
+	    quicklookpath="${path}_quicklook.gif"
 	    
-	    worldfilepath="${ARCHIVE_PATH}/${path}_quicklook.wld"
-        if [ -f "$worldfilepath" ]
-        then
-           cp "$worldfilepath" "$TARGET_PATH/${path}_quicklook.wld"
-           logMessage "Fichier worldfile copié : $worldfilepath"
-           worldfile=$((worldfile+1))
-		else
-			logMessage "Pas de fichier worldfile pour le produit $title"
-        fi
-    else
-         logMessage "Pas de fichier quicklook pour le produit $title"
+	    mkdir -p "$TARGET_PATH/${subpath}"
+	    curl -s -u $FTP_USER "${FTP_URL}/$quicklookpath" -o "$TARGET_PATH/${quicklookpath}"
+	    if [ "$?" = "0" ]; then
+	        displayMessage "Fichier quicklook copié : $quicklookpath"
+	        quicklook=$((quicklook+1))
+	        worldfilepath="${path}_quicklook.wld"
+	        curl -s -u $FTP_USER "${FTP_URL}/$worldfilepath" -o "$TARGET_PATH/${worldfilepath}"
+	        displayMessage "Fichier worldfile copié : $worldfilepath"
+	        worldfile=$((worldfile+1))
+	        if [ "$?" != "0" ]; then
+	            displayMessage "Pas de fichier worldfile pour le produit $title"
+	        fi
+	    else
+	         displayMessage "Pas de fichier quicklook pour le produit $title"
+	    fi
+	    
+	    totalProduct=$((totalProduct+1))
     fi
-    
-    totalProduct=$((totalProduct+1))
-    
 done <  "$PRG_DIR/products.txt"
 displayMessage "Nombre de produits en base : $totalProduct"
 displayMessage "Nombre de quicklook copiés : $quicklook"

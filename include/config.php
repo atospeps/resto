@@ -77,6 +77,12 @@ return array(
         'tokenDuration' => 3600,
         
         /*
+         * Authentication tokens validity duration (in seconds) for administration
+         * Default is 24 hours (i.e. 86400 seconds)
+         */
+        'tokenAdministrationDuration' => 86400,
+        
+        /*
          * JSON Web Token passphrase
          * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
          */

@@ -155,7 +155,7 @@ class RestoRoutePOST extends RestoRoute {
                 throw new Exception();
             }
             return array(
-                'token' => $this->context->createToken($this->user->profile['userid'], $this->user->profile)
+                'token' => $this->context->createToken($this->user->profile['userid'], $this->user->profile, $this->context->query['admin'])
             );
         } catch (Exception $ex) {
             RestoLogUtil::httpError(403);

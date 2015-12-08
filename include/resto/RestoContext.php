@@ -122,6 +122,11 @@ class RestoContext {
     private $tokenDuration = 3600;
     
     /*
+     * JSON Web Token duration for administration (in seconds)
+     */
+    private $tokenAdministrationDuration = 86400;
+    
+    /*
      * JSON Web Token accepted encryption algorithms
      */
     private $tokenEncryptions = array('HS256');
@@ -169,12 +174,18 @@ class RestoContext {
      * @param json $jsonData
      * @return string
      */
-    public function createToken($identifier, $jsonData) {
+    public function createToken($identifier, $jsonData, $administration = false) {
+        $expiration = time();
+        if($administration) {
+            $expiration +=  $this->tokenAdministrationDuration;
+        } else {
+            $expiration +=  $this->tokenDuration;
+        }
         return JWT::encode(array(
             'iss' => 'resto:server',
             'sub' => $identifier,
             'iat' => time(),
-            'exp' => time() + $this->tokenDuration,
+            'exp' => $expiration,
             'data' => $jsonData
         ), $this->passphrase);
     }
@@ -267,6 +278,13 @@ class RestoContext {
          */
         if (isset($config['general']['tokenDuration'])) {
             $this->tokenDuration = $config['general']['tokenDuration'];
+        }
+
+        /*
+         * JSON Web Token administration duration
+         */
+        if (isset($config['general']['tokenAdministrationDuration'])) {
+            $this->tokenAdministrationDuration = $config['general']['tokenAdministrationDuration'];
         }
         
         /*

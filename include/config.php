@@ -232,7 +232,7 @@ return array(
                'options' => array(
                    'allowed_execute_hosts' => array(
                         'localhost',
-                        '127.0.0.1'   
+                        '127.0.0.1'     
                     ),
                )
         ),

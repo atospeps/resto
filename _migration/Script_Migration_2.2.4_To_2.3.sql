@@ -38,10 +38,9 @@ CREATE TABLE usermanagement.alerts
   period integer,
   criterias text,
   CONSTRAINT alerts_pkey PRIMARY KEY (aid)
-)
+);
 
-ALTER TABLE usermanagement.alerts
-  OWNER TO postgres;
+ALTER TABLE usermanagement.alerts OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.alerts TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.alerts TO resto;
 

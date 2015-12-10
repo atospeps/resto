@@ -397,8 +397,6 @@ class Alerts extends RestoModule {
             // dispatched the alert    
             $arguments[] = 'startPublishedDate=' . date("Y-m-d\TH:i:s", strtotime($row["last_dispatch"]));
             // We add the arguments to the url
-            var_dump($url . '?' . join('&', $arguments));
-            exit();
              return $url . '?' . join('&', $arguments);
         } else {
             // If we want the products ingested into resto from the last alert dispatch we need 

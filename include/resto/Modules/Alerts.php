@@ -11,7 +11,7 @@
 *    |  GET     alerts                                                  |  List all subscriptions
 *    |  POST    alerts                                                  |  Create or edit a subscription
 *    |  POST    alerts/clear                                            |  Delete a subscription
-*    |  GET     alerts/execute                                          |  Delete a subscription
+*    |  GET     alerts/execute                                          |  Execute the subscriptions
 * 
 */
 
@@ -151,8 +151,8 @@ class Alerts extends RestoModule {
     private function createAlert($data) {
         try {
             $alerts = pg_query($this->dbh, 'INSERT INTO usermanagement.alerts (email, title, creation_time, expiration, last_dispatch, period, criterias)
-                    VALUES (\''. pg_escape_string($data['email']) . '\', \'' . pg_escape_string($data['title']) . '\', \'' . date("Y-m-d h:i:s", time()) . '\', \'' . 
-                    pg_escape_string($data['expiration']) . '\', \'' . date("Y-m-d h:i:s", time()) . '\', \'' . $data['period'] . '\', \'' . 
+                    VALUES (\''. pg_escape_string($data['email']) . '\', \'' . pg_escape_string($data['title']) . '\', \'' . date("Y-m-d H:i:s", time()) . '\', \'' . 
+                    pg_escape_string($data['expiration']) . '\', \'' . date("Y-m-d H:i:s", time()) . '\', \'' . $data['period'] . '\', \'' . 
                     json_encode($data['criterias']) . '\')');
             return array('status' => 'success', 'message' => 'success');
         } catch (Exception $e) {
@@ -170,9 +170,8 @@ class Alerts extends RestoModule {
         if (isset($data['aid'])) {
             try {
                 $alerts = pg_query($this->dbh, 'UPDATE usermanagement.alerts SET 
-                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . 
-                        '\', creation_time=\'' . date("Y-m-d h:i:s", time()) . '\', expiration=\'' . pg_escape_string($data['expiration']) . 
-                        '\', last_dispatch=\'' . date("Y-m-d h:i:s", time()) . '\', period=\'' . pg_escape_string($data['period']) .
+                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) 
+                        . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', period=\'' . pg_escape_string($data['period']) .
                         '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE aid=\'' . pg_escape_string($data['aid']) . '\'');
                 return array ('status' => 'success', 'message' => 'success');
             } catch (Exception $e) {
@@ -204,13 +203,12 @@ class Alerts extends RestoModule {
     
     /**
      * We execute the alerts.
-     * We send the maisl to the users
+     * We send the mails to the users
      */
     private function alertExecute() {
-        
         // We get the current date rounding the hours
         $date = date("Y-m-d H:00:00", time());
-        $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, criterias FROM usermanagement.alerts 
+        $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, last_dispatch, criterias FROM usermanagement.alerts 
                 WHERE expiration >= '" . $date . "' AND '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval");
         
         // We iterate over all the results.
@@ -232,7 +230,7 @@ class Alerts extends RestoModule {
                 $content = $this->alertsToMETA4($answer["features"], $row['email']);
                 if ($content !== FALSE) {
                     // We established all the parameters used on the mail
-                    $params['filename'] = 'file.meta4';
+                    $params['filename'] = date("Y-m-d H:i:s", time()) . '.meta4';
                     $params['to'] = $row['email'];
                     $params['message'] = $this->setMailMessage($row);
                     $params['senderName'] = $this->context->mail['senderName'];
@@ -243,7 +241,7 @@ class Alerts extends RestoModule {
                     // We send the mail
                     if($this->sendAttachedMeta4Mail($params)){
                         //After sending the mail we update the database with the new last_dispatch
-                        pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d H:i:s", time()) . "' WHERE aid=" . $row["aid"]);
+                        pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:i:s", time()) . "' WHERE aid=" . $row["aid"]);
                     }
                     
                 }
@@ -395,13 +393,17 @@ class Alerts extends RestoModule {
                 $arguments[] = $key . '=' . $value;
                 }
             }
-            if (!empty($arguments)) {
-                return $url . '?' . join('&', $arguments);
-            } else {
-                return $url;
-            }
+            // We always have to filter the ingestion date (published) with the las tile we 
+            // dispatched the alert    
+            $arguments[] = 'startPublishedDate=' . date("Y-m-d\TH:i:s", strtotime($row["last_dispatch"]));
+            // We add the arguments to the url
+            var_dump($url . '?' . join('&', $arguments));
+            exit();
+             return $url . '?' . join('&', $arguments);
         } else {
-            return 'http://localhost/resto/api/collections/search.json';
+            // If we want the products ingested into resto from the last alert dispatch we need 
+            // to filter the "published" column using last_dispatch 
+            return 'http://localhost/resto/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
         }
     }
     

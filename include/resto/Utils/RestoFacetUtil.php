@@ -37,7 +37,8 @@ class RestoFacetUtil {
             'platform',
             'instrument',
             'sensorMode',
-            'polarisation'
+            'polarisation',
+            'orbitDirection'
         ),
         array(
             'continent',

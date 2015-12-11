@@ -300,7 +300,7 @@ abstract class RestoModel {
                     'osKey' => 'box',
                     'operation' => 'intersects',
                     'title' => 'Defined by \'west, south, east, north\' coordinates of longitude, latitude, in decimal degrees (EPSG:4326)',
-                    'pattern' => '^[0-9\.\,]*$'
+                    'pattern' => '^[0-9\.\,\-]*$'
             ),
             'geo:name' => array (
                     'key' => 'geometry',

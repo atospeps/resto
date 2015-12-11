@@ -27,6 +27,9 @@ UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA:
 
 UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-2:", "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg", "resource" : "/hpss/peps/data/{:quicklook:}.zip", "resourceMimeType": "application/zip"}' WHERE collection='S2';
 
+UPDATE _s1.features SET processinglevel='LEVEL1' where (producttype='SLC' OR producttype='GRD') AND processinglevel='1';
+UPDATE _s1.features SET processinglevel='LEVEL2' where producttype='OCN';
+ 
 CREATE TABLE usermanagement.alerts
 (
   aid serial NOT NULL,

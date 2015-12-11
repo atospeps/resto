@@ -241,7 +241,7 @@ class Alerts extends RestoModule {
                     // We send the mail
                     if($this->sendAttachedMeta4Mail($params)){
                         //After sending the mail we update the database with the new last_dispatch
-                        pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:i:s", time()) . "' WHERE aid=" . $row["aid"]);
+                        pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:00:00", time()) . "' WHERE aid=" . $row["aid"]);
                     }
                     
                 }

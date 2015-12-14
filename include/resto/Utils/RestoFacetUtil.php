@@ -37,7 +37,9 @@ class RestoFacetUtil {
             'platform',
             'instrument',
             'sensorMode',
-            'polarisation',
+            'polarisation'
+        ),
+        array(
             'orbitDirection'
         ),
         array(

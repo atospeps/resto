@@ -66,6 +66,13 @@ class Alerts extends RestoModule {
     public function run($segments, $data = array()) {
 
         /*
+         * Only autenticated user.
+         */
+        if ($this->user->profile['userid'] == -1) {            
+            RestoLogUtil::httpError(401);
+        }
+        
+        /*
          * Only GET method and POST are accepted
          */
         if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
@@ -128,17 +135,23 @@ class Alerts extends RestoModule {
     private function processPOST($data) {
         /*
          * Get the operation to proceed
+         * HTTP/GET alert
          */
         if (!isset($this->segments[0]) && !isset($data['aid'])) {
             // If there is no identifier, an alert is created
             return $this->createAlert($data);
-        } else if (!isset($this->segments[0]) && isset($data['aid'])) {
+        }
+        // HTTP/GET alert?aid={aid}
+        else if (!isset($this->segments[0]) && isset($data['aid'])) {
             // If there is an aid, we are editing an  existing alert
             return $this->editAlert($data);
-        } else if ($this->segments[0] == 'clear') {
+        } 
+        // HTTP/GET alert/clear
+        else if ($this->segments[0] == 'clear') {
             // With the segment clear, we delete an alert
             return $this->deleteAlert($data);
-        } else {
+        }
+         else {
             RestoLogUtil::httpError(404);
         }
     }
@@ -149,12 +162,36 @@ class Alerts extends RestoModule {
      * @throws Exception
      */
     private function createAlert($data) {
+
         try {
-            $alerts = pg_query($this->dbh, 'INSERT INTO usermanagement.alerts (email, title, creation_time, expiration, last_dispatch, period, criterias)
-                    VALUES (\''. pg_escape_string($data['email']) . '\', \'' . pg_escape_string($data['title']) . '\', \'' . date("Y-m-d H:i:s", time()) . '\', \'' . 
-                    pg_escape_string($data['expiration']) . '\', \'' . date("Y-m-d H:i:s", time()) . '\', \'' . $data['period'] . '\', \'' . 
-                    json_encode($data['criterias']) . '\')');
-            return array('status' => 'success', 'message' => 'success');
+            /*
+             * Gets alert properties.
+             */
+            $now = date("Y-m-d H:i:s");
+            $title = isset($data['title']) ? '\'' . pg_escape_string($data['title']) . '\'' : 'NULL';
+            $expiration = isset($data['expiration']) ? '\'' . pg_escape_string($data['expiration']) . '\'' : 'NULL';
+            $period = (isset($data['period']) && is_numeric($data['period'])) ? '\'' . $data['period'] . '\'' : 'NULL';
+            $hasSubscribe = (isset($data['hasSubscribe']) && $data['hasSubscribe'] == true) ? '\'' . $data['hasSubscribe'] . '\'' : 'NULL';
+            
+            $values = array(
+                    '\'' . pg_escape_string($this->user->profile['email']) . '\'', 
+                    $title, 
+                    '\'' . $now . '\'', 
+                    $expiration, 
+                    '\'' . $now . '\'', 
+                    $period,
+                    '\'' . json_encode($data['criterias']) . '\'',
+                    $hasSubscribe
+                    );
+            /*
+             * Stores alert.
+             */
+            $query = 'INSERT INTO usermanagement.alerts (email, title, creation_time, expiration, last_dispatch, period, criterias, hasSubscribe)
+                    VALUES (' . join(',', $values) . ')';
+            
+            $alerts = pg_query($this->dbh, $query);
+            return RestoLogUtil::success('');
+            
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }

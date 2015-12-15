@@ -131,7 +131,7 @@ class Alerts extends RestoModule {
                 'items' => $result 
         ));
     }
-    
+
     /**
      * Process on HTTP method POST on /alerts and alerts/clear
      *
@@ -166,7 +166,7 @@ class Alerts extends RestoModule {
                     /*
                      * Edits alert
                      */
-                    return $this->editAlert($this->segments[1], $data);
+                    return $this->editAlert($this->segments[0], $data);
             }
         }
         /*
@@ -182,7 +182,7 @@ class Alerts extends RestoModule {
             RestoLogUtil::httpError(404);
         }
     }
-    
+
     /**
      * Store alert.
      *
@@ -234,21 +234,35 @@ class Alerts extends RestoModule {
         try {
 
             $identifier = $this->user->profile['email'];
+            $sqlUpdate = array();
             
-            
-            
-            $title = isset($data['title']) ? '\'' . pg_escape_string($data['title']) . '\'' : 'NULL';
-            $expiration = isset($data['expiration']) ? '\'' . pg_escape_string($data['expiration']) . '\'' : 'NULL';
-            $period = (isset($data['period']) && is_numeric($data['period'])) ? '\'' . $data['period'] . '\'' : 'NULL';
-            $hasSubscribe = (isset($data['hasSubscribe']) && $data['hasSubscribe'] == true) ? 1 : 0;
-            $criterias = '\'' . json_encode($data['criterias']) . '\'';
-            
-            
-            $query = 'UPDATE usermanagement.alerts '
-                    . 'title=\'' . pg_escape_string($data['title']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', period=\'' . pg_escape_string($data['period']) . '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' ' 
-                    . 'WHERE aid = \'' . pg_escape_string($alertid) . '\' AND email = \'' . pg_escape_string($identifier) . '\'';
-            $alerts = pg_query($this->dbh, $query);
+            /*
+             * Gets editable properties
+             */
+            if (isset($data['title'])){
+                $sqlUpdate[] = "title=\'" . pg_escape_string($data['title']) . '\'';
+            }
+            if (isset($data['expiration'])){
+                $sqlUpdate[] = "expiration=\'" . pg_escape_string($data['expiration']) . '\'';
+            }
 
+            if (isset($data['period']) && is_numeric($data['period'])) {
+                $sqlUpdate[] =  "period=\'" . $data['period'] . '\'';
+            }
+            if (isset($data['hasSubscribe'])) {
+                $sqlUpdate[] = "hassubscribe=" . (($data['hasSubscribe'] == true) ? 1 : 0);
+            }
+            if (isset($data['criterias'])){
+                $sqlUpdate[] = "criterias=\'" . json_encode($data['criterias']) . '\'';
+            }
+
+            if (count($sqlUpdate) > 0) {                
+                $query = 'UPDATE usermanagement.alerts'
+                . ' SET ' . implode(' AND ', $sqlUpdate)
+                . ' WHERE aid = \'' . pg_escape_string($alertid) . '\' AND email = \'' . pg_escape_string($identifier) . '\''; 
+
+                $alerts = pg_query($this->dbh, $query);
+            }
             return RestoLogUtil::success('Search context ' . $alertid . ' updated');
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
@@ -265,7 +279,6 @@ class Alerts extends RestoModule {
             $identifier = $this->user->profile['email'];
             $query = 'DELETE FROM usermanagement.alerts WHERE aid = \'' . pg_escape_string($alertid) . '\' AND email = \'' . pg_escape_string($identifier) . '\'';
             
-            print_r($query);
             $alerts = pg_query($this->dbh, $query);
             
             return RestoLogUtil::success('Search context ' . $alertid . ' deleted');
@@ -320,7 +333,7 @@ class Alerts extends RestoModule {
             }
         }
     }
-    
+
     /**
      * We pass the products returned in the opensearch and we convert them into
      * a meta4 links ready to be downloaded
@@ -358,7 +371,7 @@ class Alerts extends RestoModule {
         // We return the content of the meta4 attached file
         return $meta4->toString();
     }
-    
+
     /**
      *
      * @param string $action
@@ -377,7 +390,7 @@ class Alerts extends RestoModule {
         $rights = $rights->getRights($collectionName, $featureIdentifier);
         return $rights[$action];
     }
-    
+
     /**
      * Creates the download link with the validation token
      *
@@ -405,7 +418,7 @@ class Alerts extends RestoModule {
                 'token' => $token['0'] 
         );
     }
-    
+
     /**
      * Send mails with the meta4 attached document
      *
@@ -442,7 +455,7 @@ class Alerts extends RestoModule {
         }
         return false;
     }
-    
+
     /**
      * From the elements recuperd on the database we create the opensearch url
      *
@@ -474,7 +487,7 @@ class Alerts extends RestoModule {
             return 'http://localhost/resto/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
         }
     }
-    
+
     /**
      * Execute an openserach to the same resto
      *
@@ -491,7 +504,7 @@ class Alerts extends RestoModule {
         curl_close($curl);
         return $products;
     }
-    
+
     /**
      * Create the message body for the mail
      *

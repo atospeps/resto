@@ -35,6 +35,7 @@ CREATE TABLE usermanagement.alerts
   aid serial NOT NULL,
   email text,
   title text,
+  hasSubscribe boolean default false,
   creation_time timestamp without time zone,
   expiration timestamp without time zone,
   last_dispatch timestamp without time zone,

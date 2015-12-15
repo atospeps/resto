@@ -119,4 +119,4 @@ usermod -a -G peps apache
 chcon -v --type=httpd_sys_content_t $CONFDIR
 
 
-echo ' ==> Successfully installed resto to $TARGETDIR directory'
+echo " ==> Successfully installed resto to $TARGETDIR directory"

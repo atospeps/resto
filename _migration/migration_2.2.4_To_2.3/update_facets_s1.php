@@ -10,7 +10,6 @@ $resto_db = array(
 
 // Elements to validate
 $verify = array (
-        'collection',
         'productType',
         'processingLevel',
         'platform',

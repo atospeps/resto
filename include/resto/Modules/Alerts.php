@@ -240,25 +240,25 @@ class Alerts extends RestoModule {
              * Gets editable properties
              */
             if (isset($data['title'])){
-                $sqlUpdate[] = "title=\'" . pg_escape_string($data['title']) . '\'';
+                $sqlUpdate[] = "title='" . pg_escape_string($data['title']) . '\'';
             }
             if (isset($data['expiration'])){
-                $sqlUpdate[] = "expiration=\'" . pg_escape_string($data['expiration']) . '\'';
+                $sqlUpdate[] = "expiration='" . pg_escape_string($data['expiration']) . '\'';
             }
 
-            if (isset($data['period']) && is_numeric($data['period'])) {
-                $sqlUpdate[] =  "period=\'" . $data['period'] . '\'';
+            if (isset($data['period'])) {
+                $sqlUpdate[] =  "period='" . pg_escape_string($data['period']) . '\'';
             }
             if (isset($data['hasSubscribe'])) {
                 $sqlUpdate[] = "hassubscribe=" . (($data['hasSubscribe'] == true) ? 1 : 0);
             }
             if (isset($data['criterias'])){
-                $sqlUpdate[] = "criterias=\'" . json_encode($data['criterias']) . '\'';
+                $sqlUpdate[] = "criterias='" . json_encode($data['criterias']) . '\'';
             }
 
             if (count($sqlUpdate) > 0) {                
                 $query = 'UPDATE usermanagement.alerts'
-                . ' SET ' . implode(' AND ', $sqlUpdate)
+                . ' SET ' . implode(' , ', $sqlUpdate)
                 . ' WHERE aid = \'' . pg_escape_string($alertid) . '\' AND email = \'' . pg_escape_string($identifier) . '\''; 
 
                 $alerts = pg_query($this->dbh, $query);

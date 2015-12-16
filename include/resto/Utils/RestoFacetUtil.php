@@ -43,6 +43,12 @@ class RestoFacetUtil {
             'orbitDirection'
         ),
         array(
+            'swath'
+        ),
+        array(
+            'missionTakeId'
+        ),
+        array(
             'continent',
             'country',
             'region',
@@ -61,6 +67,9 @@ class RestoFacetUtil {
         ),
         array(
             'season'
+        ),
+        array(
+            's2TakeId'
         )
     );
     

@@ -289,7 +289,7 @@ class Alerts extends RestoModule {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
     }
-
+    
     /**
      * We execute the alerts.
      * We send the mails to the users
@@ -298,40 +298,54 @@ class Alerts extends RestoModule {
         try {
             // We get the current date rounding the hours
             $date = date("Y-m-d H:00:00", time());
-            $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, last_dispatch, criterias FROM usermanagement.alerts
-                WHERE expiration >= '" . $date . "' AND '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval");
+            $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, last_dispatch, expiration, criterias FROM usermanagement.alerts
+                WHERE '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval");
             
             // We iterate over all the results.
             // We will make the research and send the mail
-            while ($row = pg_fetch_assoc($alerts)) {
-                // crete the open search url from the data in the database
-                $url = $this->getUrl($row);
-                // we execute the open search
-                $products = $this->openSearchRequest($url);
-                // We decode the results
-                $answer = json_decode($products, true);
-                // If there's no result, we don't send any mail
-                if ($answer !== FALSE) {
-                    // we create the download links and the tokens on the database associated with the user
-                    foreach ($answer["features"] as $feature) {
-                        $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+            while ($row = pg_fetch_assoc($alerts)) { 
+                // We validate if the expiration is set. Then we compare with the current date
+                // If it's not the case we launch mails
+                if (!empty($row['expiration']) && !is_null($row['expiration'])) {
+                    if ($row['expiration'] > $date) {
+                        $execute = true;
+                    } else {
+                        $execute = false;
                     }
-                    // We create the content for a meta4 file from the products
-                    $content = $this->alertsToMETA4($answer["features"], $row['email']);
-                    if ($content !== FALSE) {
-                        // We established all the parameters used on the mail
-                        $params['filename'] = date("Y-m-d H:i:s", time()) . '.meta4';
-                        $params['to'] = $row['email'];
-                        $params['message'] = $this->setMailMessage($row);
-                        $params['senderName'] = $this->context->mail['senderName'];
-                        $params['senderEmail'] = $this->context->mail['senderEmail'];
-                        $params['subject'] = 'PEPS: Abonnement';
-                        $params['content'] = $content;
-            
-                        // We send the mail
-                        if ($this->sendAttachedMeta4Mail($params)) {
-                            // After sending the mail we update the database with the new last_dispatch
-                            pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:00:00", time()) . "' WHERE aid=" . $row["aid"]);
+                } else {
+                    $execute = true;
+                }
+                // If execution is ok, we can start the mail process
+                if ($execute === true) {
+                    // crete the open search url from the data in the database
+                    $url = $this->getUrl($row);
+                    // we execute the open search
+                    $products = $this->openSearchRequest($url);
+                    // We decode the results
+                    $answer = json_decode($products, true);
+                    // If there's no result, we don't send any mail
+                    if ($answer !== FALSE) {
+                        // we create the download links and the tokens on the database associated with the user
+                        foreach ($answer["features"] as $feature) {
+                            $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+                        }
+                        // We create the content for a meta4 file from the products
+                        $content = $this->alertsToMETA4($answer["features"], $row['email']);
+                        if ($content !== FALSE) {
+                            // We established all the parameters used on the mail
+                            $params['filename'] = date("Y-m-d H:i:s", time()) . '.meta4';
+                            $params['to'] = $row['email'];
+                            $params['message'] = $this->setMailMessage($row);
+                            $params['senderName'] = $this->context->mail['senderName'];
+                            $params['senderEmail'] = $this->context->mail['senderEmail'];
+                            $params['subject'] = 'PEPS: Abonnement';
+                            $params['content'] = $content;
+                            
+                            // We send the mail
+                            if ($this->sendAttachedMeta4Mail($params)) {
+                                // After sending the mail we update the database with the new last_dispatch
+                                pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:00:00", time()) . "' WHERE aid=" . $row["aid"]);
+                            }
                         }
                     }
                 }

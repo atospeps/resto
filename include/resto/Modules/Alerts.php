@@ -243,7 +243,11 @@ class Alerts extends RestoModule {
                 $sqlUpdate[] = "title='" . pg_escape_string($data['title']) . '\'';
             }
             if (isset($data['expiration'])){
-                $sqlUpdate[] = "expiration='" . pg_escape_string($data['expiration']) . '\'';
+                if($data['expiration'] == "") {
+                    $sqlUpdate[] = "expiration=NULL";
+                } else {
+                    $sqlUpdate[] = "expiration='" . pg_escape_string($data['expiration']) . '\'';
+                }
             }
 
             if (isset($data['period'])) {
@@ -260,7 +264,6 @@ class Alerts extends RestoModule {
                 $query = 'UPDATE usermanagement.alerts'
                 . ' SET ' . implode(' , ', $sqlUpdate)
                 . ' WHERE aid = \'' . pg_escape_string($alertid) . '\' AND email = \'' . pg_escape_string($identifier) . '\''; 
-
                 $alerts = pg_query($this->dbh, $query);
             }
             return RestoLogUtil::success('Search context ' . $alertid . ' updated');

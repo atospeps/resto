@@ -432,12 +432,6 @@ abstract class RestoModel {
                 'operation' => '=',
                 'options' => 'auto'
             ),
-            'eo:missionTakeId' => array (
-                'key' => 'missionTakeId',
-                'osKey' => 'missionTakeId',
-                'operation' => '=',
-                'options' => 'auto'
-            ),
             'eo:s2TakeId' => array (
                 'key' => 's2TakeId',
                 'osKey' => 's2TakeId',

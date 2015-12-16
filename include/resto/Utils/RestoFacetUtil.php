@@ -46,9 +46,6 @@ class RestoFacetUtil {
             'swath'
         ),
         array(
-            'missionTakeId'
-        ),
-        array(
             'continent',
             'country',
             'region',

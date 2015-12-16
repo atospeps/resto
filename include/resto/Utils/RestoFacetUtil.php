@@ -43,6 +43,9 @@ class RestoFacetUtil {
             'orbitDirection'
         ),
         array(
+            'swath'
+        ),
+        array(
             'continent',
             'country',
             'region',

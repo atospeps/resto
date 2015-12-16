@@ -426,6 +426,12 @@ abstract class RestoModel {
                 'operation' => '=',
                 'options' => 'auto'
             ),
+            'eo:swath' => array (
+                'key' => 'swath',
+                'osKey' => 'swath',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',
                     'osKey' => 'cloudCover',

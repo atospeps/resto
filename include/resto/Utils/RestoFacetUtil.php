@@ -64,9 +64,6 @@ class RestoFacetUtil {
         ),
         array(
             'season'
-        ),
-        array(
-            's2TakeId'
         )
     );
     

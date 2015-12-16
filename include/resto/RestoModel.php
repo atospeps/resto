@@ -432,12 +432,6 @@ abstract class RestoModel {
                 'operation' => '=',
                 'options' => 'auto'
             ),
-            'eo:s2TakeId' => array (
-                'key' => 's2TakeId',
-                'osKey' => 's2TakeId',
-                'operation' => '=',
-                'options' => 'auto'
-            ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',
                     'osKey' => 'cloudCover',

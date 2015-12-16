@@ -1,6 +1,8 @@
 <?php
 
-// Resto Parameters
+/*************************************************/
+/********* VARIABLES *****************************/
+// Data base Parameters
 $resto_db = array(
   'host'=>'localhost',
   'db'=>'resto',
@@ -16,17 +18,27 @@ $verify = array (
         'instrument',
         'sensorMode',
         'polarisation', 
-        'orbitDirection' 
+        'orbitDirection', 
+        'swath'
 );
+
+// Collection to update. 
+// Write it as it's stored on the facets table
+$collection_facets = 'S1';
+// Write it as it's stored in the database
+$collection_features = '_s1';
+
+/*************************************************/
+/*************************************************/
 
 // Array to store all the results
 $facets_status = array();
 // Get the database connection
 $db = verify_db($resto_db);
 // We get the current 
-$status = verify_facets($db, $verify);
+$status = verify_facets($db, $verify, $collection_features);
 // update values in databasel
-update_db($db, $status);
+update_db($db, $status, $collection_facets);
 
 echo '------- Update finsihed -------' . PHP_EOL;
 
@@ -34,26 +46,26 @@ echo '------- Update finsihed -------' . PHP_EOL;
 /*
  * Update values in database
  */
-function update_db($db, $status) {
+function update_db($db, $status, $collection) {
     // An update has been done
     $updated = FALSE;
     // We get the types
     foreach ($status as $type => $values) {
         // We get all the possible names for a type currently stored in the database
-        $distincts = getDistinct($db, $type);
+        $distincts = getDistinct($db, $type, $collection);
         // For each type we get the different names and their counts
         foreach ($values as $name => $attributes) {
             // We verify if the facet exists in the table
-            $exists = pg_query($db, "SELECT counter FROM resto.facets WHERE value='" . $name . "' AND type='" . $type . "' AND collection='S1'");
+            $exists = pg_query($db, "SELECT counter FROM resto.facets WHERE value='" . $name . "' AND type='" . $type . "' AND collection='" . $collection . "'");
             // There is no row, so we insert it
             if (pg_num_rows($exists) === 0) {
                 // If parent hash is set we have to insert it
                 if (isset($attributes["parentHash"])) {
                     $insert = pg_query($db, "INSERT INTO resto.facets (uid,value,type,pid,collection,counter)
-                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "','" . $attributes["parentHash"] . "', 'S1', '" . $attributes["count"] . "')");
+                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "','" . $attributes["parentHash"] . "', '" . $collection . "', '" . $attributes["count"] . "')");
                 }else{
                     $insert = pg_query($db, "INSERT INTO resto.facets (uid,value,type,collection,counter)
-                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "', 'S1', '" . $attributes["count"] . "')");
+                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "', '" . $collection . "', '" . $attributes["count"] . "')");
                 }
                 if ($insert !== FALSE) {
                     echo '==> New facet inserted' . PHP_EOL;
@@ -62,14 +74,12 @@ function update_db($db, $status) {
             } else {
                 // As we use the name, we delete it from the array
                 unset($distincts[$name]);
-                $result = pg_query($db, "SELECT counter FROM resto.facets WHERE value='" . $name . "' AND type='" . $type . "' AND collection='S1'");
+                $result = pg_query($db, "SELECT counter FROM resto.facets WHERE value='" . $name . "' AND type='" . $type . "' AND collection='" . $collection . "'");
                 $json = pg_fetch_assoc($result);
-                $result_update = pg_query($db, "UPDATE resto.facets SET counter=" . $attributes["count"] . " WHERE value='" . $name . "' AND type='" . $type . "' AND collection='S1'");
+                $result_update = pg_query($db, "UPDATE resto.facets SET counter=" . $attributes["count"] . " WHERE value='" . $name . "' AND type='" . $type . "' AND collection='" . $collection . "'");
                 if ($json["counter"] != $attributes["count"] && $result_update !== FALSE) {
                     echo '-> Type: ' . $type . ' - Name: ' . $name . PHP_EOL;
                     echo "Old value: " . $json["counter"] . " - New value: " . $attributes["count"] . PHP_EOL;
-                } elseif ($result_update !== FALSE) {
-                    // If an update has been done
                     $updated = TRUE;
                 }
             }
@@ -81,7 +91,7 @@ function update_db($db, $status) {
             date_default_timezone_set('Europe/Paris');
             fwrite($delete_file,'-- ' . date('Y-m-d H:i:s') .  PHP_EOL);
             foreach ($distincts as $distinct) {
-                fwrite($delete_file, "DELETE FROM resto.facets WHERE value='" . $distinct . "' AND type='" . $type . "' AND collection='S1';" . PHP_EOL);
+                fwrite($delete_file, "DELETE FROM resto.facets WHERE value='" . $distinct . "' AND type='" . $type . "' AND collection='" . $collection . "';" . PHP_EOL);
                 echo 'Facet ' . $type . '-' . $distinct . ' can be removed' . PHP_EOL;
             }
             fclose($delete_file);
@@ -96,9 +106,9 @@ function update_db($db, $status) {
 /*
  * We iterate over all the products and store the current keyword status in an array
  */
-function verify_facets($db, $verify) {
+function verify_facets($db, $verify, $collection) {
     // Get total of products
-    $total_products = get_total_products($db); 
+    $total_products = get_total_products($db, $collection); 
     // Just in case the are no results
     if ($total_products === 0) {
         echo 'ERROR: there are no producs in RESTo' . PHP_EOL;
@@ -112,7 +122,7 @@ function verify_facets($db, $verify) {
     // Array to store all the results
     $facet_status = array();
     do{
-        $keywords = get_keywords(pg_query($db, "SELECT keywords FROM _s1.features ORDER BY identifier LIMIT " . $limit . " OFFSET " . $offset));
+        $keywords = get_keywords(pg_query($db, "SELECT keywords FROM " . $collection . ".features ORDER BY identifier LIMIT " . $limit . " OFFSET " . $offset));
         $status = analyse_keywords($keywords, $verify, $facet_status);
         $offset = $offset + $limit;
         $facet_status = $status;
@@ -170,8 +180,8 @@ function get_keywords($query){
 /*
  * A count for total products
  */
-function get_total_products($db){
-    $result = pg_query($db, "SELECT count(*) FROM _s1.features");
+function get_total_products($db, $collection){
+    $result = pg_query($db, "SELECT count(*) FROM " . $collection . ".features");
     $json = pg_fetch_assoc($result);
     echo "- Total products in RESTo: " . $json["count"] . PHP_EOL;
     return intval($json["count"]);
@@ -180,8 +190,8 @@ function get_total_products($db){
 /*
  * Get all possible values for a type on the current database 
  */
-function getDistinct($db, $type){
-    $results = pg_query($db, "SELECT DISTINCT value FROM resto.facets WHERE type='" . $type . "' AND collection='S1'");
+function getDistinct($db, $type, $collection){
+    $results = pg_query($db, "SELECT DISTINCT value FROM resto.facets WHERE type='" . $type . "' AND collection='" . $collection . "'");
     $differents = pg_fetch_all($results);
     $result = array();
     // We put all distincts values in array

@@ -12,11 +12,8 @@ $resto_db = array(
 
 // Elements to validate
 $verify = array (
-        'productType',
         'processingLevel',
-        'platform',
         'instrument',
-        'sensorMode',
         'polarisation', 
         'orbitDirection', 
         'swath'
@@ -60,9 +57,9 @@ function update_db($db, $status, $collection) {
             // There is no row, so we insert it
             if (pg_num_rows($exists) === 0) {
                 // If parent hash is set we have to insert it
-                if (isset($attributes["parentHash"])) {
+                if (isset($attributes["pid"])) {
                     $insert = pg_query($db, "INSERT INTO resto.facets (uid,value,type,pid,collection,counter)
-                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "','" . $attributes["parentHash"] . "', '" . $collection . "', '" . $attributes["count"] . "')");
+                             VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "','" . $attributes["pid"] . "', '" . $collection . "', '" . $attributes["count"] . "')");
                 }else{
                     $insert = pg_query($db, "INSERT INTO resto.facets (uid,value,type,collection,counter)
                              VALUES ('" . $attributes["uid"] . "','" . $name . "','" . $type . "', '" . $collection . "', '" . $attributes["count"] . "')");

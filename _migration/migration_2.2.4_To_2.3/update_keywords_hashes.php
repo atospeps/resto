@@ -27,6 +27,9 @@ $verify = array(
         'orbitDirection' => array(
             'parent'=>false,
         ),
+        'instrument' => array(
+            'parent'=>'platform',
+        ),
         'polarisation' => array(
             'parent'=>'sensorMode',
         ),
@@ -113,7 +116,7 @@ function array_update($products, $columns){
                 }
             }
         }                
-    //We insert the keywords in the product     
+    //We insert the keywords in the product    
     $products[$product_key]["keywords"] = json_encode($keywords);
     }
   return $products;

@@ -484,12 +484,14 @@ class Alerts extends RestoModule {
      * @param array $row Element returned from the database
      */
     private function getUrl($row) {
+        // We get the host for the opensearch url
+        $host =  filter_input(INPUT_SERVER, 'SERVER_NAME', FILTER_SANITIZE_STRING);
         // We get the criterias to add them at the end of the url
         if (isset($row['criterias'])) {
             // We decode the criterias
             $criterias = json_decode($row['criterias']);
             // We add the collection to the url
-            $url = 'http://localhost/resto/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
+            $url = 'http://' . $host . '/resto/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
             // We set the arguments
             $arguments = array ();
             foreach ($criterias as $key => $value) {
@@ -506,7 +508,7 @@ class Alerts extends RestoModule {
         } else {
             // If we want the products ingested into resto from the last alert dispatch we need
             // to filter the "published" column using last_dispatch
-            return 'http://localhost/resto/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
+            return 'http://' . $host . '/resto/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
         }
     }
 

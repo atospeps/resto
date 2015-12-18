@@ -297,6 +297,28 @@ class Functions_users {
         return false;
     }
     
+    /**
+     * Return the volume that a user has downloaded the last 7 days.
+     * 
+     * @param string $identifier
+     * @return integer $totalsize
+     */
+    public function getUserLastWeekDownloadedVolume($identifier) {
+        if(!isset($identifier)) {
+            RestoLogUtil::httpError(404);
+        }
+
+        $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
+        $totalsize = 0;
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
+        $query .= ' AND userid=\'' . pg_escape_string($identifier) . '\' AND querytime>\'' . $timestamp . '\'';
+        $results = pg_fetch_assoc($this->dbDriver->query($query));
+        if($results) {
+            $totalsize = $results['sum'];
+        }
+        return $totalsize;
+    }
+    
     public function checkPassword($identifier, $password) {
         if(!isset($identifier) || !isset($password)) {
             RestoLogUtil::httpError(404);

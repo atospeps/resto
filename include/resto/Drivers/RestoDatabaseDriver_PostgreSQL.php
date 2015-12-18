@@ -179,6 +179,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::GROUP_DESCRIPTIONS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->getGroup($params['id']);
+                
+            /*
+             * Get user downloaded volume the last 7 days 
+             */
+            case parent::USER_DOWNLOADED_VOLUME:
+                $usersFunctions = new Functions_users($this);
+                return $usersFunctions->getUserLastWeekDownloadedVolume($params['identifier']);
             
             default:
                 return null;

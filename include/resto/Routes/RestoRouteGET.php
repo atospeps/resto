@@ -52,6 +52,7 @@ class RestoRouteGET extends RestoRoute {
      *    
      *    users                                             |  List all users
      *    users/{userid}                                    |  Show {userid} information
+     *    users/{userid}/downloadinfo                       |  Show {userid} download informations
      *    users/{userid}/cart                               |  Show {userid} cart
      *    users/{userid}/orders                             |  Show orders for {userid}
      *    users/{userid}/orders/{orderid}                   |  Show {orderid} order for {userid}
@@ -590,6 +591,13 @@ class RestoRouteGET extends RestoRoute {
             return $this->GET_userOrders($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
         
+        /*
+         * users/{userid}/downloadinfo
+         */
+        if ($segments[2] === 'downloadinfo') {
+            return $this->GET_userDownloadInfo($segments[1]);
+        }
+        
         return RestoLogUtil::httpError(404);
     }
 
@@ -679,6 +687,23 @@ class RestoRouteGET extends RestoRoute {
                 'orders' => $user->getOrders()
             ));
         }
+    }
+
+    /**
+     * Process HTTP GET request on user download info
+     *
+     * @param string $emailOrId
+     * @throws Exception
+     */
+    private function GET_userDownloadInfo($emailOrId) {
+        /*
+         * Infos can only be seen by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+        $result = array("weekDownloadedVolume" => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_VOLUME, array('identifier' => $this->user->profile['userid'])));
+        
+        return $result;
     }
     
     /**

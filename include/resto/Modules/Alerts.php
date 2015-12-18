@@ -489,7 +489,7 @@ class Alerts extends RestoModule {
             // We decode the criterias
             $criterias = json_decode($row['criterias']);
             // We add the collection to the url
-            $url = 'http://localhost/resto/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
+            $url = $this->context->baseUrl . '/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
             // We set the arguments
             $arguments = array ();
             foreach ($criterias as $key => $value) {
@@ -506,7 +506,7 @@ class Alerts extends RestoModule {
         } else {
             // If we want the products ingested into resto from the last alert dispatch we need
             // to filter the "published" column using last_dispatch
-            return 'http://localhost/resto/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
+            return $this->context->baseUrl . '/api/collections/search.json?startPublishedDate=' . $row["last_dispatch"];
         }
     }
 

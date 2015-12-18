@@ -50,6 +50,10 @@ class RestoModel_sentinel2 extends RestoModel {
         's2TakeId' => array(
             'name' => 's2takeid',
             'type' => 'TEXT'
+        ),
+        'orbitDirection' => array(
+            'name' => 'orbitDirection',
+            'type' => 'TEXT'
         )
     );
     

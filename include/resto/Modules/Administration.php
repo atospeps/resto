@@ -389,6 +389,8 @@ class Administration extends RestoModule {
             $this->min = 0;
             $this->number = 50;
             $this->keyword = null;
+            $this->orderBy = null;
+            $this->ascordesc = null;
             if (filter_input(INPUT_GET, 'min')) {
                 $this->min = htmlspecialchars(filter_input(INPUT_GET, 'min'), ENT_QUOTES);
             }
@@ -402,7 +404,13 @@ class Administration extends RestoModule {
                 $this->keyword = null;
                 $this->global_search_val = $this->context->dictionary->translate('_menu_globalsearch');
             }
-            $this->usersProfiles = $this->getUsersProfiles($this->keyword, $this->min, $this->number);
+            if (filter_input(INPUT_GET, 'orderBy')) {
+                $this->orderBy = htmlspecialchars(filter_input(INPUT_GET, 'orderBy'), ENT_QUOTES);
+            }
+            if (filter_input(INPUT_GET, 'ascordesc')) {
+                $this->ascordesc = htmlspecialchars(filter_input(INPUT_GET, 'ascordesc'), ENT_QUOTES);
+            }
+            $this->usersProfiles = $this->getUsersProfiles($this->keyword, $this->min, $this->number, $this->orderBy, $this->ascordesc);
 
             return $this->to($this->usersProfiles);
         }
@@ -932,10 +940,13 @@ class Administration extends RestoModule {
      * @return array
      * @throws Exception
      */
-    public function getUsersProfiles($keyword = null, $min = 0, $number = 50) {
+    public function getUsersProfiles($keyword = null, $min = 0, $number = 50, $orderBy, $ascOrDesc) {
 
         try {
-            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' LIMIT ' . $number . ' OFFSET ' . $min);
+            $orderBy = isset($orderBy) ? $orderBy : 'userid';
+            $ascOrDesc = isset($ascOrDesc) ? $ascOrDesc : 'DESC';
+            echo 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min;
+            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
             if (!$results) {
                 throw new Exception();
             }

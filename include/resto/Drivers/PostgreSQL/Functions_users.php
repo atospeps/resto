@@ -313,7 +313,7 @@ class Functions_users {
         $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
         $query .= ' AND userid=\'' . pg_escape_string($identifier) . '\' AND querytime>\'' . $timestamp . '\'';
         $results = pg_fetch_assoc($this->dbDriver->query($query));
-        if($results) {
+        if($results['sum']) {
             $totalsize = $results['sum'];
         }
         return $totalsize;

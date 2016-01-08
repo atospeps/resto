@@ -340,6 +340,7 @@ class Administration extends RestoModule {
                 $this->numberOfResults = 12;
                 $this->keyword = null;
                 $this->collectionFilter = null;
+                $this->email = null;
                 $this->service = null;
                 $this->orderBy = null;
                 $this->ascordesc = null;
@@ -349,6 +350,9 @@ class Administration extends RestoModule {
                 }
                 if (filter_input(INPUT_GET, 'numberOfResults')) {
                     $this->numberOfResults = htmlspecialchars(filter_input(INPUT_GET, 'numberOfResults'), ENT_QUOTES);
+                }
+                if (filter_input(INPUT_GET, 'email')) {
+                    $this->email = htmlspecialchars(filter_input(INPUT_GET, 'email'), ENT_QUOTES);
                 }
                 if (filter_input(INPUT_GET, 'collection')) {
                     $this->collectionFilter = htmlspecialchars(filter_input(INPUT_GET, 'collection'), ENT_QUOTES);
@@ -369,6 +373,7 @@ class Administration extends RestoModule {
                 $options = array(
                     'orderBy' => $this->orderBy,
                     'ascOrDesc' => $this->ascordesc,
+                    'email' => $this->email,
                     'collection' => $this->collectionFilter,
                     'service' => $this->service,
                     'method' => $this->method,
@@ -1036,7 +1041,7 @@ class Administration extends RestoModule {
 
         $where = array();
         if (isset($userid)) {
-            $where[] = 'userid=' . pg_escape_string($userid);
+            $where[] = 'history.userid=' . pg_escape_string($userid);
         }
         if (isset($options['service'])) {
             $where[] = 'service=\'' . pg_escape_string($options['service']) . '\'';
@@ -1047,14 +1052,16 @@ class Administration extends RestoModule {
         if (isset($options['collection'])) {
             $where[] = 'collection=\'' . pg_escape_string($options['collection']) . '\'';
         }
+        if (isset($options['email'])) {
+            $where[] = 'users.email LIKE \'%' . pg_escape_string($options['email']) . '%\'';
+        }
         if (isset($options['maxDate'])) {
             $where[] = 'querytime <=\'' . pg_escape_string($options['maxDate']) . '\'';
         }
         if (isset($options['minDate'])) {
             $where[] = 'querytime >=\'' . pg_escape_string($options['minDate']) . '\'';
         }
-
-        $results = pg_query($this->context->dbDriver->dbh, 'SELECT gid, userid, method, service, collection, resourceid, query, querytime, url, ip FROM usermanagement.history' . (count($where) > 0 ? ' WHERE ' . join(' AND ', $where) : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex);
+        $results = pg_query($this->context->dbDriver->dbh, 'SELECT gid, history.userid, users.email, method, service, collection, resourceid, query, querytime, url, ip FROM usermanagement.history as history, usermanagement.users as users  WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex);
         while ($row = pg_fetch_assoc($results)) {
             $result[] = $row;
         }

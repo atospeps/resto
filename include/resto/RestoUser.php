@@ -313,8 +313,10 @@ class RestoUser{
             'REMOTE_ADDR',
             'HTTP_FORWARDED',
             'HTTP_CLIENT_IP',
-            'HTTP_X_FORWARDED' 
+            'HTTP_X_FORWARDED', 
+            'HTTP_X_FORWARDED_FOR'
         );
+
         // If the value is set, we store it
         $ipaddress = '';
         foreach ($variables as $key => $variable) {

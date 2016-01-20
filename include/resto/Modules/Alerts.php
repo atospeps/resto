@@ -301,7 +301,7 @@ class Alerts extends RestoModule {
             
             $query = "SELECT aid, title, creation_time, email, last_dispatch, expiration, criterias" 
                     . " FROM usermanagement.alerts"
-                    . " WHERE '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval";
+                    . " WHERE '" . $date . "'  >= date_trunc('hour', last_dispatch)::timestamp + ( period || ' hour')::interval AND hasSubscribe=1";
             $alerts = pg_query($this->dbh, $query);
             if (!$alerts){
                 throw new Exception("Alerts module - An unexpected error has occurred. $query", 500);

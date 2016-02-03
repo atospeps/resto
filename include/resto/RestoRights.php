@@ -52,7 +52,7 @@ class RestoRights{
             'post' => 1,
             'put' => 0,
             'delete' => 0,
-            'wps' => 0
+            'wps' => 1
         ),
         'admin' => array(
             'search' => 1,

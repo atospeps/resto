@@ -8,7 +8,6 @@
  *    | Resource                                                        | Description
  *    |_________________________________________________________________|______________________________________
  *    | HTTP/GET        wps/jobs                                        | List of all user's jobs
- *    | HTTP/GET        wps/jobs/{jobid}                                | Returns job
  *    | HTTP/DELETE     wps/jobs/{jobid}                                | Delete job
  *    |
  *    | HTTP/GET        wps?                                            | HTTP/GET wps services (OGC)
@@ -116,7 +115,9 @@ class WPS extends RestoModule {
 
             switch ($this->segments[0]) {
                 case 'jobs' :
-                    return $this->getUserJobs();
+                    return RestoLogUtil::success(
+                        "WPS jobs instance for user {$this->user->profile['userid']}",
+                        array(data => $this->getUserJobs()) );
                     break;
                 default :
                     RestoLogUtil::httpError(404);

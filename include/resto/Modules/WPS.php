@@ -1,28 +1,27 @@
 <?php
 
 /**
+ * @author Atos
+ * RESTo WPS proxy module.
  *
-* WPS module
-*
-* Gerer les jobs
-* 
-* 
-* 
-*    |          Resource                                                |     Description
-*    |__________________________________________________________________|______________________________________
-*    |  GET     wps                                                     |  List of all user's jobs
-*    |  POST    wps/execute                                             |  Create a job
-*    |  POST    wps                                                     |  Edit a job
-*    |  POST    wps/clear                                               |  Delete a job
-*/
-
+ *    | 
+ *    | Resource                                                        | Description
+ *    |_________________________________________________________________|______________________________________
+ *    | HTTP/GET        wps/jobs                                        | List of all user's jobs
+ *    | HTTP/GET        wps/jobs/{jobid}                                | Returns job
+ *    | HTTP/DELETE     wps/jobs/{jobid}                                | Delete job
+ *    |
+ *    | HTTP/GET        wps?                                            | HTTP/GET wps services (OGC)
+ *    | HTTP/POST       wps                                             | HTTP/POST wps services (OGC)    
+ *    
+ */
 class WPS extends RestoModule {
     
     /*
      * Resto context
      */
     public $context;
-
+    
     /*
      * Current user (only set for administration on a single user)
      */
@@ -32,12 +31,12 @@ class WPS extends RestoModule {
      * segments
      */
     public $segments;
-
+    
     /*
      * Database handler
      */
     private $dbh;
-
+    
     /**
      * Constructor
      *
@@ -55,70 +54,85 @@ class WPS extends RestoModule {
         // Database handler
         $this->dbh = $this->getDatabaseHandler();
     }
-
+    
     /**
      * Run module - this function should be called by Resto.php
      *
      * @param array $elements : route elements
      * @param array $data : POST or PUT parameters
-     *
+     *       
      * @return string : result from run process in the $context->outputFormat
      */
     public function run($segments, $data = array()) {
-        
+
         /*
          * Only GET method on 'search' route with json outputformat is accepted
          */
         if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
             RestoLogUtil::httpError(404);
         }
-        
-        // We have permission to make the process
-        if($this->canWPS() === '1'){
+
+        /*
+         * Only autenticated user.
+         */
+        if ($this->user->profile['userid'] == -1) {
+            RestoLogUtil::httpError(401);
+        }
+
+        // Checks if user can execute WPS services
+        if ($this->user->canExecuteWPS() === 1) {
+
             // We get URL segments and the http method
             $this->segments = $segments;
             $method = $this->context->method;
-            
+
             /*
              * Switch on HTTP methods
              */
             switch ($method) {
-                case 'GET':
+                case 'GET' :
                     return $this->processGET();
-                case 'POST':
+                case 'POST' :
                     return $this->processPOST($data);
-                default:
+                default :
                     RestoLogUtil::httpError(404);
             }
-            
-        }else{
+        } else {
             // Right denied
             RestoLogUtil::httpError(403);
         }
     }
-    
+
     /**
      * Process on HTTP method GET on /jobs
-     * 
      */
     private function processGET() {
-        // Verify user is set
-        if (isset($this->user->profile['email'])) {
-            $jobs = pg_query($this->dbh, 'SELECT * from usermanagement.jobs WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
-            $result = array ();
-            while ($row = pg_fetch_assoc($jobs)) {
-                $result[] = $row;
+        /*
+         * HTTP/GET WPS 1.0 OGC services
+         */
+        if (!isset($this->segments[0])) {
+            $this->callWPSServer();
+        } else if (isset($this->segments[0]) && !isset($this->segments[1])) {
+
+            switch ($this->segments[0]) {
+                case 'jobs' :
+                    return $this->getUserJobs();
+                    break;
+                default :
+                    RestoLogUtil::httpError(404);
+                    break;
             }
-            return $result;
-        } else {
-            RestoLogUtil::httpError(403);
         }
-        
+        /*
+         * Unknown route
+         */
+        else {
+            RestoLogUtil::httpError(404);
+        }
     }
     
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
-     *
      */
     private function processPOST($data) {
         /*
@@ -128,7 +142,7 @@ class WPS extends RestoModule {
             // If there is no identifier, an job is created
             return $this->createJob($data);
         } else if (!isset($this->segments[0]) && isset($data['jid'])) {
-            // If there is an jid, we are editing an  existing job
+            // If there is an jid, we are editing an existing job
             return $this->editJob($data);
         } else if ($this->segments[0] == 'clear') {
             // With the segment clear, we delete an job
@@ -136,6 +150,24 @@ class WPS extends RestoModule {
         } else {
             RestoLogUtil::httpError(404);
         }
+    }
+    
+    /**
+     *
+     * @return multitype:multitype:
+     */
+    private function getUserJobs() {
+        $identifier = $this->user->profile['email'];
+        $escaped_identifier = pg_escape_string($identifier);
+    
+        $query = "SELECT * from usermanagement.jobs WHERE email='{$escaped_identifier}'";
+        $jobs = pg_query($this->dbh, $query);
+    
+        $results = array ();
+        while ($row = pg_fetch_assoc($jobs)) {
+            $results[] = $row;
+        }
+        return $results;
     }
     
     /**
@@ -151,20 +183,23 @@ class WPS extends RestoModule {
             $status = $this->callWPSServer($url);
             // If there was any problem with the WPS server
             if ($status === FALSE) {
-                
-            }else{
+            } else {
                 try {
                     $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET
-                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) .
-                            '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) .
-                            '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
-                    return array ('status' => 'success', 'message' => 'success');
+                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
+                    return array (
+                            'status' => 'success',
+                            'message' => 'success' 
+                    );
                 } catch (Exception $e) {
                     RestoLogUtil::httpError($e->getCode(), $e->getMessage());
                 }
-            } 
+            }
             
-            return array('status' => 'success', 'message' => 'success');
+            return array (
+                    'status' => 'success',
+                    'message' => 'success' 
+            );
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
@@ -180,10 +215,11 @@ class WPS extends RestoModule {
         if (isset($data['jid'])) {
             try {
                 $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET 
-                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . 
-                        '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . 
-                        '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
-                return array ('status' => 'success', 'message' => 'success');
+                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
+                return array (
+                        'status' => 'success',
+                        'message' => 'success' 
+                );
             } catch (Exception $e) {
                 RestoLogUtil::httpError($e->getCode(), $e->getMessage());
             }
@@ -202,7 +238,10 @@ class WPS extends RestoModule {
         if (isset($data['jid'])) {
             try {
                 $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE jid = \'' . pg_escape_string($data['jid']) . '\'');
-                return array ('status' => 'success', 'message' => 'success');
+                return array (
+                        'status' => 'success',
+                        'message' => 'success' 
+                );
             } catch (Exception $e) {
                 RestoLogUtil::httpError($e->getCode(), $e->getMessage());
             }
@@ -212,32 +251,11 @@ class WPS extends RestoModule {
     }
     
     /**
-     * Process on HTTP method GET on /wps
-     *
-     * @throws Exception
-     */
-    private function canWPS() {
-        // Verify user is set
-        if (isset($this->user->profile['email'])) {
-            $result = pg_query($this->dbh, 'SELECT wps from usermanagement.rights WHERE emailorgroup = \'' . pg_escape_string($this->user->profile['email']) . '\'');
-            // Return the result
-            if (pg_fetch_result($result, 1, 'wps') === '1') {
-                return pg_fetch_result($result, 1, 'wps'); 
-            }else{
-                // If no right is found
-                RestoLogUtil::httpError(403);
-            }
-        }
-    
-    }
-
-    /**
-     * We call the WPS server  
-     *
+     * We call the WPS server
      */
     private function callWPSServer($url) {
         // Call the WPS Server
-        $ch = curl_init();
+        /*$ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_FAILONERROR, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
@@ -252,15 +270,14 @@ class WPS extends RestoModule {
             // We erase the tags which causes problems
             $tmp1 = str_replace("wps:", "", $retValue);
             $tmp2 = str_replace("ows:", "", $tmp1);
-        
+            
             // Transform to aray
             $xml = new SimpleXMLElement($tmp2);
             // Get the statusLocation
             return (string) $xml['statusLocation'];
-
-        }else{
+        } else {
             return FALSE;
-        }
-    }    
-    
+        }*/
+        return RestoLogUtil::success('call WPS server');
+    }
 }

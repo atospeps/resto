@@ -232,7 +232,9 @@ return array(
         'WPS' => array(
                 'activate' => true,
                 'route' => 'wps',
-                'options' => array()
+                'options' => array(
+                        'wpsServerUrl' => 'http://localhost:4444/cgi-bin/pywps.cgi?'
+                )
         ),
             
     	/*

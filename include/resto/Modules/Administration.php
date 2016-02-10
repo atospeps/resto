@@ -340,6 +340,7 @@ class Administration extends RestoModule {
                 $this->numberOfResults = 12;
                 $this->keyword = null;
                 $this->collectionFilter = null;
+                $this->email = null;
                 $this->service = null;
                 $this->orderBy = null;
                 $this->ascordesc = null;
@@ -349,6 +350,9 @@ class Administration extends RestoModule {
                 }
                 if (filter_input(INPUT_GET, 'numberOfResults')) {
                     $this->numberOfResults = htmlspecialchars(filter_input(INPUT_GET, 'numberOfResults'), ENT_QUOTES);
+                }
+                if (filter_input(INPUT_GET, 'email')) {
+                    $this->email = htmlspecialchars(filter_input(INPUT_GET, 'email'), ENT_QUOTES);
                 }
                 if (filter_input(INPUT_GET, 'collection')) {
                     $this->collectionFilter = htmlspecialchars(filter_input(INPUT_GET, 'collection'), ENT_QUOTES);
@@ -369,6 +373,7 @@ class Administration extends RestoModule {
                 $options = array(
                     'orderBy' => $this->orderBy,
                     'ascOrDesc' => $this->ascordesc,
+                    'email' => $this->email,
                     'collection' => $this->collectionFilter,
                     'service' => $this->service,
                     'method' => $this->method,
@@ -389,6 +394,8 @@ class Administration extends RestoModule {
             $this->min = 0;
             $this->number = 50;
             $this->keyword = null;
+            $this->orderBy = null;
+            $this->ascordesc = null;
             if (filter_input(INPUT_GET, 'min')) {
                 $this->min = htmlspecialchars(filter_input(INPUT_GET, 'min'), ENT_QUOTES);
             }
@@ -402,7 +409,13 @@ class Administration extends RestoModule {
                 $this->keyword = null;
                 $this->global_search_val = $this->context->dictionary->translate('_menu_globalsearch');
             }
-            $this->usersProfiles = $this->getUsersProfiles($this->keyword, $this->min, $this->number);
+            if (filter_input(INPUT_GET, 'orderBy')) {
+                $this->orderBy = htmlspecialchars(filter_input(INPUT_GET, 'orderBy'), ENT_QUOTES);
+            }
+            if (filter_input(INPUT_GET, 'ascordesc')) {
+                $this->ascordesc = htmlspecialchars(filter_input(INPUT_GET, 'ascordesc'), ENT_QUOTES);
+            }
+            $this->usersProfiles = $this->getUsersProfiles($this->keyword, $this->min, $this->number, $this->orderBy, $this->ascordesc);
 
             return $this->to($this->usersProfiles);
         }
@@ -643,7 +656,6 @@ class Administration extends RestoModule {
             $postedData['canpost'] = htmlspecialchars(filter_input(INPUT_POST, 'canpost'), ENT_QUOTES);
             $postedData['candelete'] = htmlspecialchars(filter_input(INPUT_POST, 'candelete'), ENT_QUOTES);
             $postedData['filters'] = filter_input(INPUT_POST, 'filters') === 'null' ? null : htmlspecialchars(filter_input(INPUT_POST, 'filters'), ENT_QUOTES);
-            $postedData['wps'] = htmlspecialchars(filter_input(INPUT_POST, 'wps'), ENT_QUOTES);
 
             if (!$this->context->dbDriver->check(RestoDatabaseDriver::FEATURE, $postedData)) {
                 throw new Exception('Feature does not exists', 4004);
@@ -657,7 +669,7 @@ class Administration extends RestoModule {
             /*
              * Posted rights
              */
-            $rights = array('search' => $postedData['search'], 'visualize' => $postedData['visualize'], 'download' => $postedData['download'], 'canput' => $postedData['canput'], 'canpost' => $postedData['canpost'], 'candelete' => $postedData['candelete'], 'filters' => $postedData['filters'], 'wps' => $postedData['wps']);
+            $rights = array('search' => $postedData['search'], 'visualize' => $postedData['visualize'], 'download' => $postedData['download'], 'canput' => $postedData['canput'], 'canpost' => $postedData['canpost'], 'candelete' => $postedData['candelete'], 'filters' => $postedData['filters']);
 
             /*
              * Store rights
@@ -933,10 +945,12 @@ class Administration extends RestoModule {
      * @return array
      * @throws Exception
      */
-    public function getUsersProfiles($keyword = null, $min = 0, $number = 50) {
+    public function getUsersProfiles($keyword = null, $min = 0, $number = 50, $orderBy, $ascOrDesc) {
 
         try {
-            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' LIMIT ' . $number . ' OFFSET ' . $min);
+            $orderBy = isset($orderBy) ? $orderBy : 'userid';
+            $ascOrDesc = isset($ascOrDesc) ? $ascOrDesc : 'DESC';
+            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
             if (!$results) {
                 throw new Exception();
             }
@@ -1027,7 +1041,7 @@ class Administration extends RestoModule {
 
         $where = array();
         if (isset($userid)) {
-            $where[] = 'userid=' . pg_escape_string($userid);
+            $where[] = 'history.userid=' . pg_escape_string($userid);
         }
         if (isset($options['service'])) {
             $where[] = 'service=\'' . pg_escape_string($options['service']) . '\'';
@@ -1038,14 +1052,16 @@ class Administration extends RestoModule {
         if (isset($options['collection'])) {
             $where[] = 'collection=\'' . pg_escape_string($options['collection']) . '\'';
         }
+        if (isset($options['email'])) {
+            $where[] = 'users.email LIKE \'%' . pg_escape_string($options['email']) . '%\'';
+        }
         if (isset($options['maxDate'])) {
             $where[] = 'querytime <=\'' . pg_escape_string($options['maxDate']) . '\'';
         }
         if (isset($options['minDate'])) {
             $where[] = 'querytime >=\'' . pg_escape_string($options['minDate']) . '\'';
         }
-
-        $results = pg_query($this->context->dbDriver->dbh, 'SELECT gid, userid, method, service, collection, resourceid, query, querytime, url, ip FROM usermanagement.history' . (count($where) > 0 ? ' WHERE ' . join(' AND ', $where) : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex);
+        $results = pg_query($this->context->dbDriver->dbh, 'SELECT gid, history.userid, users.email, method, service, collection, resourceid, query, querytime, url, ip FROM usermanagement.history as history, usermanagement.users as users  WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex);
         while ($row = pg_fetch_assoc($results)) {
             $result[] = $row;
         }

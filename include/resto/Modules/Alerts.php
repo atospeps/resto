@@ -298,15 +298,21 @@ class Alerts extends RestoModule {
         try {
             // We get the current date rounding the hours
             $date = date("Y-m-d H:00:00", time());
-            $alerts = pg_query($this->dbh, "SELECT aid, title, creation_time, email, last_dispatch, expiration, criterias FROM usermanagement.alerts
-                WHERE '" . $date . "'  >= last_dispatch + ( period || ' hour')::interval");
             
+            $query = "SELECT aid, title, creation_time, email, last_dispatch, expiration, criterias" 
+                    . " FROM usermanagement.alerts"
+                    . " WHERE '" . $date . "'  >= date_trunc('hour', last_dispatch)::timestamp + ( period || ' hour')::interval AND hasSubscribe=1";
+            $alerts = pg_query($this->dbh, $query);
+            if (!$alerts){
+                throw new Exception("Alerts module - An unexpected error has occurred. $query", 500);
+            }
+
             // We iterate over all the results.
             // We will make the research and send the mail
             while ($row = pg_fetch_assoc($alerts)) { 
                 // We validate if the expiration is set. Then we compare with the current date
                 // If it's not the case we launch mails
-                if (!empty($row['expiration']) && !is_null($row['expiration'])) {
+                if (!empty($row['expiration'])) {
                     if ($row['expiration'] > $date) {
                         $execute = true;
                     } else {
@@ -317,20 +323,25 @@ class Alerts extends RestoModule {
                 }
                 // If execution is ok, we can start the mail process
                 if ($execute === true) {
+
                     // crete the open search url from the data in the database
                     $url = $this->getUrl($row);
+
                     // we execute the open search
                     $products = $this->openSearchRequest($url);
                     // We decode the results
                     $answer = json_decode($products, true);
+
                     // If there's no result, we don't send any mail
-                    if ($answer !== FALSE) {
+                    if (isset($answer['features']) && (count($answer['features']) > 0)) {
                         // we create the download links and the tokens on the database associated with the user
-                        foreach ($answer["features"] as $feature) {
-                            $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+                        foreach ($answer['features'] as $feature) {
+                            if (isset($feature['properties']['services']['download']['url'])){
+                                $this->createAlertSharedLink($feature['properties']['services']['download']['url'], $row['email']);
+                            }                            
                         }
                         // We create the content for a meta4 file from the products
-                        $content = $this->alertsToMETA4($answer["features"], $row['email']);
+                        $content = $this->alertsToMETA4($answer['features'], $row['email']);
                         if ($content !== FALSE) {
                             // We established all the parameters used on the mail
                             $params['filename'] = date("Y-m-d H:i:s", time()) . '.meta4';
@@ -340,15 +351,17 @@ class Alerts extends RestoModule {
                             $params['senderEmail'] = $this->context->mail['senderEmail'];
                             $params['subject'] = 'PEPS: Abonnement';
                             $params['content'] = $content;
-                            
+
                             // We send the mail
-                            if ($this->sendAttachedMeta4Mail($params)) {
-                                // After sending the mail we update the database with the new last_dispatch
-                                pg_query($this->dbh, "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:00:00", time()) . "' WHERE aid=" . $row["aid"]);
+                            if (!$this->sendAttachedMeta4Mail($params)) {
+                                // TODO: log error sending mail...
                             }
                         }
                     }
                 }
+                // After sending the mail we update the database with the new last_dispatch
+                $query = "UPDATE usermanagement.alerts SET last_dispatch='" . date("Y-m-d\TH:00:00", time()) . "' WHERE aid=" . $row["aid"];
+                pg_query($this->dbh, $query);
             }
             return RestoLogUtil::success('Alerts notification successfully launched');
         } catch (Exception $e) {
@@ -389,7 +402,6 @@ class Alerts extends RestoModule {
             // Add link to the file
             $meta4->addLink($item, $this->user->profile['email']);
         }
-        
         // We return the content of the meta4 attached file
         return $meta4->toString();
     }
@@ -471,7 +483,7 @@ class Alerts extends RestoModule {
         $nmessage .= "Content-Disposition: attachment; filename=\"" . $params['filename'] . "\"\r\n\r\n";
         $nmessage .= $content . "\r\n\r\n";
         $nmessage .= "--" . $uid . "--";
-        
+
         if (mail($params['to'], $params['subject'], $nmessage, $headers, '-f' . $params['senderEmail'])) {
             return true;
         }
@@ -486,21 +498,28 @@ class Alerts extends RestoModule {
     private function getUrl($row) {
         // We get the criterias to add them at the end of the url
         if (isset($row['criterias'])) {
+
             // We decode the criterias
             $criterias = json_decode($row['criterias']);
+
             // We add the collection to the url
             $url = $this->context->baseUrl . '/api/collections/' . (isset($criterias->collection) ? $criterias->collection . '/' : '') . 'search.json';
+
             // We set the arguments
             $arguments = array ();
-            foreach ($criterias as $key => $value) {
-                // We don't insert the collection as an argument
-                if ($key != 'collection') {
-                    $arguments[] = $key . '=' . $value;
+            if (isset($criterias)){
+                foreach ($criterias as $key => $value) {
+                    // We don't insert the collection as an argument
+                    if ($key != 'collection') {
+                        $arguments[] = $key . '=' . $value;
+                    }
                 }
             }
+
             // We always have to filter the ingestion date (published) with the las tile we
             // dispatched the alert
             $arguments[] = 'startPublishedDate=' . date("Y-m-d\TH:i:s", strtotime($row["last_dispatch"]));
+
             // We add the arguments to the url
             return $url . '?' . join('&', $arguments);
         } else {

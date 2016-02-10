@@ -111,7 +111,7 @@ class RestoUser{
      */
     public function storeQuery($method, $service, $collectionName, $featureIdentifier, $query, $url){
         try {
-            $remoteAdress = filter_input(INPUT_SERVER, 'REMOTE_ADDR', FILTER_SANITIZE_STRING); 
+            $remoteAdress = $this->getIp();
             $this->context->dbDriver->store(RestoDatabaseDriver::QUERY, array(
                 'userid' => $this->profile['userid'],
                 'query' => array(
@@ -308,6 +308,34 @@ class RestoUser{
         return $rights[$action];
     }
     
+    /**
+     * We get the ip.
+     * We try differents values to get the true ip beyond any firewall
+     *
+     * @return string
+     */
+    private function getIp() {
+        // Variables to verify. We verify them by order,
+        // so at the start we sure get REMOTE_ADD, which is
+        // the firewall ip
+        $variables = array (
+            'REMOTE_ADDR',
+            'HTTP_FORWARDED',
+            'HTTP_CLIENT_IP',
+            'HTTP_X_FORWARDED', 
+            'HTTP_X_FORWARDED_FOR'
+        );
+
+        // If the value is set, we store it
+        $ipaddress = '';
+        foreach ($variables as $key => $variable) {
+            if (filter_input(INPUT_SERVER, $variable, FILTER_SANITIZE_STRING) !== FALSE && !is_null(filter_input(INPUT_SERVER, $variable, FILTER_SANITIZE_STRING))) {
+                $ipaddress = filter_input(INPUT_SERVER, $variable, FILTER_SANITIZE_STRING);
+            }
+        }
+        
+        return $ipaddress;
+    }
     
 }
 

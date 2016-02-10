@@ -293,13 +293,14 @@ abstract class RestoModel {
                     'key' => 'geometry',
                     'osKey' => 'geometry',
                     'operation' => 'intersects',
-                    'title' => 'Defined in Well Known Text standard (WKT) with coordinates in decimal degrees (EPSG:4326)' 
+                    'title' => 'Defined in Well Known Text standard (WKT) with coordinates in decimal degrees (EPSG:4326)',
             ),
             'geo:box' => array (
                     'key' => 'geometry',
                     'osKey' => 'box',
                     'operation' => 'intersects',
-                    'title' => 'Defined by \'west, south, east, north\' coordinates of longitude, latitude, in decimal degrees (EPSG:4326)' 
+                    'title' => 'Defined by \'west, south, east, north\' coordinates of longitude, latitude, in decimal degrees (EPSG:4326)',
+                    'pattern' => '^[0-9\.\,\-]*$'
             ),
             'geo:name' => array (
                     'key' => 'geometry',
@@ -412,6 +413,24 @@ abstract class RestoModel {
                     'osKey' => 'sensorMode',
                     'operation' => '=',
                     'options' => 'auto' 
+            ),
+            'eo:polarisation' => array (
+                'key' => 'polarisation',
+                'osKey' => 'polarisation',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
+            'eo:orbitDirection' => array (
+                'key' => 'orbitDirection',
+                'osKey' => 'orbitDirection',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
+            'eo:swath' => array (
+                'key' => 'swath',
+                'osKey' => 'swath',
+                'operation' => '=',
+                'options' => 'auto'
             ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',

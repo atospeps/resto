@@ -44,10 +44,9 @@ spl_autoload_register('autoload');
 /*
  * Launch RESTo
  */
-$conffile=realpath(dirname(__FILE__)) . '/include/config.php';
+$conffile='/opt/peps/resto/conf/config.php';
 if (!file_exists($conffile)) {
-	// si installation securisee
-	$conffile='/etc/httpd/conf.d/config.php';
+	$conffile=realpath(dirname(__FILE__)) . '/include/config.php';
 }
 new Resto($conffile);
 

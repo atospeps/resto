@@ -432,6 +432,24 @@ abstract class RestoModel {
                 'operation' => '=',
                 'options' => 'auto'
             ),
+            'eo:polarisation' => array (
+                'key' => 'polarisation',
+                'osKey' => 'polarisation',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
+            'eo:orbitDirection' => array (
+                'key' => 'orbitDirection',
+                'osKey' => 'orbitDirection',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
+            'eo:swath' => array (
+                'key' => 'swath',
+                'osKey' => 'swath',
+                'operation' => '=',
+                'options' => 'auto'
+            ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',
                     'osKey' => 'cloudCover',

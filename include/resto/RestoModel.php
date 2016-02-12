@@ -212,6 +212,10 @@ abstract class RestoModel {
             'name' => 'geometry',
             'type' => 'GEOMETRY'
         ),
+        'centroid' => array(
+            'name' => 'centroid',
+            'type' => 'POINT'
+        ),
         'hashes' => array(
             'name' => 'hashes',
             'type' => 'TEXT[]',
@@ -880,6 +884,7 @@ abstract class RestoModel {
                 return 'float';
             case 'TIMESTAMP':
                 return 'date';
+            case 'POINT':
             case 'GEOMETRY':
                 return 'geometry';
             case 'TEXT[]':
@@ -986,6 +991,23 @@ abstract class RestoModel {
         }
         
         /*
+         * First check if feature is already in database
+         * (do this before getKeywords to avoid iTag process)
+         */
+        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array('featureIdentifier' => $featureIdentifier))) {
+            RestoLogUtil::httpError(500, 'Feature ' . $featureIdentifier . ' already in database');
+        }
+        
+        /*
+         * Tagger module
+         */
+        $keywords = array();
+        if (isset($collection->context->modules['Tagger'])) {
+            $tagger = RestoUtil::instantiate($collection->context->modules['Tagger']['className'], array($collection->context, $collection->user));
+            $keywords = $tagger->getKeywords($properties, $data['geometry']);
+        }
+        
+        /*
          * Store feature
          */
         $collection->context->dbDriver->store(RestoDatabaseDriver::FEATURE, array(
@@ -994,7 +1016,7 @@ abstract class RestoModel {
                 'type' => 'Feature',
                 'id' => $featureIdentifier,
                 'geometry' => $data['geometry'],
-                'properties' => array_merge($properties, array('keywords' => $this->getKeywords($properties, $data['geometry'], $collection)))
+                'properties' => array_merge($properties, array('keywords' => $keywords))
             )
         ));
         
@@ -1018,12 +1040,34 @@ abstract class RestoModel {
     }
     
     /**
+     * Get resto filters from input query parameters
+     *  - change parameter keys to model parameter key
+     *  - remove unset parameters
+     *  - remove all HTML tags from input to avoid XSS injection
+     *  - check that filter value is valid regarding the model definition
+     * 
+     * @param array $query
+     */
+    public function getFiltersFromQuery($query) {
+        $params = array();
+        foreach ($query as $key => $value) {
+            foreach (array_keys($this->searchFilters) as $filterKey) {
+                if ($key === $this->searchFilters[$filterKey]['osKey']) {
+                    $params[$filterKey] = preg_replace('/<.*?>/', '', $value);
+                    $this->validateFilter($filterKey, $params[$filterKey]);
+                }
+            }
+        }
+        return $params;
+    }
+    
+    /**
      * Check if value is valid for a given filter regarding the model
      * 
      * @param string $filterKey
      * @param string $value
      */
-    public function validateFilter($filterKey, $value) {
+    private function validateFilter($filterKey, $value) {
         
         /*
          * Check pattern for string
@@ -1050,36 +1094,6 @@ abstract class RestoModel {
             
         return true;
         
-    }
-    
-    /**
-     * Compute keywords from properties array
-     * 
-     * @param array $properties
-     * @param array $geometry (GeoJSON)
-     * @param RestoCollection $collection
-     */
-    private function getKeywords($properties, $geometry, $collection) {
-        
-        /*
-         * Keywords utilities
-         */
-        $keywordsUtil = new RestoKeywordsUtil();
-        
-        /*
-         * Initialize keywords array
-         */
-        $keywords = isset($properties['keywords']) ? $properties['keywords'] : array();
-        
-        /*
-         * Validate keywords
-         */
-        if (!$keywordsUtil->areValids($keywords)) {
-            RestoLogUtil::httpError(500, 'Invalid keywords property elements');
-        }
-        
-        return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
-       
     }
     
 }

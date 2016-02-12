@@ -61,6 +61,9 @@ abstract class RestoDatabaseDriver {
     const GROUP = 36;
     const VALIDATE_USER = 37;
     const UNVALIDATE_USER = 38;
+    const WHERE_CLAUSE = 39;
+    const COUNT_ESTIMATE = 40;
+    const AREA = 41;
     
     /*
      * Results per page

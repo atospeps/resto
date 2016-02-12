@@ -70,6 +70,9 @@ class Functions_filters {
                 $columns[] = 'ST_AsGeoJSON(' . $value . ') AS ' . $key;
                 $columns[] = 'Box2D(' . $value . ') AS bbox4326';
             }
+            else if ($key === 'centroid') {
+                $columns[] = 'ST_AsGeoJSON(' . $value . ') AS ' . $key;
+            }
             else if ($model->getDbType($key) === 'date') {
                 $columns[] = 'to_char(' . $value . ', \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') AS "' . $key . '"';
             }
@@ -317,7 +320,9 @@ class Functions_filters {
     }
     
     /**
-     * Prepare SQL query for spatial operation ST_Intersects (Input bbox or polygon)
+     * Prepare SQL query for spatial operation ST_Intersects with BBOX
+     * 
+     * Note : in case of bounding box crosses the -180/180 line, split it into two separated polygons
      * 
      * @param RestoModel $model
      * @param string $filterName
@@ -329,7 +334,30 @@ class Functions_filters {
         if (count($coords) !== 4) {
             RestoLogUtil::httpError(400, 'Invalid geo:box');
         }
-        return ($exclusion ? 'NOT ' : '') . 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ", ST_GeomFromText('" . pg_escape_string('POLYGON((' . $coords[0] . ' ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[1] . '))') . "', 4326))";
+        
+        /*
+         * Query build is $start . $geometry . $end
+         */
+        $start = 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ', ST_GeomFromText(\'';
+        $end = '\', 4326))';
+        
+        /*
+         * -180/180 line is not crossed
+         * (aka the easy part)
+         */
+        if ($coords[0] < $coords[2]) {
+            $filter = $start . pg_escape_string('POLYGON((' . $coords[0] . ' ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[1] . '))') . $end;
+        }
+        /*
+         * -180/180 line is crossed
+         * (split in two polygons)
+         */
+        else {
+            $filter = '(' . $start . pg_escape_string('POLYGON((' . $coords[0] . ' ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[3] . ',180 ' . $coords[3] . ',180 ' . $coords[1] . ',' . $coords[0] . ' ' . $coords[1] . '))') . $end;
+            $filter = $filter . ' OR ' . $start . pg_escape_string('POLYGON((-180 ' . $coords[1] . ',-180 ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[3] . ',' . $coords[2] . ' ' . $coords[1] . ',-180 ' . $coords[1] . '))') . $end . ')';
+        }
+        
+        return ($exclusion ? 'NOT ' : '') . $filter;
     }
     
     /**

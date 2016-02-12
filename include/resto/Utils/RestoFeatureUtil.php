@@ -187,6 +187,14 @@ class RestoFeatureUtil {
             $properties['thumbnail'] = $collection->model->generateThumbnailPath($properties);
         }
         
+        if (method_exists($collection->model,'generateDownloadUrl')) {
+            $properties['resource'] = $collection->model->generateDownloadUrl($properties);
+        }
+        
+        if (method_exists($collection->model,'generateWMSUrl')) {
+            $properties['wms'] = $collection->model->generateWMSUrl($properties);
+        }
+        
         /*
          * Modify properties as defined in collection propertiesMapping associative array
          */
@@ -244,13 +252,10 @@ class RestoFeatureUtil {
         /*
          * Proxify WMS url depending on user rights
          */
-        if (method_exists($collection->model,'getWmsUrl')) {
-            $properties['wms'] = $collection->model->proxifyWMSUrl($properties, $this->user, $this->context->baseUrl);
-        }
-        else {
+        if (!method_exists($collection->model,'generateWMSUrl')) {
             $properties['wms'] = $this->proxifyWMSUrl($properties, $this->user, $this->context->baseUrl);
         }
-
+        
         if (!isset($properties['wms'])) {
             unset($properties['wms'], $properties['wmsInfos']);
         }
@@ -311,17 +316,12 @@ class RestoFeatureUtil {
         if (!isset($properties['links']) || !is_array($properties['links'])) {
             $properties['links'] = array();
         }
+        
         $properties['links'][] = array(
-            'rel' => 'alternate',
+            'rel' => 'self',
             'type' => RestoUtil::$contentTypes['json'],
             'title' => $this->context->dictionary->translate('_jsonLink', $properties['identifier']),
             'href' => RestoUtil::updateUrl($thisUrl . '.json', array($collection->model->searchFilters['language']['osKey'] => $this->context->dictionary->language))
-        );
-        $properties['links'][] = array(
-            'rel' => 'alternate',
-            'type' => RestoUtil::$contentTypes['atom'],
-            'title' => $this->context->dictionary->translate('_atomLink', $properties['identifier']),
-            'href' => RestoUtil::updateUrl($thisUrl . '.atom', array($collection->model->searchFilters['language']['osKey'] => $this->context->dictionary->language))
         );
         
         if (isset($properties['metadata'])) {
@@ -341,8 +341,7 @@ class RestoFeatureUtil {
      * @param array $properties
      */
     private function cleanProperties(&$properties) {
-        unset($properties['totalcount'],
-              $properties['identifier'],
+        unset($properties['identifier'],
               $properties['geometry'], 
               $properties['metadata'], 
               $properties['metadataMimeType'],

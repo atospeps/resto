@@ -14,6 +14,21 @@
 --     CREATE INDEX _myCollection_features_visibility_idx ON _myCollection.features USING btree (visibility);
 -- 
 
+-- Count estimate
+CREATE FUNCTION count_estimate(query text) RETURNS INTEGER AS
+$func$
+DECLARE
+    rec   record;
+    ROWS  INTEGER;
+BEGIN
+    FOR rec IN EXECUTE 'EXPLAIN ' || query LOOP
+        ROWS := SUBSTRING(rec."QUERY PLAN" FROM ' rows=([[:digit:]]+)');
+        EXIT WHEN ROWS IS NOT NULL;
+    END LOOP;
+    RETURN ROWS;
+END
+$func$ LANGUAGE plpgsql;
+
 -- features
 ALTER table resto.features ALTER COLUMN visibility SET DEFAULT 'public';
 ALTER table resto.features ADD COLUMN licenseid TEXT;
@@ -146,3 +161,16 @@ INSERT INTO resto.keywords (name, value, lang, type) VALUES ('Zones littorales',
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('zones equatoriales', 'equatorial', 'fr', 'location');
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('zones tropicales', 'tropical', 'fr', 'location');
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('coastal area', 'coastal', 'en', 'location');
+
+-- Centroid
+SELECT AddGeometryColumn('resto', 'features', 'centroid', '4326', 'POINT', 2);
+-- Could be quite long !!
+UPDATE resto.features SET centroid=ST_Centroid(geometry) WHERE centroid IS NULL;
+
+-- Keywords update
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('cryosat', 'CRYOSAT2','**', 'platform');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('cryosat-2', 'CRYOSAT2','**', 'platform');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('seasat', 'SEASAT1','**', 'platform');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('seasat-1', 'SEASAT1','**', 'platform');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('olitirs', 'OLI_TIRS','**','instrument');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('oli_tirs', 'OLI_TIRS','**','instrument');

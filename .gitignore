@@ -10,3 +10,7 @@
 /include/resto/Models/RestoModel_restec.php
 /include/config.local.php
 /include/config.dev.php
+<<<<<<< HEAD
+=======
+/include/resto/Modules/Heatmap.php
+>>>>>>> fe3e453cacdac6dab81089c88c8e9638eecfe164

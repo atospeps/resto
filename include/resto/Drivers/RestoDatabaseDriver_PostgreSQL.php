@@ -84,6 +84,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $cartFunctions->getCartItems($params['email']);
             
             /*
+             * Get facet
+             */
+            case parent::FACET:
+                $facetsFunctions = new Functions_facets($this);
+                return $facetsFunctions->getFacet($params['type'], $params['value']);
+             
+            /*
              * Get collections descriptions
              */
             case parent::COLLECTIONS_DESCRIPTIONS:
@@ -191,8 +198,29 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              * Get all history information
              */
             case parent::HISTORY:
-                $usersFunctions = new Functions_history($this);
-                return $usersFunctions->getHistory($params);
+                $historyFunctions = new Functions_history($this);
+                return $historyFunctions->getHistory($params);
+            
+            /*
+             * Get Where clause from filters
+             */
+            case parent::WHERE_CLAUSE:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->getWhereClause($params['user'], $params['model'], $params['filters']);
+            
+            /*
+             * Get count estimate from query
+             */
+            case parent::COUNT_ESTIMATE:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->getCount($params['from'], $params['filters']);
+            
+            /*
+             * Compute area from geometry
+             */
+            case parent::AREA:
+                $featuresFunctions = new Functions_general($this);
+                return $featuresFunctions->getArea($params['geometry']);
                 
             default:
                 return null;
@@ -537,6 +565,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_PROFILE:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->updateUserProfile($params['profile']);
+            
+            /*
+             * Update Keywords
+             */
+            case parent::KEYWORDS:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->updateFeatureKeywords($params['feature'], $params['keywords']);
             
             default:
                 return null;

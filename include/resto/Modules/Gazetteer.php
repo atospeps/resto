@@ -79,7 +79,7 @@ class Gazetteer extends RestoModule {
      */
     public function __construct($context, $user) {
         parent::__construct($context, $user);        
-        $this->dbh = $this->getDatabaseHandler();
+        $this->dbh = $this->getDatabaseHandler(isset($this->options['database']) ? $this->options['database'] : null);
     }
 
     /**
@@ -103,7 +103,7 @@ class Gazetteer extends RestoModule {
         
     }
     
-    /*
+    /**
      * Search locations from input query
      * 
      * Toponyms return order is :
@@ -146,7 +146,7 @@ class Gazetteer extends RestoModule {
      *      geom
      *  );
      * 
-     * @param array $query
+     * @param array $params
      * @param boolean $normalize
      * @return array
      * 

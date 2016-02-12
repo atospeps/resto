@@ -42,12 +42,11 @@ class Functions_features {
      * @param RestoContext $context
      * @param RestoUser $user
      * @param RestoCollection $collection
-     * @param RestoModel $params
+     * @param array $params
      * @param array $options
      *      array(
      *          'limit',
-     *          'offset',
-     *          'count'// true to return the total number of results without pagination
+     *          'offset'
      * 
      * @return array
      * @throws Exception
@@ -71,21 +70,40 @@ class Functions_features {
         
         /*
          * Set search filters
-         * TODO - get count from facet statistic and not from count() OVER()
          */
         $oFilter = implode(' AND ', $filtersUtils->prepareFilters($user, $model, $params));
         
         /*
-         * Note that the total number of results (i.e. with no LIMIT constraint)
-         * is retrieved with PostgreSQL "count(*) OVER()" technique
+         * Prepare query
          */
-        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ($options['count'] ? ', count(' . $model->getDbKey('identifier') . ') OVER() AS totalcount' : '') . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '') . ' ORDER BY startdate DESC LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
-       
+        $fields = implode(',', $filtersUtils->getSQLFields($model));
+        $from = ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '');
+        
         /*
          * Retrieve products from database
+         * Note: totalcount is estimated except if input search contains a lon/lat filter
          */
-        return $this->toFeatureArray($context, $user, $collection, $results = $this->dbDriver->query($query));
+        return array(
+            'count' => $this->getCount($from, $params),
+            'features' => $this->toFeatureArray($context, $user, $collection, $results = $this->dbDriver->query('SELECT ' . $fields . $from . ' ORDER BY startdate DESC LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset']))
+        );
         
+    }
+    
+    /**
+     * 
+     * Get Where clause from input parameters
+     * 
+     * @param RestoUser $user
+     * @param RestoModel $model
+     * @param array $params
+     * 
+     * @return array
+     * @throws Exception
+     */
+    public function getWhereClause($user, $model, $params) {
+        $filtersUtils = new Functions_filters();
+        return implode(' AND ', $filtersUtils->prepareFilters($user, $model, $params));
     }
     
     /**
@@ -107,7 +125,7 @@ class Functions_features {
         $filtersUtils = new Functions_filters();
         $results = $this->dbDriver->query('SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('identifier') . "='" . pg_escape_string($identifier) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : ''));
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
     }
     
     /**
@@ -206,6 +224,104 @@ class Functions_features {
     }
    
     /**
+     * Update feature keywords
+     * 
+     * @param RestoFeature $feature
+     * @param array $keywords
+     * @throws Exception
+     */
+    public function updateFeatureKeywords($feature, $keywords) {
+        
+        $toUpdate = array();
+        
+        /*
+         * Store new keywords
+         */
+        if (is_array($keywords)) {
+            $columns = array_merge(array(
+               'keywords' => '\'' . pg_escape_string(json_encode($keywords)) . '\''
+            ), $this->landuseColumns($keywords));
+            $columns[$feature->collection->model->getDbKey('hashes')] = '\'{' . join(',', $this->getHashes($keywords)) . '}\'';
+            foreach ($columns as $columnName => $columnValue) {
+                array_push($toUpdate, $columnName . '=' . $columnValue);
+            }
+        }
+        
+        if (empty($toUpdate)) {
+            RestoLogUtil::httpError(400, 'Nothing to update for ' . $feature->identifier);
+        }
+        
+        try {
+            
+            /*
+             * Begin transaction
+             */
+            $this->dbDriver->query('BEGIN');
+            
+            /*
+             * Remove previous facets
+             */
+            $this->removeFeatureFacets($feature->toArray());
+            
+            /*
+             * Update feature
+             */
+            $this->dbDriver->query('UPDATE resto.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
+            
+            /*
+             * Store new facets
+             */
+            $this->storeKeywordsFacets($feature->collection, $keywords, true);
+            
+            /*
+             * Commit
+             */
+            $this->dbDriver->query('COMMIT');
+            
+        } catch (Exception $e) {
+            $this->dbDriver->query('ROLLBACK'); 
+            RestoLogUtil::httpError(500, 'Cannot update feature ' . $feature->identifier);
+        }
+        
+        return true;
+        
+    }
+    
+    /**
+     * Return exact count or estimate count from query
+     * 
+     * @param String $from
+     * @param Boolean $filters
+     */
+    public function getCount($from, $filters = array()) {
+        
+        /*
+         * Determine if the count is estimated or real
+         */
+        $realCount = false;
+        if (isset($filters['geo:lon'])) {
+            $realCount = true;
+        }
+        
+        if ($realCount) {
+            $result = $this->dbDriver->query('SELECT count(*) as count ' . $from);
+        }
+        else {
+            $result = $this->dbDriver->query('SELECT count_estimate(\'' . pg_escape_string('SELECT * ' . $from) . '\') as count');
+        }
+        while ($row = pg_fetch_assoc($result)) {
+            return array(
+                'total' => (integer) $row['count'],
+                'isExact' => $realCount
+            );
+        }
+        return array(
+            'total' => -1,
+            'isExact' => $realCount
+        );
+    }
+    
+    /**
      * Store keywords facets
      * 
      * @param RestoCollection $collection
@@ -249,11 +365,23 @@ class Functions_features {
         /*
          * Initialize columns array
          */
+        $wkt = RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']);
+        $extent = RestoGeometryUtil::getExtent($wkt);
+        
+        /*
+         * Compute "in house centroid" to avoid -180/180 date line issue
+         */
+        $factor = 1;
+        if (abs($extent[2] - $extent[0]) >= 180) {
+            $factor = -1;
+        }
+        
         $columns = array_merge(
             array(
                 $collection->model->getDbKey('identifier') => '\'' . $featureArray['id'] . '\'',
                 $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
-                $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)',
+                $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . $wkt . '\', 4326)',
+                $collection->model->getDbKey('centroid') => 'ST_GeomFromText(\'POINT(' . (($extent[2] + ($extent[0] * $factor)) / 2.0) . ' ' . (($extent[3] + $extent[1]) / 2.0) . ')\', 4326)',
                 'updated' => 'now()',
                 'published' => 'now()'
             ),
@@ -336,10 +464,12 @@ class Functions_features {
         foreach (array_keys($keywords) as $hash) {
             
             /*
-             * Do not index keywords if cover is lower than 10 %
+             * Do not index keywords if relative cover is lower than 10 % or if absolute coverage is lower than 20%
              */
             if (isset($keywords[$hash]['value']) && $keywords[$hash]['value'] < 10) {
-                continue;
+                if (!isset($keywords[$hash]['gcover']) || $keywords[$hash]['gcover'] < 20) {
+                    continue;
+                }
             }
             $hashes[] = '"' . pg_escape_string($hash) . '"';
             $hashes[] = '"' . pg_escape_string($keywords[$hash]['type'] . ':' . (isset($keywords[$hash]['normalized']) ? $keywords[$hash]['normalized'] : strtolower($keywords[$hash]['name']))) . '"';
@@ -354,7 +484,16 @@ class Functions_features {
      * @return type
      */
     private function landuseColumns($keywords) {
-        $columns = array();
+        $columns = array(
+            'lu_cultivated' => 0,
+            'lu_desert' => 0,
+            'lu_flooded' => 0,
+            'lu_forest' => 0,
+            'lu_herbaceous' => 0,
+            'lu_ice' => 0,
+            'lu_urban' => 0,
+            'lu_water' => 0
+        );
         foreach (array_values($keywords) as $keyword) {
             if ($keyword['type'] === 'landuse') {
                 $columns['lu_' . strtolower($keyword['name'])] = $keyword['value'];
@@ -393,11 +532,13 @@ class Functions_features {
      * @param array $featureArray
      */
     private function removeFeatureFacets($featureArray) {
-        foreach (array_keys($featureArray['properties']['keywords']) as $hash) {
-            $this->dbDriver->remove(RestoDatabaseDriver::FACET, array(
-                'hash' => $hash,
-                'collectionName' => $featureArray['properties']['collection']
-            ));
+        if (isset($featureArray['properties']['keywords'])) {
+            foreach (array_keys($featureArray['properties']['keywords']) as $hash) {
+                $this->dbDriver->remove(RestoDatabaseDriver::FACET, array(
+                    'hash' => $hash,
+                    'collectionName' => $featureArray['properties']['collection']
+                ));
+            }
         }
     }
 
@@ -415,13 +556,8 @@ class Functions_features {
         $featureUtil = new RestoFeatureUtil($context, $user, $collection);
         while ($result = pg_fetch_assoc($results)) {
             $featuresArray[] = $featureUtil->toFeatureArray($result);
-            if (isset($result['totalcount'])) {
-                $totalcount = $result['totalcount'];
-            }
         }
-        return array(
-            'totalcount' => isset($totalcount) ? (integer) $totalcount : -1,
-            'features' => $featuresArray
-        );
+        return $featuresArray;
     }
+    
 }

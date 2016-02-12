@@ -206,4 +206,23 @@ class Functions_general {
         return true;
     }
     
+    /**
+     * Return area of input EPSG:4326 WKT 
+     * 
+     * @param string $wkt
+     * @param string $unit
+     */
+    public function getArea($wkt, $unit = 'deg') {
+        if ($unit === 'deg') {
+            $result = $this->dbDriver->query('SELECT st_area(st_geometryFromText(\'' . $wkt . '\', 4326)) as area;');
+        }
+        else {
+            $result = $this->dbDriver->query('SELECT st_area(geography(st_geometryFromText(\'' . $wkt . '\', 4326))) as area;');
+        }
+        while ($row = pg_fetch_assoc($result)) {
+            return (integer) $row['area'];
+        }
+        return -1;
+    }
+    
 }

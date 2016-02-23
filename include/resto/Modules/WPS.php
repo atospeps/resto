@@ -130,7 +130,6 @@ class WPS extends RestoModule {
 
             $query = http_build_query($this->context->query);            
             return $this->callWPSServer($this->wpsServerUrl . $query);
-            
         } else {
             switch ($this->segments[0]) {
                 /*
@@ -178,36 +177,36 @@ class WPS extends RestoModule {
          * HTTP/GET WPS 1.0 OGC services - not implemented
          */
         if (!isset($this->segments[0])) {
-            //RestoLogUtil::httpError(501);
-
+            
             $query = http_build_query($this->context->query);
             return $this->callWPSServer($this->wpsServerUrl . $query, $data);
-        } 
-//          else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
-            
-//             switch ($this->segments[0]) {
-//                 case 'jobs' :
-//                     $jobid = $this->segments[1];
-//                     if (is_numeric($jobid)) {
-//                         /*
-//                          * TODO : Remove specified job : used HTTP/POST instead of HTTP/DELETE
-//                          */
-//                         // return $this->deleteJob($data);
-//                         return RestoLogUtil::httpError(501);
-//                     } else {
-//                         RestoLogUtil::httpError(400);
-//                     }
-//                     break;
-//                 default :
-//                     RestoLogUtil::httpError(404);
-//                     break;
-//             }
-//         }  /*
-//            * Unknown route
-//            */
-// else {
-//             RestoLogUtil::httpError(404);
-//         }
+        }
+        // else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
+        
+        // switch ($this->segments[0]) {
+        // case 'jobs' :
+        // $jobid = $this->segments[1];
+        // if (is_numeric($jobid)) {
+        // /*
+        // * TODO : Remove specified job : used HTTP/POST instead of HTTP/DELETE
+        // */
+        // // return $this->deleteJob($data);
+        // return RestoLogUtil::httpError(501);
+        // } else {
+        // RestoLogUtil::httpError(400);
+        // }
+        // break;
+        // default :
+        // RestoLogUtil::httpError(404);
+        // break;
+        // }
+        // } /*
+        // * Unknown route
+        // */
+        // else {
+        // RestoLogUtil::httpError(404);
+        // }
+        RestoLogUtil::httpError(404);
     }
     
     /**
@@ -270,9 +269,31 @@ class WPS extends RestoModule {
     private function createJob($data) {
         try {
             // Inserting the job into database
-            $jobs = pg_query($this->dbh, 'INSERT INTO usermanagement.jobs WHERE email = \'' . pg_escape_string($this->user->profile['email']) . '\'');
+            $now = '\'' . date("Y-m-d H:i:s") . '\'';
+            $identifier = '\'' . pg_escape_string($this->user->profile['email']) . '\'';
+            $processid = isset($data['title']) ? '\'' . pg_escape_string($data['title']) . '\'' : 'NULL';
+            $status = isset($data['expiration']) ? '\'' . pg_escape_string($data['expiration']) . '\'' : 'NULL';
+            $statusLocation = (isset($data['period']) && is_numeric($data['period'])) ? '\'' . $data['period'] . '\'' : 'NULL';
+            
+            $values = array (
+                    $identifier,
+                    $processid,
+                    $now,
+                    $status,
+                    $statusLocation 
+            );
+            /*
+             * Stores alert.
+             */
+            $query = 'INSERT INTO usermanagement.jobs (email, identifier, query_time, status, statusLocation)
+                    VALUES (' . join(',', $values) . ')';
+            
+            $jobs = pg_query($this->dbh, $query);
+            
+
             // We call the WPS Server
-            $status = $this->callWPSServer($url);
+//             $status = $this->callWPSServer($url);
+
             // If there was any problem with the WPS server
             if ($status === FALSE) {
             } else {
@@ -354,13 +375,13 @@ class WPS extends RestoModule {
         $options = array(
                 CURLOPT_RETURNTRANSFER 	=> true,
                 CURLOPT_VERBOSE			=> RestoLogUtil::$debug ? 1 : 0,
-                CURLOPT_TIMEOUT         => 15,
+                CURLOPT_TIMEOUT         => 60,
                 CURLOPT_RETURNTRANSFER  => 1,
                 CURLOPT_FOLLOWLOCATION  => 1,
                 CURLOPT_FAILONERROR     => 1
         );
 
-        if (!empty($data)){
+        if ($this->context->method === 'POST'){
             /* Form data string */
             $options[CURLOPT_POST] = 1;
             $options[CURLOPT_POSTFIELDS] = $data[0];
@@ -375,7 +396,6 @@ class WPS extends RestoModule {
          * Get the response
          */
         $response = curl_exec($ch);
-        
         /*
          * Checks errors.
          */
@@ -400,6 +420,22 @@ class WPS extends RestoModule {
 
         //return $response;
         $xml = new WPSResponse($response);
+
+        /*
+         * Saves user's job into database (Only valid WPS processes).
+         * Parses responses in order to check WPS processing service=WPS&request=execute.
+         */
+        try {
+            $wpsExecuteResponse = new ExecuteResponse($response);
+            $data = array(
+        
+            );
+            //                 $this->createJob($data);
+        } catch (Exception $e) {}
+
+        /*
+         * Returns WPS response.
+         */
         return $xml;        
     }    
 }
@@ -411,7 +447,7 @@ class WPS extends RestoModule {
 class WPSResponse {
 
     // xml as string
-    private $xml;
+    protected $xml;
 
     /**
      * 
@@ -426,5 +462,159 @@ class WPSResponse {
      */
     public function toXML(){
         return $this->xml;
+    }
+}
+/**
+ * 
+ * WPS:ExecuteResponse
+ *
+ */
+class ExecuteResponse extends WPSResponse {
+
+    /*
+     * Process identifier.
+     */
+    private $identifier;
+    
+    /*
+     * WPS Service instance. 
+     */
+    private $serviceInstance;
+    
+    /*
+     * Status.
+     */
+    private $status;
+
+    /*
+     * To improve this WPS parser, create WPSStatus, WPSProcess, .. class...
+     * class WPSStatus {
+     *     private $status;
+     *     private $statusMessage;
+     *     private $statusTime;
+     *     private $percentCompleted;
+     * }
+     */
+    
+    /*
+     * Status location.
+     */
+    private $statusLocation;
+    
+    /*
+     * Output definitions.
+     */
+    private $outputDefinitions;
+    
+    /*
+     * Process outputs.
+     */
+    private $processOutputs;
+    
+    /*
+     * WPS status events.
+     */
+    public static $statusEvents = array (
+            'ProcessAccepted',
+            'ProcessSucceeded',
+            'ProcessFailed',
+            'ProcessStarted',
+            'ProcessPaused' 
+    );
+
+    /**
+     * 
+     * @param unknown $pXml
+     */
+    function __construct($pXml){
+        parent::__construct($pXml);
+        
+        $sxe = new SimpleXMLElement($this->xml);
+        $sxe->registerXPathNamespace('ows', 'http://www.opengis.net/ows/1.1');
+        $sxe->registerXPathNamespace('xlink', 'http://www.w3.org/1999/xlink');
+        $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/');
+        $sxe->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+        
+        $result = $sxe->xpath('//wps:ExecuteResponse');
+        if (!$result && count($result) == 0) {
+            throw new Exception('wps:ExecuteResponse::__contruct : Invalid xml');
+        }
+        $this->parseExecuteResponse($result[0]);        
+    }
+    /**
+     * 
+     * @param SimpleXMLElement $wps_ExecuteResponse
+     */
+    private function parseExecuteResponse(SimpleXMLElement $wps_ExecuteResponse){
+        $attributes = $wps_ExecuteResponse->attributes();
+        $this->statusLocation = isset($attributes['statusLocation']) ? $attributes['statusLocation']->__toString() : null;
+        $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
+        
+        $status = $wps_ExecuteResponse->xpath('//wps:Status');
+        if ($status && count($status) > 0){
+            $this->parseStatus($status[0]);
+        }
+        
+        $process = $wps_ExecuteResponse->xpath('//wps:Process');
+        if ($process && count($process) > 0){
+            $this->parseProcess($process[0]);
+        }
+    }
+
+    /**
+     * TODO
+     * @param SimpleXMLElement $wps_processFailed
+     */
+    private function parseProcessFailed(SimpleXMLElement $wps_processFailed){}
+
+    /**
+     * 
+     * @param SimpleXMLElement $wps_process
+     */
+    private function parseProcess(SimpleXMLElement $wps_process){
+        
+        $identifier = $wps_process->xpath('//ows:Identifier');
+        if ($identifier && count($identifier)>0){
+            $this->identifier = $identifier[0]->__toString();
+        }
+    }
+
+    /**
+     * 
+     * @param SimpleXMLElement $wps_Status
+     */
+    private function parseStatus(SimpleXMLElement $wps_Status) {
+
+        foreach (self::$statusEvents as $statusEvent) {
+            $status = $wps_Status->xpath("//wps:$statusEvent");
+            if ($status && count($status) > 0){
+                $this->status = $statusEvent;
+                break;
+            }
+        }
+        if ($this->status === 'ProcessFailed'){
+            $this->parseProcessFailed($status[0]);
+        }
+    }
+    
+    /**
+     * Returns WPS process identifier.
+     */
+    public function getIdentifier(){
+        return $this->identifier;
+    }
+    
+    /**
+     * If ExecuteResponse, returns status if present, otherwise null.
+     */
+    public function getStatus(){    
+        return $this->status;
+    }
+    
+    /**
+     * If ExecuteResponse, returns status if present, otherwise null.
+     */
+    public function getStatusLocation(){
+        return $this->statusLocation;
     }
 }

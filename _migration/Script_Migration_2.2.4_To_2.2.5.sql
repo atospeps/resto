@@ -44,5 +44,8 @@ ALTER TABLE usermanagement.jobs OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.jobs TO postgres;
 GRANT ALL ON TABLE usermanagement.jobs TO resto;
 
+GRANT ALL ON SEQUENCE usermanagement.jobs_gid_seq TO postgres;
+GRANT SELECT, UPDATE ON SEQUENCE usermanagement.jobs_gid_seq TO resto;
+
 
 

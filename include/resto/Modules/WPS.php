@@ -248,6 +248,8 @@ class WPS extends RestoModule {
                 while ($row = pg_fetch_assoc($jobs)) {
                     $results[] = $row;
                 }
+                // Updates status's jobs.
+                $results = $this->updateStatusOfJobs($results);
                 return $results;
             }
         } else {
@@ -255,10 +257,46 @@ class WPS extends RestoModule {
         }
     }
     
+
     /**
-     * TODO
+     * Returns current status of WPS process.
+     * @param unknown $job
+     * @return Ambigous <NULL, unknown, string>
      */
-    private function updateUserJobsStatus() {
+    private function getStatusOfJob($job){
+
+        $statusLocation = isset($job['statuslocation']) ? $job['statuslocation'] : null;
+        $status = isset($job['status']) ? $job['status'] : null;
+        if ($status === 'ProcessSucceeded' || $status === 'ProcessFailed'){
+            return $status;
+        }
+        
+        /*
+         * Gets current WPS process status.
+         */
+        if (!empty($statusLocation)) {
+            $response = $this->callWPSServer($statusLocation, null, false);
+            
+            
+            // Parses response in order to refresh status.
+            try {
+                $wpsExecuteResponse = new ExecuteResponse($response->toXML());
+                $status = $wpsExecuteResponse->getStatus();
+            } catch (ExecuteResponseException $e) {
+            }
+        }
+        return $status;
+    }
+    
+    /**
+     * Updates status of jobs.
+     */
+    private function updateStatusOfJobs($jobs) {
+        foreach ($jobs as $job){
+            $job['status'] = $this->getStatusOfJob($job);
+            $this->updateJob($job);
+        }
+        return $jobs;
     }
    
     /**
@@ -269,50 +307,26 @@ class WPS extends RestoModule {
     private function createJob($data) {
         try {
             // Inserting the job into database
-            $now = '\'' . date("Y-m-d H:i:s") . '\'';
-            $identifier = '\'' . pg_escape_string($this->user->profile['email']) . '\'';
-            $processid = isset($data['title']) ? '\'' . pg_escape_string($data['title']) . '\'' : 'NULL';
-            $status = isset($data['expiration']) ? '\'' . pg_escape_string($data['expiration']) . '\'' : 'NULL';
-            $statusLocation = (isset($data['period']) && is_numeric($data['period'])) ? '\'' . $data['period'] . '\'' : 'NULL';
+            $querytime = !empty($data['query_time']) ? '\'' . pg_escape_string($data['query_time']) . '\'' : date("Y-m-d H:i:s");
+            $email = '\'' . pg_escape_string($this->user->profile['email']) . '\'';
+            $identifier = isset($data['identifier']) ? '\'' . pg_escape_string($data['identifier']) . '\'' : 'NULL';
+            $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
+            $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
             
             $values = array (
+                    $email,
                     $identifier,
-                    $processid,
-                    $now,
+                    $querytime,
                     $status,
                     $statusLocation 
             );
             /*
              * Stores alert.
              */
-            $query = 'INSERT INTO usermanagement.jobs (email, identifier, query_time, status, statusLocation)
-                    VALUES (' . join(',', $values) . ')';
-            
+            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation) ' 
+                        . 'VALUES (' . join(',', $values) . ')';
             $jobs = pg_query($this->dbh, $query);
-            
 
-            // We call the WPS Server
-//             $status = $this->callWPSServer($url);
-
-            // If there was any problem with the WPS server
-            if ($status === FALSE) {
-            } else {
-                try {
-                    $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET
-                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
-                    return array (
-                            'status' => 'success',
-                            'message' => 'success' 
-                    );
-                } catch (Exception $e) {
-                    RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-                }
-            }
-            
-            return array (
-                    'status' => 'success',
-                    'message' => 'success' 
-            );
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
@@ -323,21 +337,20 @@ class WPS extends RestoModule {
      *
      * @throws Exception
      */
-    private function editJob($data) {
-        // Edit a job using the job id
-        if (isset($data['jid'])) {
-            try {
-                $jobs = pg_query($this->dbh, 'UPDATE usermanagement.jobs SET 
-                        email=\'' . pg_escape_string($data['email']) . '\', title=\'' . pg_escape_string($data['title']) . '\', querytime=\'' . pg_escape_string($data['querytime']) . '\', expiration=\'' . pg_escape_string($data['expiration']) . '\', criterias=\'' . pg_escape_string($data['criterias']) . '\' WHERE jid=\'' . pg_escape_string($data['jid']) . '\'');
-                return array (
-                        'status' => 'success',
-                        'message' => 'success' 
-                );
-            } catch (Exception $e) {
-                RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-            }
-        } else {
-            RestoLogUtil::httpError(404);
+    private function updateJob($data) {
+        try {
+
+            $status = isset($data['status']) ? pg_escape_string($data['status']) : 'NULL';
+            $gid = pg_escape_string($data['gid']);
+            
+            /*
+             * Stores alert.
+             */
+            $query = "UPDATE usermanagement.jobs SET status='{$status}' WHERE gid='{$gid}'";
+            $jobs = pg_query($this->dbh, $query);
+
+        } catch (Exception $e) {
+            RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
     }
     
@@ -350,7 +363,7 @@ class WPS extends RestoModule {
         // Delete a job using the job id
         if (isset($data['jid'])) {
             try {
-                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE jid = \'' . pg_escape_string($data['jid']) . '\'');
+                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . pg_escape_string($data['jid']) . '\'');
                 return array (
                         'status' => 'success',
                         'message' => 'success' 
@@ -366,7 +379,7 @@ class WPS extends RestoModule {
     /**
      * We call the WPS server
      */
-    private function callWPSServer($url, $data = null) {
+    private function callWPSServer($url, $data = null, $saveExecuteResponse = true) {
         $this->context->outputFormat =  'xml';
         
         // Call the WPS Server
@@ -425,13 +438,19 @@ class WPS extends RestoModule {
          * Saves user's job into database (Only valid WPS processes).
          * Parses responses in order to check WPS processing service=WPS&request=execute.
          */
-        try {
-            $wpsExecuteResponse = new ExecuteResponse($response);
-            $data = array(
-        
-            );
-            //                 $this->createJob($data);
-        } catch (Exception $e) {}
+        if ($saveExecuteResponse == true){
+            try {
+                $wpsExecuteResponse = new ExecuteResponse($response);
+                $data = array(
+                        'query_time' => date("Y-m-d H:i:s"),
+                        'identifier' => $wpsExecuteResponse->getIdentifier(),
+                        'status' => $wpsExecuteResponse->getStatus(),
+                        'statusLocation' => $wpsExecuteResponse->getStatusLocation()
+                );
+                $this->createJob($data);
+            } catch (ExecuteResponseException $e) {
+            }
+        }       
 
         /*
          * Returns WPS response.
@@ -537,7 +556,7 @@ class ExecuteResponse extends WPSResponse {
         
         $result = $sxe->xpath('//wps:ExecuteResponse');
         if (!$result && count($result) == 0) {
-            throw new Exception('wps:ExecuteResponse::__contruct : Invalid xml');
+            throw new ExecuteResponseException('wps:ExecuteResponse::__contruct : Invalid xml');
         }
         $this->parseExecuteResponse($result[0]);        
     }
@@ -618,3 +637,5 @@ class ExecuteResponse extends WPSResponse {
         return $this->statusLocation;
     }
 }
+
+class ExecuteResponseException extends Exception { }

@@ -283,7 +283,7 @@ class WPS extends RestoModule {
                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
                 $status = $wpsExecuteResponse->getStatus();
             } catch (ExecuteResponseException $e) {
-            }
+            } catch (Exception $e){}
         }
         return $status;
     }
@@ -547,8 +547,10 @@ class ExecuteResponse extends WPSResponse {
      */
     function __construct($pXml){
         parent::__construct($pXml);
-        
+        libxml_use_internal_errors(true);
         $sxe = new SimpleXMLElement($this->xml);
+        libxml_clear_errors();
+        
         $sxe->registerXPathNamespace('ows', 'http://www.opengis.net/ows/1.1');
         $sxe->registerXPathNamespace('xlink', 'http://www.w3.org/1999/xlink');
         $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/');

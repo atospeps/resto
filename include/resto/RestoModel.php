@@ -723,11 +723,7 @@ abstract class RestoModel {
         /*
          * Compute unique identifier
          */
-        if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
-            $featureIdentifier = $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
-        } else {
-            $featureIdentifier = $data['id'];
-        }
+        $featureIdentifier =  $this->computeUniqueIdentifier($data, $collection, $properties);
         
         /*
          * Store feature
@@ -743,13 +739,21 @@ abstract class RestoModel {
                         )) 
                 ) 
         ));
-
-        // We execute the wps server for S2 products 
-        $this->executeWPSProcess($properties, $featureIdentifier, $collection);
         
         return new RestoFeature($collection->context, $collection->user, array (
                 'featureIdentifier' => $featureIdentifier 
         ));
+    }
+    
+    /**
+     * Compute unique identifier
+     */
+    public function computeUniqueIdentifier($data, $collection, $properties){
+        if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
+            return $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
+        } else {
+            return $data['id'];
+        }
     }
     
     /**
@@ -832,25 +836,5 @@ abstract class RestoModel {
         
         return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
     }
-    
-    /**
-     * Process in the WPS server for the given product
-     *
-     * @param string $featureIdentifier
-     * @param array $collection
-     */
-    private function executeWPSProcess($properties, $featureIdentifier, $collection) {
-        // Only applicable for the S2 collection
-        if ($collection->name == 'S2') {
-            /*
-             * Processing product in WPS server
-             */
-            $wps = new s2WPS($featureIdentifier, $collection->context->modules, $collection->context->dbDriver->dbh);
-            
-            // If the config parameters we execute the process
-            if ($wps->isValid()) {
-                $wps->execute($featureIdentifier);
-            }
-        }
-    }
+
 }

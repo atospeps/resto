@@ -75,7 +75,11 @@ class RestoModel_sentinel2 extends RestoModel {
      * @param string $collectionName : collection name
      */
     public function storeFeature($data, $collectionName) {
-        return parent::storeFeature($this->parse(join('',$data)), $collectionName);
+        $dataFeature = $this->parse(join('',$data));
+        $s2_feature = parent::storeFeature($dataFeature, $collectionName);
+        // We execute the wps server for S2 products
+        $this->executeWPSProcess($dataFeature, $collectionName);
+        return $s2_feature;
     }
     
     /**
@@ -162,4 +166,35 @@ class RestoModel_sentinel2 extends RestoModel {
         $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
 	return $result."/".$missionId."/".$title;
     }
+    
+    /**
+     * Process in the WPS server for the given product
+     *
+     * @param string $featureIdentifier
+     * @param array $collection
+     */
+    private function executeWPSProcess($data, $collection) {
+        
+        /*
+         * Remap properties between RESTo model and input
+         * GeoJSON Feature file
+         */
+        $properties = parent::mapInputProperties($data['properties']);
+        
+        /*
+         * Compute unique identifier
+        */
+        $featureIdentifier =  parent::computeUniqueIdentifier($data, $collection, $properties);
+        
+        /*
+         * Processing product in WPS server
+         */
+        $wps = new s2WPS($featureIdentifier, $collection->context->modules, $collection->context->dbDriver->dbh);
+        
+        // If the config parameters we execute the process
+        if ($wps->isValid()) {
+            $wps->execute($featureIdentifier);
+        }
+    }
+    
 }

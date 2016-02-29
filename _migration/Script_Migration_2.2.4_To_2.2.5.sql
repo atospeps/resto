@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	status text,
   	statuslocation text,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
-)
+);
 
 ALTER TABLE usermanagement.jobs OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.jobs TO postgres;

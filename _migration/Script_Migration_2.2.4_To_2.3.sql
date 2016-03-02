@@ -23,6 +23,10 @@ $func$;
 
 SELECT f_add_col('_s2.features', 'orbitDirection', 'text');
 
+SELECT f_add_col('_usermanagement.jobs', 'query', 'text');
+SELECT f_add_col('_usermanagement.jobs', 'data', 'text');
+SELECT f_add_col('_usermanagement.jobs', 'method', 'text');
+
 UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-1:", "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg", "resource" : "/hpss/peps/data/{:quicklook:}.zip", "resourceMimeType": "application/zip", "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}"}' WHERE collection='S1';
 
 UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-2:", "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg", "resource" : "/hpss/peps/data/{:quicklook:}.zip", "resourceMimeType": "application/zip"}' WHERE collection='S2';

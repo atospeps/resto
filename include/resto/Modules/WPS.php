@@ -75,7 +75,7 @@ class WPS extends RestoModule {
         /*
          * Only GET method on 'search' route with json outputformat is accepted
          */
-        if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
+        if ($this->context->method !== 'GET' && $this->context->method !== 'POST' && $this->context->method !== 'DELETE') {
             RestoLogUtil::httpError(404);
         }
         
@@ -88,7 +88,6 @@ class WPS extends RestoModule {
         
         // Checks if user can execute WPS services
         if ($this->user->canExecuteWPS() === 1) {
-            
             // We get URL segments and the http method
             $this->segments = $segments;
             $method = $this->context->method;
@@ -101,6 +100,8 @@ class WPS extends RestoModule {
                     return $this->processGET();
                 case 'POST' :
                     return $this->processPOST($data);
+                case 'DELETE' :
+                    return $this->processDELETE();
                 default :
                     RestoLogUtil::httpError(404);
             }
@@ -148,6 +149,57 @@ class WPS extends RestoModule {
             }
         }
     }
+    
+    /**
+     * Process on HTTP method DELETE on /jobs
+     * HTTP/DELETE
+     */
+    private function processDELETE() {
+            // Verify all the variables
+        if (isset($this->segments[0]) && 
+                isset($this->segments[1]) && 
+                isset($this->segments[2]) && 
+                isset($this->segments[3])) {
+              if ($this->segments[0]=='users' && 
+                      ctype_digit($this->segments[1]) && 
+                      $this->segments[2]=='jobs' && 
+                      ctype_digit($this->segments[3]))  {
+                          $this->deleteJob();
+              }else{
+                  RestoLogUtil::httpError(404);
+              }      
+        }else{
+            RestoLogUtil::httpError(404);
+        } 
+       
+        
+        if (!isset($this->segments[0])) {
+    
+            // Checks if WPS server url is configured
+            if (empty($this->wpsServerUrl)){
+                throw new Exception('WPS Configuration problem', 500);
+            }
+    
+            $query = http_build_query($this->context->query);
+            return $this->callWPSServer($this->wpsServerUrl . $query);
+        } else {
+            switch ($this->segments[0]) {
+                /*
+                 * HTTP/GET wps/users/{userid}/jobs
+                 * HTTP/GET wps/users/{userid}/jobs/{jobid}
+                 */
+                case 'users' :
+                    return $this->GET_users($segments);
+                    break;
+                    /*
+                     * Unknown route
+                     */
+                default :
+                    RestoLogUtil::httpError(404);
+                    break;
+            }
+        }
+    }
 
     /**
      *
@@ -168,7 +220,7 @@ class WPS extends RestoModule {
         }
         return RestoLogUtil::httpError(404);
     }
-
+    
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
      */
@@ -180,32 +232,28 @@ class WPS extends RestoModule {
             
             $query = http_build_query($this->context->query);
             return $this->callWPSServer($this->wpsServerUrl . $query, $data);
+        } else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
+            
+            switch ($this->segments[0]) {
+                case 'jobs' :
+                    $jobid = $this->segments[1];
+                    if (is_numeric($jobid)) {
+                        /*
+                         * TODO : Remove specified job : used HTTP/POST instead of HTTP/DELETE
+                         */
+                         return $this->deleteJob();
+                        return RestoLogUtil::httpError(501);
+                    } else {
+                        RestoLogUtil::httpError(400);
+                    }
+                    break;
+                default :
+                    RestoLogUtil::httpError(404);
+                    break;
+            }
+        } else {
+            RestoLogUtil::httpError(404);
         }
-        // else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
-        
-        // switch ($this->segments[0]) {
-        // case 'jobs' :
-        // $jobid = $this->segments[1];
-        // if (is_numeric($jobid)) {
-        // /*
-        // * TODO : Remove specified job : used HTTP/POST instead of HTTP/DELETE
-        // */
-        // // return $this->deleteJob($data);
-        // return RestoLogUtil::httpError(501);
-        // } else {
-        // RestoLogUtil::httpError(400);
-        // }
-        // break;
-        // default :
-        // RestoLogUtil::httpError(404);
-        // break;
-        // }
-        // } /*
-        // * Unknown route
-        // */
-        // else {
-        // RestoLogUtil::httpError(404);
-        // }
         RestoLogUtil::httpError(404);
     }
     
@@ -274,12 +322,10 @@ class WPS extends RestoModule {
         /*
          * Gets current WPS process status.
          */
-        if (!empty($statusLocation)) {
-            $response = $this->callWPSServer($statusLocation, null, false);
-            
-            
+        if (!empty($statusLocation)) {                
             // Parses response in order to refresh status.
             try {
+                $response = $this->callWPSServer($statusLocation, null, false);
                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
                 $status = $wpsExecuteResponse->getStatus();
             } catch (ExecuteResponseException $e) {
@@ -312,18 +358,29 @@ class WPS extends RestoModule {
             $identifier = isset($data['identifier']) ? '\'' . pg_escape_string($data['identifier']) . '\'' : 'NULL';
             $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
             $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
-            
+            $query = isset($data['query']) ? '\'' . $data['query'] . '\'' : 'NULL';
+            $method = '\'' . pg_escape_string($this->context->method) . '\'';
+            if ($this->context->method === 'POST'){
+                $data = isset($data['data']) ? '\'' . $data['data'] . '\'' : 'NULL';
+            }else{
+                $data = 'NULL';
+            }
+
             $values = array (
                     $email,
                     $identifier,
                     $querytime,
                     $status,
-                    $statusLocation 
+                    $statusLocation, 
+                    $query, 
+                    $data,
+                    $method
             );
+
             /*
              * Stores alert.
              */
-            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation) ' 
+            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation, query, data, method)' 
                         . 'VALUES (' . join(',', $values) . ')';
             $jobs = pg_query($this->dbh, $query);
 
@@ -359,20 +416,17 @@ class WPS extends RestoModule {
      *
      * @throws Exception
      */
-    private function deleteJob($data) {
-        // Delete a job using the job id
-        if (isset($data['jid'])) {
-            try {
-                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . pg_escape_string($data['jid']) . '\'');
-                return array (
-                        'status' => 'success',
-                        'message' => 'success' 
-                );
-            } catch (Exception $e) {
-                RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-            }
-        } else {
-            RestoLogUtil::httpError(404);
+    private function deleteJob() {
+        try {
+            $jobId = $this->segments[3];
+            $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . pg_escape_string($jobId) . '\' 
+                    AND email = \'' . $this->user->profile["email"] . '\'');
+            return array (
+                'status' => 'success',
+                'message' => 'success' 
+            );
+        } catch (Exception $e) {
+            RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }
     }
     
@@ -381,7 +435,6 @@ class WPS extends RestoModule {
      */
     private function callWPSServer($url, $data = null, $saveExecuteResponse = true) {
         $this->context->outputFormat =  'xml';
-        
         // Call the WPS Server
         $ch = curl_init($url);
         
@@ -404,6 +457,7 @@ class WPS extends RestoModule {
          * Sets request options.
          */
         curl_setopt_array($ch, $options);
+        
 
         /*
          * Get the response
@@ -445,8 +499,11 @@ class WPS extends RestoModule {
                         'query_time' => date("Y-m-d H:i:s"),
                         'identifier' => $wpsExecuteResponse->getIdentifier(),
                         'status' => $wpsExecuteResponse->getStatus(),
-                        'statusLocation' => $wpsExecuteResponse->getStatusLocation()
+                        'statusLocation' => $this->setCorrectDomain($wpsExecuteResponse->getStatusLocation()), 
+                        'query' => $url,
+                        'data' => serialize($data)
                 );
+ 
                 $this->createJob($data);
             } catch (ExecuteResponseException $e) {
             }
@@ -456,7 +513,17 @@ class WPS extends RestoModule {
          * Returns WPS response.
          */
         return $xml;        
-    }    
+    }
+
+    /**
+     * We set the correct domain for the Status Location 
+     * answer as always returns localhost
+     */
+    private function setCorrectDomain($url){
+        $wpsHost = parse_url($this->wpsServerUrl, PHP_URL_HOST);
+        $recievedHost = parse_url($url, PHP_URL_HOST);
+        return  str_replace($recievedHost, $wpsHost, $url);
+    }
 }
 
 /**

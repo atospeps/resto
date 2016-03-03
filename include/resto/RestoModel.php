@@ -723,7 +723,11 @@ abstract class RestoModel {
         /*
          * Compute unique identifier
          */
-        $featureIdentifier =  $this->computeUniqueIdentifier($data, $collection, $properties);
+        if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
+            $featureIdentifier =  $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
+        } else {
+            $featureIdentifier =  $data['id'];
+        }
         
         /*
          * Store feature
@@ -743,17 +747,6 @@ abstract class RestoModel {
         return new RestoFeature($collection->context, $collection->user, array (
                 'featureIdentifier' => $featureIdentifier 
         ));
-    }
-    
-    /**
-     * Compute unique identifier
-     */
-    public function computeUniqueIdentifier($data, $collection, $properties){
-        if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
-            return $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
-        } else {
-            return $data['id'];
-        }
     }
     
     /**

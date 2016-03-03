@@ -372,7 +372,7 @@ return array(
         's2WPS' => array(
             'activate' => true,
             'options' => array(
-                'wps_url' => 'http://localhost:4444/cgi-bin/pywps.cgi?service=wps&version=1.0.0&request=execute&identifier=S2L1C_RGB&datainputs=product=TITLE&status=true&storeExecuteResponse=true',
+                'wps_url' => 'http://vmpeps05:8081/cgi-bin/pywps.cgi?request=execute&service=WPS&version=1.0.0&identifier=S2L1C_MOSAIC&datainputs=product=%TITLE%&status=true&storeExecuteResponse=true',
             )
         )            
         

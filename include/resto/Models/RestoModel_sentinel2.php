@@ -176,24 +176,13 @@ class RestoModel_sentinel2 extends RestoModel {
     private function executeWPSProcess($data, $collection) {
         
         /*
-         * Remap properties between RESTo model and input
-         * GeoJSON Feature file
-         */
-        $properties = parent::mapInputProperties($data['properties']);
-        
-        /*
-         * Compute unique identifier
-        */
-        $featureIdentifier =  parent::computeUniqueIdentifier($data, $collection, $properties);
-        
-        /*
          * Processing product in WPS server
          */
-        $wps = new s2WPS($featureIdentifier, $collection->context->modules, $collection->context->dbDriver->dbh);
+        $wps = new s2WPS($collection->context->modules);
         
         // If the config parameters we execute the process
-        if ($wps->isValid()) {
-            $wps->execute($featureIdentifier);
+        if ($wps->isValid() && isset($data["properties"]["productIdentifier"])) {
+            $wps->execute($data["properties"]["productIdentifier"]);
         }
     }
     

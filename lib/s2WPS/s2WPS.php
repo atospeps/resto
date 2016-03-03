@@ -22,7 +22,7 @@ class s2WPS {
     /**
      * Constructor
      */
-    public function __construct($identifier, $modules, $dbh) {
+    public function __construct($modules) {
         
         // We validate the config is correctly set
         if (isset($modules['s2WPS']) && 
@@ -31,8 +31,6 @@ class s2WPS {
             $this->validConfiguration = TRUE;
             // We set the values 
             $this->wps_url = $modules['s2WPS']['wps_url'];
-            // Database handler
-            $this->dbh = $dbh;
         }else{
             $this->validConfiguration = FALSE;
         }
@@ -49,11 +47,13 @@ class s2WPS {
     /**
      * Execute the processing on the server
      */
-    public function execute($feature_id) {
+    public function execute($productIdentifier) {
+        
+        $url = str_replace("%TITLE%", $productIdentifier, $this->wps_url);
         
         // Call the WPS Server
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->wps_url);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_FAILONERROR, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -61,7 +61,7 @@ class s2WPS {
         $retValue = curl_exec($ch);
         curl_close($ch);
 
-        if ($retValue !== FALSE) {
+        /*if ($retValue !== FALSE) {
             // In orer to keep working...
             // The xml file returned cannot be treated by the xml php functions
             // We erase the tags which causes problems
@@ -79,7 +79,7 @@ class s2WPS {
             }
             
             $process = pg_query($this->dbh, 'INSERT INTO _s2.wpsprocess VALUES (\'' . $feature_id . '\', \'' . date("Y-m-d h:i:s", time()) . '\', \'' . join(', ', $status) . '\', \'' . $statusLocation . '\')');
-        }
+        }*/
     }
         
 }

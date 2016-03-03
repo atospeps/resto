@@ -246,6 +246,9 @@ class WPS extends RestoModule {
                 
                 $results = array ();
                 while ($row = pg_fetch_assoc($jobs)) {
+                    if (!empty($row['outputs'])){
+                        $row['outputs'] = json_decode($row['outputs']);
+                    }
                     $results[] = $row;
                 }
                 // Updates status's jobs.
@@ -267,25 +270,28 @@ class WPS extends RestoModule {
 
         $statusLocation = isset($job['statuslocation']) ? $job['statuslocation'] : null;
         $status = isset($job['status']) ? $job['status'] : null;
+        $percentCompleted = isset($job['percentcompleted']) ? $job['percentcompleted'] : 0;
         if ($status === 'ProcessSucceeded' || $status === 'ProcessFailed'){
-            return $status;
+            return array($status, 100);
         }
-        
+
         /*
          * Gets current WPS process status.
          */
         if (!empty($statusLocation)) {
-            $response = $this->callWPSServer($statusLocation, null, false);
-            
-            
-            // Parses response in order to refresh status.
             try {
+                $response = $this->callWPSServer($statusLocation, null, false);
+
+                // Parses response in order to refresh status.            
                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
                 $status = $wpsExecuteResponse->getStatus();
+                $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
             } catch (ExecuteResponseException $e) {
-            } catch (Exception $e){}
+            } catch (Exception $e){
+                error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
+            }
         }
-        return $status;
+        return array($status, $percentCompleted);
     }
     
     /**
@@ -293,7 +299,9 @@ class WPS extends RestoModule {
      */
     private function updateStatusOfJobs($jobs) {
         foreach ($jobs as $job){
-            $job['status'] = $this->getStatusOfJob($job);
+            list($status, $percentCompleted) = $this->getStatusOfJob($job);
+            $job['status'] = $status;
+            $job['percentcompleted'] = $percentCompleted;
             $this->updateJob($job);
         }
         return $jobs;
@@ -312,18 +320,22 @@ class WPS extends RestoModule {
             $identifier = isset($data['identifier']) ? '\'' . pg_escape_string($data['identifier']) . '\'' : 'NULL';
             $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
             $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
+            $percentCompleted = isset($data['percentcompleted']) ? '\'' . $data['percentcompleted'] . '\'' : 0;
+            $outputs = isset($data['outputs']) ? '\'' . $data['outputs'] . '\'' : 'NULL';
             
             $values = array (
                     $email,
                     $identifier,
                     $querytime,
                     $status,
-                    $statusLocation 
+                    $statusLocation,
+                    $percentCompleted,
+                    $outputs
             );
             /*
              * Stores alert.
              */
-            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation) ' 
+            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation, percentCompleted, outputs) ' 
                         . 'VALUES (' . join(',', $values) . ')';
             $jobs = pg_query($this->dbh, $query);
 
@@ -341,12 +353,13 @@ class WPS extends RestoModule {
         try {
 
             $status = isset($data['status']) ? pg_escape_string($data['status']) : 'NULL';
+            $percentCompleted = isset($data['percentcompleted']) ? pg_escape_string($data['percentcompleted']) : 0;
             $gid = pg_escape_string($data['gid']);
             
             /*
              * Stores alert.
              */
-            $query = "UPDATE usermanagement.jobs SET status='{$status}' WHERE gid='{$gid}'";
+            $query = "UPDATE usermanagement.jobs SET status='{$status}', percentcompleted={$percentCompleted} WHERE gid='{$gid}'";
             $jobs = pg_query($this->dbh, $query);
 
         } catch (Exception $e) {
@@ -361,9 +374,10 @@ class WPS extends RestoModule {
      */
     private function deleteJob($data) {
         // Delete a job using the job id
-        if (isset($data['jid'])) {
+        if (isset($data['gid'])) {
             try {
-                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . pg_escape_string($data['jid']) . '\'');
+                $jobidpg_escape_string($data['gid']);
+                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . $jobid . '\'');
                 return array (
                         'status' => 'success',
                         'message' => 'success' 
@@ -409,6 +423,12 @@ class WPS extends RestoModule {
          * Get the response
          */
         $response = curl_exec($ch);
+        
+        $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
+        if (!empty($wps_host)){
+           $response = str_replace('localhost', $wps_host, $response); 
+        }
+        
         /*
          * Checks errors.
          */
@@ -445,8 +465,10 @@ class WPS extends RestoModule {
                         'query_time' => date("Y-m-d H:i:s"),
                         'identifier' => $wpsExecuteResponse->getIdentifier(),
                         'status' => $wpsExecuteResponse->getStatus(),
-                        'statusLocation' => $wpsExecuteResponse->getStatusLocation()
-                );
+                        'statusLocation' => $wpsExecuteResponse->getStatusLocation(),
+                        'percentcompleted' => $wpsExecuteResponse->getPercentCompleted(),
+                        'outputs' => json_encode($wpsExecuteResponse->getOutputs())
+                );                
                 $this->createJob($data);
             } catch (ExecuteResponseException $e) {
             }
@@ -499,11 +521,14 @@ class ExecuteResponse extends WPSResponse {
      * WPS Service instance. 
      */
     private $serviceInstance;
-    
+
     /*
      * Status.
      */
     private $status;
+    private $statusMessage;
+    private $statusTime;
+    private $percentCompleted = 0;
 
     /*
      * To improve this WPS parser, create WPSStatus, WPSProcess, .. class...
@@ -571,14 +596,19 @@ class ExecuteResponse extends WPSResponse {
         $this->statusLocation = isset($attributes['statusLocation']) ? $attributes['statusLocation']->__toString() : null;
         $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
         
-        $status = $wps_ExecuteResponse->xpath('//wps:Status');
+        $status = $wps_ExecuteResponse->xpath('.//wps:Status');
         if ($status && count($status) > 0){
             $this->parseStatus($status[0]);
         }
         
-        $process = $wps_ExecuteResponse->xpath('//wps:Process');
+        $process = $wps_ExecuteResponse->xpath('.//wps:Process');
         if ($process && count($process) > 0){
             $this->parseProcess($process[0]);
+        }
+
+        $outputs = $wps_ExecuteResponse->xpath('.//wps:ProcessOutputs');
+        if ($outputs && count($outputs) > 0){
+            $this->parseOutputs($outputs[0]);
         }
     }
 
@@ -589,49 +619,115 @@ class ExecuteResponse extends WPSResponse {
     private function parseProcessFailed(SimpleXMLElement $wps_processFailed){}
 
     /**
-     * 
+     * Parses process.
      * @param SimpleXMLElement $wps_process
      */
     private function parseProcess(SimpleXMLElement $wps_process){
         
-        $identifier = $wps_process->xpath('//ows:Identifier');
+        $identifier = $wps_process->xpath('.//ows:Identifier');
         if ($identifier && count($identifier)>0){
             $this->identifier = $identifier[0]->__toString();
         }
     }
 
     /**
-     * 
+     * Parses status.
      * @param SimpleXMLElement $wps_Status
      */
     private function parseStatus(SimpleXMLElement $wps_Status) {
 
         foreach (self::$statusEvents as $statusEvent) {
-            $status = $wps_Status->xpath("//wps:$statusEvent");
+            $status = $wps_Status->xpath(".//wps:$statusEvent");
             if ($status && count($status) > 0){
                 $this->status = $statusEvent;
+                
+                $attributes = $status[0]->attributes();
+                $this->percentCompleted =  isset($attributes['statusLocation']) ? intval($attributes['percentCompleted']->__toString(), 0) : 0;
                 break;
             }
         }
         if ($this->status === 'ProcessFailed'){
             $this->parseProcessFailed($status[0]);
         }
+        if ($this->status === 'ProcessSucceeded'){
+            $this->percentCompleted = 100;
+        }
     }
-    
+
+    /**
+     * Parses outputs.
+     * @param SimpleXMLElement $wps_Outputs
+     */
+    private function parseOutputs(SimpleXMLElement $wps_Outputs){
+        $this->processOutputs = array();
+        
+        $outputs = $wps_Outputs->xpath('.//wps:Output');
+        if ($outputs && count($outputs)>0){
+            foreach ($outputs as $key => $output){
+                $this->processOutputs[] = $this->parseOutput($output);
+            }
+        }
+        
+    }
+
+    /**
+     * Parses Output.
+     * @param SimpleXMLElement $wps_Output
+     */
+    private function parseOutput(SimpleXMLElement $wps_Output){
+        $output = array();        
+
+        $identifier = $wps_Output->xpath('.//ows:Identifier');        
+        if ($identifier && count($identifier)>0){
+            $output['identifier'] = $identifier[0]->__toString();
+        }
+
+        $title = $wps_Output->xpath('.//ows:Title');
+        if ($title && count($title)>0){
+            $output['title'] = $title[0]->__toString();
+        }
+        
+        $data = $wps_Output->xpath('.//wps:Data');
+        if ($data && count($data)>0){
+            $literal = $data[0]->xpath('.//wps:LiteralData');
+            if ($literal && count($literal)>0){
+                $attributes = $literal[0]->attributes();
+                $output['type'] = $attributes['dataType']->__toString();
+                $output['value'] = $literal[0]->__toString();
+            }
+        }
+        return $output;
+    }
+
+    /**
+     * Returns WPS outputs.
+     */
+    public function getOutputs(){
+        return $this->processOutputs;
+    }
+
     /**
      * Returns WPS process identifier.
      */
     public function getIdentifier(){
         return $this->identifier;
     }
-    
+
     /**
      * If ExecuteResponse, returns status if present, otherwise null.
      */
     public function getStatus(){    
         return $this->status;
     }
-    
+
+    /**
+     * Returns percent completed (ProcessSucceded)
+     * @return number percent completed
+     */
+    public function getPercentCompleted(){
+        return $this->percentCompleted;
+    }
+
     /**
      * If ExecuteResponse, returns status if present, otherwise null.
      */

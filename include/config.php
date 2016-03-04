@@ -369,7 +369,7 @@ return array(
         /*
          * Activate the WPS process to make the mosaic
          */
-        's2WPS' => array(
+        's2Mosaic' => array(
             'activate' => true,
             'options' => array(
                 'wps_url' => 'http://vmpeps05:8081/cgi-bin/pywps.cgi?request=execute&service=WPS&version=1.0.0&identifier=S2L1C_MOSAIC&datainputs=product=%TITLE%&status=true&storeExecuteResponse=true',

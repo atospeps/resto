@@ -31,7 +31,7 @@ function autoload($className) {
         'include/resto/XML/',
         'lib/iTag/',
         'lib/JWT/',
-        'lib/s2WPS/') as $current_dir) {
+        'lib/s2Mosaic/') as $current_dir) {
         $path = $current_dir . sprintf('%s.php', $className);
         if (file_exists($path)) {
             include $path;

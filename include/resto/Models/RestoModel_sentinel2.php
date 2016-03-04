@@ -178,7 +178,7 @@ class RestoModel_sentinel2 extends RestoModel {
         /*
          * Processing product in WPS server
          */
-        $wps = new s2WPS($collection->context->modules);
+        $wps = new s2Mosaic($collection->context->modules, $collection->context->dbDriver->dbh);
         
         // If the config parameters we execute the process
         if ($wps->isValid() && isset($data["properties"]["productIdentifier"])) {

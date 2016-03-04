@@ -33,6 +33,19 @@ UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA:
 
 UPDATE _s1.features SET processinglevel='LEVEL1' where (producttype='SLC' OR producttype='GRD') AND processinglevel='1';
 UPDATE _s1.features SET processinglevel='LEVEL2' where producttype='OCN';
+
+CREATE TABLE resto.s2mosaic
+(
+  productidentifier text,
+  querytime timestamp without time zone,
+  status text,
+  statuslocation text
+);
+
+ALTER TABLE resto.s2mosaic OWNER TO postgres;
+GRANT ALL ON TABLE resto.s2mosaic TO postgres;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE resto.s2mosaic TO resto;
+
  
 CREATE TABLE usermanagement.alerts
 (

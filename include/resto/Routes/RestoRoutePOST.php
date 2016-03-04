@@ -385,6 +385,24 @@ class RestoRoutePOST extends RestoRoute {
         if (!isset($data['email'])) {
             RestoLogUtil::httpError(400, 'Email is not set');
         }
+        
+        if (!isset($data['password'])) {
+            RestoLogUtil::httpError(400, 'Password is not set');
+        }else{
+            $password = RestoUtil::sanitize($data['password']);
+            if (strlen($password >= 8)) {
+                $lowercase = preg_match('/[a-z]/', $password);
+                $uppercase = preg_match('/[A-Z]/', $password);
+                $number = preg_match('/\d/', $password);
+                $special = preg_match('/[^0-9a-zA-Z *]/', $password);
+                if ((!$lowercase && !$uppercase) || (!$lowercase && !$number) || (!$lowercase && !$special) || 
+                        (!$uppercase && !$number) || (!$uppercase && !$special) || (!$number && !$special)) {
+                    RestoLogUtil::httpError(400, 'Password doens not meet the requirements');
+                }
+            }else{
+                RestoLogUtil::httpError(400, 'Password doens not meet the requirements');
+            }
+        }        
 
         if ($this->context->dbDriver->check(RestoDatabaseDriver::USER, array('email' => $data['email']))) {
             RestoLogUtil::httpError(3000);

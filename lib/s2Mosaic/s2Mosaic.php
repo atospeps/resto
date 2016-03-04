@@ -54,7 +54,7 @@ class s2Mosaic {
         
         // Call the WPS Server
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->wps_url);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_FAILONERROR, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

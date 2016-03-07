@@ -246,18 +246,44 @@ class WPS extends RestoModule {
                 
                 $results = array ();
                 while ($row = pg_fetch_assoc($jobs)) {
-                    if (!empty($row['outputs'])){
-                        $row['outputs'] = json_decode($row['outputs']);
-                    }
+                    $row['outputs'] = json_decode($row['outputs'], true);
                     $results[] = $row;
                 }
                 // Updates status's jobs.
                 $results = $this->updateStatusOfJobs($results);
-                return $results;
+                return $this->filterJobOutputs($results);
             }
         } else {
             RestoLogUtil::httpError(400);
         }
+    }
+
+    /**
+     * Filters outputs.
+     * Returns only outputs of type 'string' and value which matche URL pattern.
+     * @param unknown $jobs
+     * @return unknown
+     */
+    private function filterJobOutputs($jobs){
+        
+        foreach ($jobs as &$job){
+            if (!empty($job['outputs'])){
+            
+                // Returns only URL path (to download)
+                $filteredoutputs = array();
+                foreach ($job['outputs'] as $output){
+                    $type = $output['type'];
+                    $value = $output['value'];
+            
+                    if ($type === 'string' && filter_var($value, FILTER_VALIDATE_URL) !== false){
+                        $filteredoutputs[] = $output;
+                    }
+                }
+                $job['outputs'] = $filteredoutputs;
+            }
+        }
+        
+        return $jobs;
     }
     
 
@@ -271,8 +297,10 @@ class WPS extends RestoModule {
         $statusLocation = isset($job['statuslocation']) ? $job['statuslocation'] : null;
         $status = isset($job['status']) ? $job['status'] : null;
         $percentCompleted = isset($job['percentcompleted']) ? $job['percentcompleted'] : 0;
+        $outputs = isset($job['outputs']) ? $job['outputs'] : null;
+
         if ($status === 'ProcessSucceeded' || $status === 'ProcessFailed'){
-            return array($status, 100);
+            return array($status, 100, $outputs);
         }
 
         /*
@@ -286,12 +314,13 @@ class WPS extends RestoModule {
                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
                 $status = $wpsExecuteResponse->getStatus();
                 $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
+                $outputs = $wpsExecuteResponse->getOutputs();
             } catch (ExecuteResponseException $e) {
             } catch (Exception $e){
                 error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
             }
         }
-        return array($status, $percentCompleted);
+        return array($status, $percentCompleted, $outputs);
     }
     
     /**
@@ -299,9 +328,10 @@ class WPS extends RestoModule {
      */
     private function updateStatusOfJobs($jobs) {
         foreach ($jobs as $job){
-            list($status, $percentCompleted) = $this->getStatusOfJob($job);
+            list($status, $percentCompleted, $outputs) = $this->getStatusOfJob($job);
             $job['status'] = $status;
             $job['percentcompleted'] = $percentCompleted;
+            $job['outputs'] = $outputs;
             $this->updateJob($job);
         }
         return $jobs;
@@ -321,7 +351,7 @@ class WPS extends RestoModule {
             $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
             $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
             $percentCompleted = isset($data['percentcompleted']) ? '\'' . $data['percentcompleted'] . '\'' : 0;
-            $outputs = isset($data['outputs']) ? '\'' . $data['outputs'] . '\'' : 'NULL';
+            $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
             
             $values = array (
                     $email,
@@ -354,12 +384,13 @@ class WPS extends RestoModule {
 
             $status = isset($data['status']) ? pg_escape_string($data['status']) : 'NULL';
             $percentCompleted = isset($data['percentcompleted']) ? pg_escape_string($data['percentcompleted']) : 0;
+            $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
             $gid = pg_escape_string($data['gid']);
             
             /*
              * Stores alert.
              */
-            $query = "UPDATE usermanagement.jobs SET status='{$status}', percentcompleted={$percentCompleted} WHERE gid='{$gid}'";
+            $query = "UPDATE usermanagement.jobs SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs} WHERE gid='{$gid}'";
             $jobs = pg_query($this->dbh, $query);
 
         } catch (Exception $e) {
@@ -376,7 +407,7 @@ class WPS extends RestoModule {
         // Delete a job using the job id
         if (isset($data['gid'])) {
             try {
-                $jobidpg_escape_string($data['gid']);
+                $jobid = pg_escape_string($data['gid']);
                 $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . $jobid . '\'');
                 return array (
                         'status' => 'success',
@@ -467,7 +498,7 @@ class WPS extends RestoModule {
                         'status' => $wpsExecuteResponse->getStatus(),
                         'statusLocation' => $wpsExecuteResponse->getStatusLocation(),
                         'percentcompleted' => $wpsExecuteResponse->getPercentCompleted(),
-                        'outputs' => json_encode($wpsExecuteResponse->getOutputs())
+                        'outputs' => $wpsExecuteResponse->getOutputs()
                 );                
                 $this->createJob($data);
             } catch (ExecuteResponseException $e) {
@@ -642,7 +673,7 @@ class ExecuteResponse extends WPSResponse {
                 $this->status = $statusEvent;
                 
                 $attributes = $status[0]->attributes();
-                $this->percentCompleted =  isset($attributes['statusLocation']) ? intval($attributes['percentCompleted']->__toString(), 0) : 0;
+                $this->percentCompleted =  isset($attributes['percentCompleted']) ? intval($attributes['percentCompleted']->__toString(), 0) : 0;
                 break;
             }
         }
@@ -667,7 +698,6 @@ class ExecuteResponse extends WPSResponse {
                 $this->processOutputs[] = $this->parseOutput($output);
             }
         }
-        
     }
 
     /**

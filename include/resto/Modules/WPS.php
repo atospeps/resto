@@ -281,6 +281,9 @@ class WPS extends RestoModule {
                 }
                 $job['outputs'] = $filteredoutputs;
             }
+            if (!empty($job['statuslocation'])){
+                $job['statuslocation'] = $this->updateWPSURLs($job['statuslocation']);
+            }
         }
         
         return $jobs;
@@ -298,9 +301,10 @@ class WPS extends RestoModule {
         $status = isset($job['status']) ? $job['status'] : null;
         $percentCompleted = isset($job['percentcompleted']) ? $job['percentcompleted'] : 0;
         $outputs = isset($job['outputs']) ? $job['outputs'] : null;
+        $statusMessage = isset($job['statusmessage']) ? $job['statusmessage'] : null;
 
         if ($status === 'ProcessSucceeded' || $status === 'ProcessFailed'){
-            return array($status, 100, $outputs);
+            return array($status, 100, $outputs, $statusMessage);
         }
 
         /*
@@ -315,12 +319,13 @@ class WPS extends RestoModule {
                 $status = $wpsExecuteResponse->getStatus();
                 $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
                 $outputs = $wpsExecuteResponse->getOutputs();
+                $statusMessage = $wpsExecuteResponse->getStatusMessage();
             } catch (ExecuteResponseException $e) {
             } catch (Exception $e){
                 error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
             }
         }
-        return array($status, $percentCompleted, $outputs);
+        return array($status, $percentCompleted, $outputs, $statusMessage);
     }
     
     /**
@@ -328,10 +333,11 @@ class WPS extends RestoModule {
      */
     private function updateStatusOfJobs($jobs) {
         foreach ($jobs as $job){
-            list($status, $percentCompleted, $outputs) = $this->getStatusOfJob($job);
+            list($status, $percentCompleted, $outputs, $statusMessage) = $this->getStatusOfJob($job);
             $job['status'] = $status;
             $job['percentcompleted'] = $percentCompleted;
             $job['outputs'] = $outputs;
+            $job['statusmessage'] = $statusMessage;
             $this->updateJob($job);
         }
         return $jobs;
@@ -349,6 +355,7 @@ class WPS extends RestoModule {
             $email = '\'' . pg_escape_string($this->user->profile['email']) . '\'';
             $identifier = isset($data['identifier']) ? '\'' . pg_escape_string($data['identifier']) . '\'' : 'NULL';
             $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
+            $statusMessage = isset($data['statusMessage']) ? '\'' . pg_escape_string($data['statusMessage']) . '\'' : 'NULL';
             $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
             $percentCompleted = isset($data['percentcompleted']) ? '\'' . $data['percentcompleted'] . '\'' : 0;
             $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
@@ -358,6 +365,7 @@ class WPS extends RestoModule {
                     $identifier,
                     $querytime,
                     $status,
+                    $statusMessage,
                     $statusLocation,
                     $percentCompleted,
                     $outputs
@@ -365,7 +373,7 @@ class WPS extends RestoModule {
             /*
              * Stores alert.
              */
-            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusLocation, percentCompleted, outputs) ' 
+            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusmessage, statusLocation, percentCompleted, outputs) ' 
                         . 'VALUES (' . join(',', $values) . ')';
             $jobs = pg_query($this->dbh, $query);
 
@@ -383,14 +391,17 @@ class WPS extends RestoModule {
         try {
 
             $status = isset($data['status']) ? pg_escape_string($data['status']) : 'NULL';
+            $statusMessage = isset($data['statusmessage']) ? '\'' . pg_escape_string($data['statusmessage']) . '\'' : 'NULL';
             $percentCompleted = isset($data['percentcompleted']) ? pg_escape_string($data['percentcompleted']) : 0;
             $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
             $gid = pg_escape_string($data['gid']);
-            
+
             /*
              * Stores alert.
              */
-            $query = "UPDATE usermanagement.jobs SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs} WHERE gid='{$gid}'";
+            $query = "UPDATE usermanagement.jobs "
+                    . "SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs}, statusmessage={$statusMessage} "
+                    . "WHERE gid='{$gid}'";
             $jobs = pg_query($this->dbh, $query);
 
         } catch (Exception $e) {
@@ -483,7 +494,7 @@ class WPS extends RestoModule {
         curl_close($ch);
 
         //return $response;
-        $xml = new WPSResponse($response);
+        $xml = new WPSResponse($this->updateWPSURLs($response));
 
         /*
          * Saves user's job into database (Only valid WPS processes).
@@ -497,6 +508,7 @@ class WPS extends RestoModule {
                         'identifier' => $wpsExecuteResponse->getIdentifier(),
                         'status' => $wpsExecuteResponse->getStatus(),
                         'statusLocation' => $wpsExecuteResponse->getStatusLocation(),
+                        'statusMessage' => $wpsExecuteResponse->getStatusMessage(),
                         'percentcompleted' => $wpsExecuteResponse->getPercentCompleted(),
                         'outputs' => $wpsExecuteResponse->getOutputs()
                 );                
@@ -509,7 +521,26 @@ class WPS extends RestoModule {
          * Returns WPS response.
          */
         return $xml;        
-    }    
+    }
+
+    /**
+     * 
+     * @param unknown $xml_string
+     */
+    private function updateWPSURLs($text){
+        
+        $server_endpoint = parse_url($this->context->baseUrl);
+        $server_host = $server_endpoint['host'];
+        $server_port = isset($server_endpoint['port']) ? $server_endpoint['port'] : 80;
+        
+        $server_address = $server_host . ':' . $server_port . $server_endpoint['path'];
+        
+        $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
+        $wps_port = parse_url($this->wpsServerUrl, PHP_URL_PORT);
+        $wps_address = $wps_host . ':' . $wps_port; 
+        
+        return str_replace($wps_address, $server_address, $text);
+    }
 }
 
 /**
@@ -616,7 +647,7 @@ class ExecuteResponse extends WPSResponse {
         if (!$result && count($result) == 0) {
             throw new ExecuteResponseException('wps:ExecuteResponse::__contruct : Invalid xml');
         }
-        $this->parseExecuteResponse($result[0]);        
+        $this->parseExecuteResponse($result[0]);
     }
     /**
      * 
@@ -644,13 +675,24 @@ class ExecuteResponse extends WPSResponse {
     }
 
     /**
-     * TODO
+     * Parse WPS ProcessFailed.
      * @param SimpleXMLElement $wps_processFailed
      */
-    private function parseProcessFailed(SimpleXMLElement $wps_processFailed){}
+    private function parseProcessFailed(SimpleXMLElement $wps_processFailed){
+        $report = $wps_processFailed->xpath('.//wps:ExceptionReport');
+        if ($report && count($report)>0){
+            $exception = $report[0]->xpath('.//ows:Exception');
+            if ($exception && count($exception)>0){
+                $exceptionText = $exception[0]->xppath('.//ows:ExceptionText');
+                if ($exceptionText && count($exceptionText)>0){
+                    $this->statusMessage = $exceptionText[0]->__toString();
+                }
+            }
+        }
+    }
 
     /**
-     * Parses process.
+     * Parses WPS process.
      * @param SimpleXMLElement $wps_process
      */
     private function parseProcess(SimpleXMLElement $wps_process){
@@ -677,9 +719,13 @@ class ExecuteResponse extends WPSResponse {
                 break;
             }
         }
+        // Gets status message.
         if ($this->status === 'ProcessFailed'){
             $this->parseProcessFailed($status[0]);
+        } else {
+            $this->statusMessage = $status[0]->__toString();
         }
+
         if ($this->status === 'ProcessSucceeded'){
             $this->percentCompleted = 100;
         }
@@ -748,6 +794,13 @@ class ExecuteResponse extends WPSResponse {
      */
     public function getStatus(){    
         return $this->status;
+    }
+
+    /**
+     * Returns status message.
+     */
+    public function getStatusMessage(){
+        return $this->statusMessage;
     }
 
     /**

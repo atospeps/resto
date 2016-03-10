@@ -1,0 +1,13 @@
+/* Script de migration beta*/
+
+CREATE TABLE resto.s2mosaic
+(
+  productidentifier text,
+  querytime timestamp without time zone,
+  status text,
+  statuslocation text
+);
+
+ALTER TABLE resto.s2mosaic OWNER TO postgres;
+GRANT ALL ON TABLE resto.s2mosaic TO postgres;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE resto.s2mosaic TO resto;

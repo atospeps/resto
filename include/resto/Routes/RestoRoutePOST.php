@@ -390,17 +390,17 @@ class RestoRoutePOST extends RestoRoute {
             RestoLogUtil::httpError(400, 'Password is not set');
         }else{
             $password = RestoUtil::sanitize($data['password']);
-            if (strlen($password >= 8)) {
+            if (strlen($password) >= 8) {
                 $lowercase = preg_match('/[a-z]/', $password);
                 $uppercase = preg_match('/[A-Z]/', $password);
                 $number = preg_match('/\d/', $password);
                 $special = preg_match('/[^0-9a-zA-Z *]/', $password);
                 if ((!$lowercase && !$uppercase) || (!$lowercase && !$number) || (!$lowercase && !$special) || 
                         (!$uppercase && !$number) || (!$uppercase && !$special) || (!$number && !$special)) {
-                    RestoLogUtil::httpError(400, 'Password doens not meet the requirements');
+                    RestoLogUtil::httpError(400, 'Password does not meet the requirements');
                 }
             }else{
-                RestoLogUtil::httpError(400, 'Password doens not meet the requirements');
+                RestoLogUtil::httpError(400, 'Password does not meet the requirements');
             }
         }        
 

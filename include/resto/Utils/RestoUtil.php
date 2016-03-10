@@ -29,6 +29,8 @@ class RestoUtil {
         'json' => 'application/json',
         'xml' => 'application/xml',
         'meta4' => 'application/metalink4+xml',
+        'tif' => 'image/tiff',
+        'tiff' => 'image/tiff'
     );
     
     /**

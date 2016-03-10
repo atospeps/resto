@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	querytime timestamp without time zone,
   	status text,
   	statuslocation text,
+  	statusmessage text,
+  	percentcompleted integer DEFAULT 0,
+  	outputs text,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
 );
 

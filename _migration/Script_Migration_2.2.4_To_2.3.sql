@@ -23,12 +23,29 @@ $func$;
 
 SELECT f_add_col('_s2.features', 'orbitDirection', 'text');
 
+SELECT f_add_col('_usermanagement.jobs', 'query', 'text');
+SELECT f_add_col('_usermanagement.jobs', 'data', 'text');
+SELECT f_add_col('_usermanagement.jobs', 'method', 'text');
+
 UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-1:", "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg", "resource" : "/hpss/peps/data/{:quicklook:}.zip", "resourceMimeType": "application/zip", "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}"}' WHERE collection='S1';
 
 UPDATE resto.collections SET mapping='{"parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-2:", "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg", "resource" : "/hpss/peps/data/{:quicklook:}.zip", "resourceMimeType": "application/zip"}' WHERE collection='S2';
 
 UPDATE _s1.features SET processinglevel='LEVEL1' where (producttype='SLC' OR producttype='GRD') AND processinglevel='1';
 UPDATE _s1.features SET processinglevel='LEVEL2' where producttype='OCN';
+
+CREATE TABLE resto.s2mosaic
+(
+  productidentifier text,
+  querytime timestamp without time zone,
+  status text,
+  statuslocation text
+);
+
+ALTER TABLE resto.s2mosaic OWNER TO postgres;
+GRANT ALL ON TABLE resto.s2mosaic TO postgres;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE resto.s2mosaic TO resto;
+
  
 CREATE TABLE usermanagement.alerts
 (

@@ -239,7 +239,11 @@ return array(
                 'activate' => true,
                 'route' => 'wps',
                 'options' => array(
+<<<<<<< HEAD
                         'wpsServerUrl' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi?'//'http://localhost:4444/cgi-bin/pywps.cgi?'
+=======
+                        'wpsServerUrl' => "http://172.24.218.59:8081/cgi-bin/pywps.cgi?"
+>>>>>>> branch 'process' of https://github.com/atospeps/resto.git
                 )
         ),
             

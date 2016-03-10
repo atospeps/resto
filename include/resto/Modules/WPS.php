@@ -40,6 +40,11 @@ class WPS extends RestoModule {
      * WPS Server url.
      */
     private $wpsServerUrl;
+    
+    /**
+     * WPS module route.
+     */
+    private $route;
 
     /**
      * Constructor
@@ -60,6 +65,9 @@ class WPS extends RestoModule {
 
         // WPS server url
         $this->wpsServerUrl = isset($this->context->modules[get_class($this)]['wpsServerUrl']) ? $this->context->modules[get_class($this)]['wpsServerUrl'] : null ;
+        
+        // WPS module route
+        $this->route = isset($this->context->modules[get_class($this)]['route']) ? $this->context->modules[get_class($this)]['route'] : '' ;
     }
 
     /**
@@ -143,8 +151,22 @@ class WPS extends RestoModule {
                  * Unknown route
                  */
                 default :
-                    RestoLogUtil::httpError(404);
-                    break;
+                    /*
+                     * Transform the proxy request received to WPS server request.
+                     */
+                    $query = http_build_query($this->context->query);
+                    $path = implode('/', $this->segments) . (isset($this->context->outputFormat) ? ('.' . $this->context->outputFormat) : '');
+                    $url = $this->getWPSServerAddress() . '/' . $path . $query;
+
+                    /*
+                     * Returns response.
+                     */
+                    $response = Request::execute($url);
+                    if (!ob_start("ob_gzhandler")) ob_start();
+                    echo  $response;
+                    flush();
+
+                    return null;
             }
         }
     }
@@ -431,6 +453,67 @@ class WPS extends RestoModule {
             RestoLogUtil::httpError(404);
         }
     }
+
+
+    private function forward($url) {
+//         $this->context->outputFormat =  'xml';
+    
+        // Call the WPS Server
+        $ch = curl_init($url);
+    
+        $options = array(
+                CURLOPT_RETURNTRANSFER 	=> true,
+                CURLOPT_VERBOSE			=> RestoLogUtil::$debug ? 1 : 0,
+                CURLOPT_TIMEOUT         => 60,
+                CURLOPT_RETURNTRANSFER  => 1,
+                CURLOPT_FOLLOWLOCATION  => 1,
+                CURLOPT_FAILONERROR     => 1
+        );
+    
+        /*
+         * Sets request options.
+         */
+        curl_setopt_array($ch, $options);
+    
+        /*
+         * Get the response
+        */
+        $response = curl_exec($ch);
+        
+        /*
+         * Checks errors.
+         */
+        if(curl_errno($ch))
+        {
+            $error = curl_error($ch);
+            /*
+             * logs error.
+            */
+            error_log(__METHOD__ . ' ' . $error, 0);
+            /*
+             * Close cURL session
+            */
+            curl_close($ch);
+            /*
+             * Throw cURL exception
+            */
+            throw new Exception($error, 500);
+        }
+    
+        curl_close($ch);
+        return $response;
+    }
+    
+    /**
+     * Returns IP address of wps server.
+     */
+    private function getWPSServerAddress(){
+        $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
+        $wps_port = parse_url($this->wpsServerUrl, PHP_URL_PORT);
+
+        return ($wps_host . ':' . $wps_port);
+    }
+    
     
     /**
      * We call the WPS server
@@ -533,12 +616,12 @@ class WPS extends RestoModule {
         $server_host = $server_endpoint['host'];
         $server_port = isset($server_endpoint['port']) ? $server_endpoint['port'] : 80;
         
-        $server_address = $server_host . ':' . $server_port . $server_endpoint['path'];
+        $server_address = $server_host . ':' . $server_port . $server_endpoint['path'] . '/' . $this->route;
         
         $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
         $wps_port = parse_url($this->wpsServerUrl, PHP_URL_PORT);
         $wps_address = $wps_host . ':' . $wps_port; 
-        
+
         return str_replace($wps_address, $server_address, $text);
     }
 }
@@ -683,7 +766,7 @@ class ExecuteResponse extends WPSResponse {
         if ($report && count($report)>0){
             $exception = $report[0]->xpath('.//ows:Exception');
             if ($exception && count($exception)>0){
-                $exceptionText = $exception[0]->xppath('.//ows:ExceptionText');
+                $exceptionText = $exception[0]->xpath('.//ows:ExceptionText');
                 if ($exceptionText && count($exceptionText)>0){
                     $this->statusMessage = $exceptionText[0]->__toString();
                 }
@@ -820,3 +903,51 @@ class ExecuteResponse extends WPSResponse {
 }
 
 class ExecuteResponseException extends Exception { }
+
+/**
+ * Request util.
+ */
+class Request {
+    
+    public static function execute($url){
+        // Call the WPS Server
+        $ch = curl_init($url);
+        
+        $options = array(
+                CURLOPT_RETURNTRANSFER 	=> true,
+                CURLOPT_VERBOSE			=> RestoLogUtil::$debug ? 1 : 0,
+                CURLOPT_TIMEOUT         => 60,
+                CURLOPT_RETURNTRANSFER  => 1,
+                CURLOPT_FOLLOWLOCATION  => 1,
+                CURLOPT_FAILONERROR     => 1
+        );
+        
+        /*
+         * Sets request options.
+        */
+        curl_setopt_array($ch, $options);
+        
+        /*
+         * Get the response
+        */
+        $response = curl_exec($ch);
+        
+        if(curl_errno($ch))
+        {
+            $error = curl_error($ch);
+            /*
+             * logs error.
+            */
+            error_log(__METHOD__ . ' ' . $error, 0);
+            /*
+             * Close cURL session
+            */
+            curl_close($ch);
+            /*
+             * Throw cURL exception
+            */
+            throw new Exception($error, 500);
+        }
+        return $response;
+    }
+}

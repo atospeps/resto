@@ -65,7 +65,13 @@ class RestoModel_sentinel2 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-        
+
+        $this->searchFilters['eo:orbitDirection'] = array (
+                'key' => 'orbitDirection',
+                'osKey' => 'orbitDirection',
+                'operation' => '=',
+                'options' => 'auto'
+        );
     }
     
     /**

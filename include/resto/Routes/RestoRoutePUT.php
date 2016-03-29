@@ -79,12 +79,31 @@ class RestoRoutePUT extends RestoRoute {
         /*
          * {collection} is mandatory and no modifier is allowed
          */
-        if (!isset($segments[1]) || isset($segments[3])) {
+        if (!isset($segments[1])) {
             RestoLogUtil::httpError(404);
         }
         
         $collection = new RestoCollection($segments[1], $this->context, $this->user, array('autoload' => true));
-        $featureIdentifier = isset($segments[2]) ? $segments[2] : null;
+
+        //Segment 2 can have three values = feature identifier, title and null
+        if (isset($segments[2])) {
+            if ($segments[2] == 'title') {
+                //Segment 3 must have the feature title
+                if(isset($segments[3])){
+                    $featureTitle = $segments[3];
+                }else{
+                    RestoLogUtil::httpError(404);
+                }
+                $featureIdentifier = null;
+            }else{
+                // If it's set and it's not 'title', means it has the identifier
+                $featureIdentifier = $segments[2];
+            } 
+        }else{
+            // There's no value, so it's null
+            $featureIdentifier = null;
+        }
+        
         if (isset($featureIdentifier)) {
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureIdentifier' => $featureIdentifier,
@@ -105,7 +124,7 @@ class RestoRoutePUT extends RestoRoute {
         /*
          * collections/{collection}
          */
-        if (!isset($feature)) {
+        if (!isset($feature) && !isset($featureTitle)) {
             $collection->loadFromJSON($data, true);
             $this->storeQuery('update', $collection->name, null);
             return RestoLogUtil::success('Collection ' . $collection->name . ' updated');
@@ -113,11 +132,17 @@ class RestoRoutePUT extends RestoRoute {
         /*
          * collections/{collection}/{feature}
          */
-        else {
-            //$this->storeQuery('update', $collection->name, $featureIdentifier);
-            RestoLogUtil::httpError(501);
+        elseif(isset($feature) && !isset($featureTitle)) {
+            $collection->updateFeature($data, $featureIdentifier);
+            return RestoLogUtil::success('Feature ' . $featureIdentifier . ' updated');
         }
-        
+        /*
+         * collections/{collection}/title/{titleFeature}
+         */
+        if (isset($featureTitle)) {
+            $collection->updateFeature($data, null, $featureTitle);
+            return RestoLogUtil::success('Feature with title ' . $featureTitle . ' updated');
+        }
     }
     
     /**

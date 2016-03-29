@@ -732,6 +732,63 @@ abstract class RestoModel {
     }
     
     /**
+     * Update feature within {collection}.features table following the class model
+     *
+     * @param array $data : array (MUST BE GeoJSON in abstract Model)
+     * @param string $featureIdentifier : the id of the feature (not obligatory)
+     * @param string $featureTitle : the title of the feature (not obligatory)
+     * @param RestoCollection $collection
+     *
+     */
+    public function updateFeature($data, $featureIdentifier=null, $featureTitle=null, $collection) {
+    
+        /*
+         * Assume input file or stream is a JSON Feature
+         */
+        if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
+            RestoLogUtil::httpError(500, 'Invalid feature description');
+        }
+    
+        /*
+         * Remap properties between RESTo model and input
+         * GeoJSON Feature file
+         */
+        $properties = $this->mapInputProperties($data['properties']);
+    
+        /*
+         * Store feature
+         */
+        // We use the identifier as the key
+        if (!is_null($featureIdentifier)) {
+            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+                'collection' => $collection,
+                'featureArray' => array (
+                    'type' => 'Feature',
+                    'id' => $featureIdentifier,
+                    'geometry' => $data['geometry'],
+                    'properties' => array_merge($properties, array (
+                        'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
+                    ))
+                )
+            ));
+        }
+        // We use the title as key
+        if (!is_null($featureTitle)) {
+            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+                'collection' => $collection,
+                'featureArray' => array (
+                    'type' => 'Feature',
+                    'title' => $featureTitle,
+                    'geometry' => $data['geometry'],
+                    'properties' => array_merge($properties, array (
+                        'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
+                    ))
+                )
+            ));
+        }
+    }
+    
+    /**
      * Get facet fields from model
      */
     public function getFacetFields() {

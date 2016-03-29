@@ -38,6 +38,7 @@
  *    |  GET     collections/{collection}/{feature}/download   |  Download {feature}
  *    |  POST    collections/{collection}                      |  Insert new product within {collection}
  *    |  PUT     collections/{collection}/{feature}            |  Update {feature}
+ *    |  PUT     collections/{collection}/title/{title}        |  Update {feature}
  *    |  DELETE  collections/{collection}/{feature}            |  Delete {feature}
  * 
  * ** Groups **

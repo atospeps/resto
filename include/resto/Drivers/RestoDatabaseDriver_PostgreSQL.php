@@ -515,6 +515,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->updateGroup($params['groupId'], $params['groupName'], $params['groupDescription']);
+                
+            /*
+             * Store feature
+             */
+            case parent::FEATURE:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->updateFeature($params['collection'], $params['featureArray']);
                     
             default:
                 return null;

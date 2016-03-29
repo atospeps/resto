@@ -138,6 +138,15 @@ class RestoCollection {
     }
     
     /**
+     * Update feature to the {collection}.features table
+     *
+     * @param array $data : GeoJSON file or file splitted in array
+     */
+    public function updateFeature($data, $featureIdentifier=null, $featureTitle=null) {
+        return $this->model->updateFeature($data, $featureIdentifier, $featureTitle, $this);
+    }
+    
+    /**
      * Return UUIDv5 from input $identifier
      * 
      * @param string $identifier 

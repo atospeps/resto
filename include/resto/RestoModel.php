@@ -732,6 +732,45 @@ abstract class RestoModel {
     }
     
     /**
+     * Update feature within {collection}.features table following the class model
+     *
+     * @param array $data : array (MUST BE GeoJSON in abstract Model)
+     * @param RestoCollection $collection
+     *
+     */
+    public function updateFeature($data, $featureIdentifier, $collection) {
+    
+        /*
+         * Assume input file or stream is a JSON Feature
+         */
+        if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
+            RestoLogUtil::httpError(500, 'Invalid feature description');
+        }
+    
+        /*
+         * Remap properties between RESTo model and input
+         * GeoJSON Feature file
+         */
+        $properties = $this->mapInputProperties($data['properties']);
+    
+        /*
+         * Store feature
+         */
+        $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+            'collection' => $collection,
+            'featureArray' => array (
+                'type' => 'Feature',
+                'id' => $featureIdentifier,
+                'geometry' => $data['geometry'],
+                'properties' => array_merge($properties, array (
+                    'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
+                ))
+            )
+        ));
+
+    }
+    
+    /**
      * Get facet fields from model
      */
     public function getFacetFields() {

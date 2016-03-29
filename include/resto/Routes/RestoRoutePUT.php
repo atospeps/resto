@@ -114,8 +114,8 @@ class RestoRoutePUT extends RestoRoute {
          * collections/{collection}/{feature}
          */
         else {
-            //$this->storeQuery('update', $collection->name, $featureIdentifier);
-            RestoLogUtil::httpError(501);
+            $collection->updateFeature($data, $featureIdentifier);
+            return RestoLogUtil::success('Feature ' . $featureIdentifier . ' updated');
         }
         
     }

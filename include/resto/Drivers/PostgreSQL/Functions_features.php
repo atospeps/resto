@@ -157,8 +157,8 @@ class Functions_features {
         /*
          * Get database columns array
          */
-        $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray);
-        
+        $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, true);
+
         try {
             
             /*
@@ -181,6 +181,70 @@ class Functions_features {
         } catch (Exception $e) {
             pg_query($this->dbh, 'ROLLBACK');
             RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be inserted in database');
+        }
+    }
+    
+    /**
+     * Update feature within collection
+     *
+     * @param RestoCollection $collection
+     * @param array $featureArray
+     * @throws Exception
+     */
+    public function updateFeature($collection, $featureArray) {
+        /*
+         * Check that resource exists in database
+         */
+        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array (
+            'featureIdentifier' => $featureArray['id'] 
+        ))) {
+            
+            /*
+             * Get database columns array
+             */
+            $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, false, $featureArray['id']);
+            
+            // Convert the array ion a format accepted for the "update" sql query
+            $values = implode(', ', array_map(function ($v, $k) {
+                return $k . '=' . $v;
+            }, $columnsAndValues, array_keys($columnsAndValues)));
+
+            try {
+                
+                /*
+                 * First we delete the current facets
+                 */
+                
+                $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureArray['id']  . "'");
+                // Format correctly the keywords to be treated by the removeFeatureFacet function
+                $array = pg_fetch_row($result);
+                $keywords['properties']['keywords'] = json_decode($array[0], true);
+                $this->removeFeatureFacets($keywords, $collection->name);
+                
+                /*
+                 * Start transaction
+                 */
+                pg_query($this->dbh, 'BEGIN');
+                
+                
+                /*
+                 * Store feature
+                 */
+                pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureArray['id']  . "'");
+                
+                
+                /*
+                 * We insert the new facets
+                 */
+                $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
+                
+                pg_query($this->dbh, 'COMMIT');
+            } catch (Exception $e) {
+                pg_query($this->dbh, 'ROLLBACK');
+                RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be updated in database');
+            }
+        } else {
+            RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' does not exist in database');
         }
     }
     
@@ -253,29 +317,35 @@ class Functions_features {
     }
     /**
      * Convert feature array to database column/value pairs
-     * 
+     *
      * @param RestoCollection $collection
      * @param array $featureArray
      * @throws Exception
      */
-    private function getColumnsAndValues($collection, $featureArray) {
-        
-        /*
-         * Initialize columns array
-         */
-        $columns = array_merge(
-            array(
+    private function getColumnsAndValues($collection, $featureArray, $created, $featureIdentifier = null) {
+        if ($created) {
+            /*
+             * Initialize columns array
+             */
+            $columns = array_merge(array (
                 $collection->model->getDbKey('identifier') => '\'' . $featureArray['id'] . '\'',
                 $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
                 $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)',
                 'updated' => 'now()',
-                'published' => 'now()'
-            ),
-            $this->propertiesToColumns($collection, $featureArray['properties'])
-        );
-        
+                'published' => 'now()' 
+            ), $this->propertiesToColumns($collection, $featureArray['properties']));
+        } else {
+            /*
+             * Initialize update columns array
+             */
+            $columns = array_merge(array (
+                $collection->model->getDbKey('identifier') => '\'' . $featureIdentifier . '\'',
+                $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
+                $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)',
+                'updated' => 'now()' 
+            ), $this->propertiesToColumns($collection, $featureArray['properties']));
+        }
         return $columns;
-            
     }
     
     /**
@@ -405,15 +475,22 @@ class Functions_features {
     
     /**
      * Remove feature facets
-     * 
+     *
      * @param array $featureArray
      */
-    private function removeFeatureFacets($featureArray) {
+    private function removeFeatureFacets($featureArray, $collectionName = null) {
         foreach (array_keys($featureArray['properties']['keywords']) as $hash) {
-            $this->dbDriver->remove(RestoDatabaseDriver::FACET, array(
-                'hash' => $hash,
-                'collectionName' => $featureArray['properties']['collection']
-            ));
+            if (is_null($collectionName)) {
+                $this->dbDriver->remove(RestoDatabaseDriver::FACET, array (
+                    'hash' => $hash,
+                    'collectionName' => $featureArray['properties']['collection'] 
+                ));
+            } else {
+                $this->dbDriver->remove(RestoDatabaseDriver::FACET, array (
+                    'hash' => $hash,
+                    'collectionName' => $collectionName 
+                ));
+            }
         }
     }
 

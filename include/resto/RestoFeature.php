@@ -112,6 +112,13 @@ class RestoFeature {
     }
     
     /**
+     * Update feature from database
+     */
+    public function updateFromStore($collection, $featureIdentifier) {
+        $this->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array('collection' => $collection, 'feature' => $this, 'id' => $featureIdentifier));
+    }
+    
+    /**
      * Remove feature from database
      */
     public function removeFromStore() {

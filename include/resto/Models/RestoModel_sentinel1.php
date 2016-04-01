@@ -100,6 +100,19 @@ class RestoModel_sentinel1 extends RestoModel {
     }
     
     /**
+     * Update feature within {collection}.features table following the class model
+     *
+     * @param array $data : array (MUST BE GeoJSON in abstract Model)
+     * @param string $featureIdentifier : the id of the feature (not obligatory)
+     * @param string $featureTitle : the title of the feature (not obligatory)
+     * @param RestoCollection $collection
+     *
+     */
+    public function updateFeature($data, $featureIdentifier=null, $featureTitle=null, $collectionName) {
+        return parent::updateFeature($this->parse(join('',$data)), $featureIdentifier, $featureTitle, $collectionName);
+    }
+    
+    /**
      * Create JSON feature from xml string
      * 
      * @param {String} $xml : $xml string

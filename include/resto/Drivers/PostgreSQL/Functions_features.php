@@ -192,7 +192,6 @@ class Functions_features {
      * @throws Exception
      */
     public function updateFeature($collection, $featureArray) {
-<<<<<<< HEAD
         
         // If we only know the title, we get the id to make the updates
         if (isset($featureArray['id'])) {
@@ -256,61 +255,6 @@ class Functions_features {
             }
         } else {
             RestoLogUtil::httpError(409, 'Feature ' . $featureId . ' does not exist in database');
-=======
-        /*
-         * Check that resource exists in database
-         */
-        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array (
-            'featureIdentifier' => $featureArray['id'] 
-        ))) {
-            
-            /*
-             * Get database columns array
-             */
-            $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, false, $featureArray['id']);
-            
-            // Convert the array ion a format accepted for the "update" sql query
-            $values = implode(', ', array_map(function ($v, $k) {
-                return $k . '=' . $v;
-            }, $columnsAndValues, array_keys($columnsAndValues)));
-
-            try {
-                
-                /*
-                 * First we delete the current facets
-                 */
-                
-                $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureArray['id']  . "'");
-                // Format correctly the keywords to be treated by the removeFeatureFacet function
-                $array = pg_fetch_row($result);
-                $keywords['properties']['keywords'] = json_decode($array[0], true);
-                $this->removeFeatureFacets($keywords, $collection->name);
-                
-                /*
-                 * Start transaction
-                 */
-                pg_query($this->dbh, 'BEGIN');
-                
-                
-                /*
-                 * Store feature
-                 */
-                pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureArray['id']  . "'");
-                
-                
-                /*
-                 * We insert the new facets
-                 */
-                $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
-                
-                pg_query($this->dbh, 'COMMIT');
-            } catch (Exception $e) {
-                pg_query($this->dbh, 'ROLLBACK');
-                RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be updated in database');
-            }
-        } else {
-            RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' does not exist in database');
->>>>>>> branch 'dev_1.3.1.3' of https://github.com/atospeps/resto.git
         }
     }
     

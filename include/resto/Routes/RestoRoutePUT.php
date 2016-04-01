@@ -132,11 +132,7 @@ class RestoRoutePUT extends RestoRoute {
         /*
          * collections/{collection}/{feature}
          */
-<<<<<<< HEAD
         elseif(isset($feature) && !isset($featureTitle)) {
-=======
-        else {
->>>>>>> branch 'dev_1.3.1.3' of https://github.com/atospeps/resto.git
             $collection->updateFeature($data, $featureIdentifier);
             return RestoLogUtil::success('Feature ' . $featureIdentifier . ' updated');
         }

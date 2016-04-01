@@ -142,13 +142,8 @@ class RestoCollection {
      *
      * @param array $data : GeoJSON file or file splitted in array
      */
-<<<<<<< HEAD
     public function updateFeature($data, $featureIdentifier=null, $featureTitle=null) {
         return $this->model->updateFeature($data, $featureIdentifier, $featureTitle, $this);
-=======
-    public function updateFeature($data, $featureIdentifier) {
-        return $this->model->updateFeature($data, $featureIdentifier, $this);
->>>>>>> branch 'dev_1.3.1.3' of https://github.com/atospeps/resto.git
     }
     
     /**

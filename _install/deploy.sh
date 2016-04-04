@@ -38,14 +38,14 @@ then
 fi
 
 if [ -d "$TARGETDIR" ]; then
-    if [ "$(ls $DIR)" ]; then
+    if [ "$(ls $TARGETDIR)" ]; then
         echo "ERROR : $TARGETDIR is not empty. Cannot install"
         exit 1
     fi
 fi
 
-mkdir $TARGETDIR
+mkdir "$TARGETDIR"
 echo " ==> Copy files to $TARGETDIR directory"
-cp -Rf $SRCDIR/.htaccess $SRCDIR/favicon.ico $SRCDIR/index.php $SRCDIR/include $SRCDIR/lib $TARGETDIR
-echo " ==> Successfully install resto to $TARGETDIR directory"
+cp -t "$TARGETDIR" -Rf "$SRCDIR/.htaccess" "$SRCDIR/robots.txt" "$SRCDIR/favicon.ico" "$SRCDIR/index.php" "$SRCDIR/include" "$SRCDIR/lib"
+echo " ==> Successfully installed resto to $TARGETDIR directory"
 echo " ==> Now, do not forget to check $TARGETDIR/include/config.php configuration !"

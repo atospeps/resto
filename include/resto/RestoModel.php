@@ -212,6 +212,10 @@ abstract class RestoModel {
             'name' => 'geometry',
             'type' => 'GEOMETRY'
         ),
+        '_geometry' => array(
+            'name' => '_geometry',
+            'type' => 'GEOMETRY'
+        ),
         'centroid' => array(
             'name' => 'centroid',
             'type' => 'POINT'
@@ -370,7 +374,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:geometry' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'geometry',
             'operation' => 'intersects',
             'title' => 'Region of Interest defined in Well Known Text standard (WKT) with coordinates in decimal degrees (EPSG:4326)'
@@ -385,7 +389,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:box' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'box',
             'operation' => 'intersects',
             'title' => 'Region of Interest defined by \'west, south, east, north\' coordinates of longitude, latitude, in decimal degrees (EPSG:4326)'
@@ -400,7 +404,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:name' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'name',
             'operation' => 'distance',
             'title' => 'Location string e.g. Paris, France'
@@ -417,7 +421,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:lon' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'lon',
             'operation' => 'distance',
             'title' => 'Longitude expressed in decimal degrees (EPSG:4326) - should be used with geo:lat',
@@ -436,7 +440,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:lat' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'lat',
             'operation' => 'distance',
             'title' => 'Latitude expressed in decimal degrees (EPSG:4326) - should be used with geo:lon',
@@ -454,7 +458,7 @@ abstract class RestoModel {
          *  )
          */
         'geo:radius' => array(
-            'key' => 'geometry',
+            'key' => '_geometry',
             'osKey' => 'radius',
             'operation' => 'distance',
             'title' => 'Expressed in meters - should be used with geo:lon and geo:lat',
@@ -999,11 +1003,11 @@ abstract class RestoModel {
         }
         
         /*
-         * Tagger module
+         * Tag module
          */
         $keywords = array();
-        if (isset($collection->context->modules['Tagger'])) {
-            $tagger = RestoUtil::instantiate($collection->context->modules['Tagger']['className'], array($collection->context, $collection->user));
+        if (isset($collection->context->modules['Tag'])) {
+            $tagger = RestoUtil::instantiate($collection->context->modules['Tag']['className'], array($collection->context, $collection->user));
             $keywords = $tagger->getKeywords($properties, $data['geometry']);
         }
         

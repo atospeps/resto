@@ -388,19 +388,28 @@ class RestoRoutePOST extends RestoRoute {
         
         if (!isset($data['password'])) {
             RestoLogUtil::httpError(400, 'Password is not set');
-        }else{
-            $password = RestoUtil::sanitize($data['password']);
+        } else {
+            $msg = "Password must have at least eight characters and three of four character groups: 'upper-case', 'lowercase', 'digits', 'non-alphabetic'";
+
+            $password = $data['password'];
+            // Password must have at least eight characters
             if (strlen($password) >= 8) {
                 $lowercase = preg_match('/[a-z]/', $password);
                 $uppercase = preg_match('/[A-Z]/', $password);
                 $number = preg_match('/\d/', $password);
                 $special = preg_match('/[^0-9a-zA-Z *]/', $password);
-                if ((!$lowercase && !$uppercase) || (!$lowercase && !$number) || (!$lowercase && !$special) || 
-                        (!$uppercase && !$number) || (!$uppercase && !$special) || (!$number && !$special)) {
-                    RestoLogUtil::httpError(400, 'Password does not meet the requirements');
+
+                // Password must be have at least three of four character groups
+                $pwdrules = 0;
+                $pwdrules += $lowercase ? 1 : 0;
+                $pwdrules += $uppercase ? 1 : 0;
+                $pwdrules += $number ? 1 : 0;
+                $pwdrules += $special ? 1 : 0;
+                if ($pwdrules < 3) {
+                    RestoLogUtil::httpError(400, $msg);
                 }
-            }else{
-                RestoLogUtil::httpError(400, 'Password does not meet the requirements');
+            } else {
+                RestoLogUtil::httpError(400, $msg);
             }
         }        
 

@@ -145,26 +145,26 @@ class RestoModel_sentinel2 extends RestoModel {
                         'coordinates' => array($polygon),
                 ),
                 'properties' => array(
-                        'productIdentifier' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
-                        'title' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
-                        'resourceSize' => $dom->getElementsByTagName('resourceSize')->item(0)->nodeValue,
-                        'authority' => 'ESA',
-                        'startDate' => $dom->getElementsByTagName('startTime')->item(0)->nodeValue,
-                        'completionDate' => $dom->getElementsByTagName('stopTime')->item(0)->nodeValue,
-                        'productType' => $dom->getElementsByTagName('productType')->item(0)->nodeValue,
-                        'processingLevel' => $dom->getElementsByTagName('processingLevel')->item(0)->nodeValue,
-                        'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
-                        'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
-                        'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                		'orbitDirection' => $orbitDirection,
-                		'instrument'=> $dom->getElementsByTagName('instrument')->item(0)->nodeValue,
-                        'quicklook'=> $this->getLocation($dom),
-                		's2TakeId' => $dom->getElementsByTagName('s2takeid')->item(0)->nodeValue,
-                        'cloudCover' => $dom->getElementsByTagName('cloudCover')->item(0)->nodeValue,
+                    'productIdentifier' => isset($dom->getElementsByTagName('title')->item(0)->nodeValue) ? $dom->getElementsByTagName('title')->item(0)->nodeValue : NULL,
+                    'title' => isset($dom->getElementsByTagName('title')->item(0)->nodeValue) ? $dom->getElementsByTagName('title')->item(0)->nodeValue : NULL,
+                    'resourceSize' => isset($dom->getElementsByTagName('resourceSize')->item(0)->nodeValue) ? $dom->getElementsByTagName('resourceSize')->item(0)->nodeValue : NULL,
+                    'authority' => 'ESA',
+                    'startDate' => isset($dom->getElementsByTagName('startTime')->item(0)->nodeValue) ? $dom->getElementsByTagName('startTime')->item(0)->nodeValue : NULL,
+                    'completionDate' => isset($dom->getElementsByTagName('stopTime')->item(0)->nodeValue) ? $dom->getElementsByTagName('stopTime')->item(0)->nodeValue : NULL,
+                    'productType' => isset($dom->getElementsByTagName('productType')->item(0)->nodeValue) ? $dom->getElementsByTagName('productType')->item(0)->nodeValue : NULL,
+                    'processingLevel' => isset($dom->getElementsByTagName('processingLevel')->item(0)->nodeValue) ? $dom->getElementsByTagName('processingLevel')->item(0)->nodeValue : NULL,
+                    'platform' =>  isset($dom->getElementsByTagName('platform')->item(0)->nodeValue) ? $dom->getElementsByTagName('platform')->item(0)->nodeValue : NULL,
+                    'sensorMode' => isset($dom->getElementsByTagName('mode')->item(0)->nodeValue) ? $dom->getElementsByTagName('mode')->item(0)->nodeValue : NULL,
+                    'orbitNumber' => isset($dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue) ? $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue : NULL,
+                    'orbitDirection' => $orbitDirection,
+                    'instrument'=> isset($dom->getElementsByTagName('instrument')->item(0)->nodeValue) ? $dom->getElementsByTagName('instrument')->item(0)->nodeValue : NULL,
+                    'quicklook'=> $this->getLocation($dom),
+                    's2TakeId' => isset($dom->getElementsByTagName('s2takeid')->item(0)->nodeValue) ? $dom->getElementsByTagName('s2takeid')->item(0)->nodeValue : NULL,
+                    'cloudCover' => isset($dom->getElementsByTagName('cloudcover')->item(0)->nodeValue) ? $dom->getElementsByTagName('cloudcover')->item(0)->nodeValue : NULL,
                 )
-        );
+      );
 
-        return $feature;
+      return $feature;
     }
 
     function getLocation($dom) {

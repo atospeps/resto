@@ -539,9 +539,17 @@ class Alerts extends RestoModule {
         $curl = curl_init();
         curl_setopt_array($curl, array (
                 CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_URL => $url 
+                CURLOPT_URL => $url,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0
         ));
+
         $products = curl_exec($curl);
+        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if(curl_errno($curl)){
+          $error = curl_error($curl);
+          throw new Exception($error);
+        }
         curl_close($curl);
         return $products;
     }

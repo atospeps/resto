@@ -414,24 +414,6 @@ abstract class RestoModel {
                     'operation' => '=',
                     'options' => 'auto' 
             ),
-            'eo:polarisation' => array (
-                'key' => 'polarisation',
-                'osKey' => 'polarisation',
-                'operation' => '=',
-                'options' => 'auto'
-            ),
-            'eo:orbitDirection' => array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-            ),
-            'eo:swath' => array (
-                'key' => 'swath',
-                'osKey' => 'swath',
-                'operation' => '=',
-                'options' => 'auto'
-            ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',
                     'osKey' => 'cloudCover',
@@ -558,40 +540,6 @@ abstract class RestoModel {
                     'operation' => '>=',
                     'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
             ),
-            /*
-             * Outil de recherche simple:
-             * Ajout de critères de recherche dans l'api REST OpenSearch
-             */
-            'startPublishedDate' => array (
-                    'key' => 'published',
-                    'osKey' => 'startPublishedDate',
-                    'operation' => '>=',
-                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
-                    'title' => 'Beginning of the time slice of the publish period. Format should follow RFC-3339' 
-            ),
-            'endPublishedDate' => array (
-                    'key' => 'published',
-                    'osKey' => 'endPublishedDate',
-                    'operation' => '<=',
-                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
-                    'title' => 'End of the time slice of the publish period. Format should follow RFC-3339' 
-            ),
-            
-            'startUpdatedDate' => array (
-                    'key' => 'updated',
-                    'osKey' => 'startUpdatedDate',
-                    'operation' => '>=',
-                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
-                    'title' => 'Beginning of the time slice of the update period. Format should follow RFC-3339' 
-            ),
-            
-            'endUpdatedDate' => array (
-                    'key' => 'updated',
-                    'osKey' => 'endUpdatedDate',
-                    'operation' => '<=',
-                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
-                    'title' => 'End of the time slice of the update period. Format should follow RFC-3339' 
-            ) 
     );
     public $extendedProperties = array ();
     

@@ -111,6 +111,20 @@ class Functions_users {
         if ($this->userExists($profile['email'])) {
             RestoLogUtil::httpError(500, 'Cannot save user profile - user already exist');
         }
+        if (isset($profile['domain'])) {
+            // Checks if domain value is valid.
+            $possibleValues = array('research', 'commercial', 'education', 'other');
+            if (!is_string($profile['domain']) || in_array($profile['domain'], $possibleValues) == false) {
+                RestoLogUtil::httpError(500, 'Cannot save user profile - invalid user domain');
+            }
+        }
+        if (isset($profile['use'])) {
+            // Checks if use value is valid.
+            $possibleValues = array('atmosphere', 'ocean', 'land', 'emergency', 'security', 'other');
+            if (!is_string($profile['use']) || in_array($profile['use'], $possibleValues) == false) {
+                RestoLogUtil::httpError(500, 'Cannot save user profile - invalid user use');
+            }
+        }
         $email = trim(strtolower($profile['email']));
         $values = "'" . pg_escape_string($email) . "',";
         $values .= "'" . (isset($profile['password']) ? RestoUtil::encrypt($profile['password']) : str_repeat('*', 40)) . "',";
@@ -144,7 +158,7 @@ class Functions_users {
         if (!is_array($profile) || (!isset($profile['email']) && !isset($profile['id']))) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
-        
+
         $values = array();
         if (isset($profile['password'])) {
             $values[] = 'password=\'' . RestoUtil::encrypt($profile['password']) . '\'';
@@ -154,6 +168,20 @@ class Functions_users {
         }
         if (isset($profile['activated'])) {
             $values[] = 'activated=' . $profile['activated'];
+        }
+        if (isset($profile['domain'])) {
+            // Checks if domain value is valid.
+            $possibleValues = array('research', 'commercial', 'education', 'other');
+            if (!is_string($profile['domain']) || in_array($profile['domain'], $possibleValues) == false){
+                RestoLogUtil::httpError(500, 'Cannot save user profile - invalid user domain');
+            }
+        }
+        if (isset($profile['use'])) {
+            // Checks if use value is valid.
+            $possibleValues = array('atmosphere', 'ocean', 'land', 'emergency', 'security', 'other');
+            if (!is_string($profile['use']) || in_array($profile['use'], $possibleValues) == false){
+                RestoLogUtil::httpError(500, 'Cannot save user profile - invalid user use');
+            }
         }
         foreach ( array_values ( array (
 				'username', 'givenname', 'lastname',

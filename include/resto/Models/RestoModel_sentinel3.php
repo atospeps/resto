@@ -44,17 +44,13 @@
  * Input metadata is an XML file 
  * 
  */
-class RestoModel_sentinel2 extends RestoModel {
+class RestoModel_sentinel3 extends RestoModel {
     
     public $extendedProperties = array(
-        's2TakeId' => array(
-            'name' => 's2takeid',
-            'type' => 'TEXT'
-        ),
-        'orbitDirection' => array(
-            'name' => 'orbitDirection',
-            'type' => 'TEXT'
-        )
+            'orbitDirection' => array(
+                    'name' => 'orbitDirection',
+                    'type' => 'TEXT'
+            )
     );
     
     /**
@@ -113,34 +109,17 @@ class RestoModel_sentinel2 extends RestoModel {
     /**
      * Create JSON feature from new resource xml string
      *
-     * <product>
-    <title>S1A_IW_OCN__2SDV_20150727T044706_20150727T044731_006992_0097D1_F6DA</title>
-    <resourceSize>6317404</resourceSize>
-    <startTime>2015-07-27T04:47:06.611</startTime>
-    <stopTime>2015-07-27T04:47:31.061</stopTime>
-    <productType>OCN</productType>
-    <missionId>S1A</missionId>
-    <processingLevel>1</processingLevel>
-    <mode>IW</mode>
-    <absoluteOrbitNumber>6992</absoluteOrbitNumber>
-    <orbitDirection>ASCENDING</orbitDirection>
-    <s2takeid>38865</s2takeid>
-    <cloudcover>0.0</cloudcover>
-    <instrument>Multi-Spectral Instrument</instrument>
-    <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
-    </product>
-     *
      * @param {DOMDocument} $dom : $dom DOMDocument
      */
     private function parseNew($dom){
-    	
-    	/*
-    	 * Retreives orbit direction
-    	 */
-    	$orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
+        
+        /*
+         * Retreives orbit direction
+         */
+        $orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
 
-    	$polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
-    	
+        $polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
+        
         /*
          * Initialize feature
          */
@@ -165,8 +144,7 @@ class RestoModel_sentinel2 extends RestoModel {
                     'orbitDirection' => $orbitDirection,
                     'instrument'=> $this->getElementByName($dom, 'instrument'),
                     'quicklook'=> $this->getLocation($dom),
-                    's2TakeId' => $this->getElementByName($dom, 's2takeid'),
-                    'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
+                    'cloudCover' => 0,
                     'isNrt' => $this->getElementByName($dom, 'isNrt'),
                     'realtime' => $this->getElementByName($dom, 'realtime')
                 )
@@ -175,14 +153,12 @@ class RestoModel_sentinel2 extends RestoModel {
       return $feature;
     }
 
-    
-    
     function getLocation($dom) {
         $startTime = $dom->getElementsByTagName('startTime')->item(0)->nodeValue;
         $startTime = explode("T", $startTime);
         $result = str_replace("-","/",$startTime[0]);
         $missionId = $dom->getElementsByTagName('missionId')->item(0)->nodeValue;
         $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
-	return $result."/".$missionId."/".$title;
+        return $result."/".$missionId."/".$title;
     }
 }

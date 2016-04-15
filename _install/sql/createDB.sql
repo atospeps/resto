@@ -144,7 +144,10 @@ CREATE TABLE resto.features (
     lu_water            NUMERIC DEFAULT 0,
     hashes              TEXT[],
     snowcover           NUMERIC,
-    cloudcover          NUMERIC
+    cloudcover          NUMERIC,
+    new_version         TEXT,
+    isnrt               INTEGER DEFAULT 0,
+    realtime            TEXT
 );
 CREATE INDEX idx_identifier_features ON resto.features (identifier);
 

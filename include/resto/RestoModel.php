@@ -213,6 +213,18 @@ abstract class RestoModel {
                     'name' => 'visible',
                     'type' => 'INTEGER',
                     'notDisplayed' => true 
+            ),
+            'newVersion' => array (
+                    'name' => 'new_version',
+                    'type' => 'TEXT',
+            ) ,
+            'isNrt' => array (
+                    'name' => 'isnrt',
+                    'type' => 'INTEGER',
+            ) ,
+            'realtime' => array (
+                    'name' => 'realtime',
+                    'type' => 'TEXT',
             ) 
     );
     
@@ -540,6 +552,26 @@ abstract class RestoModel {
                     'operation' => '>=',
                     'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
             ),
+            'resto:isNrt' => array (
+                    'key' => 'isNrt',
+                    'osKey' => 'isNrt',
+                    'operation' => '=',
+                    'minInclusive' => 0,
+                    'maxInclusive' => 1,
+                    'title' => 'Near RealTime Products' 
+            		
+            ),
+            'resto:realtime' => array (
+                    'key' => 'realtime',
+                    'osKey' => 'realtime',
+                    'operation' => '=',
+            		'title' => 'Near RealTime Products',
+                    'keyword' => array (
+                            'value' => '{:realtime:}',
+                            'type' => 'realtime' 
+                    ),
+                    'options' => 'auto' 
+            ),
     );
     public $extendedProperties = array ();
     
@@ -786,6 +818,10 @@ abstract class RestoModel {
         }
         
         return true;
+    }
+    
+    protected function getElementByName($dom, $tagName) {
+    	return isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
     }
     
     /**

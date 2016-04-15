@@ -1,0 +1,33 @@
+{
+    "name": "S3",
+    "model": "RestoModel_sentinel3",
+    "status": "public",
+    "osDescription": {
+        "fr": {
+            "ShortName": "Sentinel-3",
+            "LongName": "Données Sentinel-3",
+            "Description": "La mission SENTINEL-3 est constituée de plusieurs satellites équipés de 4 capteurs (2 optiques, 1 radar et 1 radiométrique) dont l'objectif est de fournir aux pays européens des données complètes et actualisées leur permettant d'assurer le contrôle et la surveillance de l'environnement.",
+            "Tags": "sentinel3 sentinel s3 esa cnes optical altimetry radiometry",
+            "Developper": "Atos",
+            "Contact": "exppeps@cnes.fr",
+            "Query": "France",
+            "Attribution": "ESA. Copyright 2014, All Rights Reserved"
+        },
+        "en": {
+            "ShortName": "Sentinel-3",
+            "LongName": "Sentinel-3 data",
+            "Description": "The SENTINEL-3 mission is an environment monitoring constellation of several satellites each equipped with 4 instruments providing optical, altimetric and radiometric data.",
+            "Tags": "sentinel3 sentinel s3 esa cnes optical altimetry radiometry",
+            "Developper": "Atos",
+            "Contact": "exppeps@cnes.fr",
+            "Query": "France",
+            "Attribution": "ESA. Copyright 2014, All Rights Reserved"
+        }
+    },
+    "propertiesMapping":{
+        "parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-3:",
+        "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg",
+        "resource" : "/hpss/peps/data/{:quicklook:}.zip",
+        "resourceMimeType": "application/zip"
+    }
+}

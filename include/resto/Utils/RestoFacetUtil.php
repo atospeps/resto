@@ -46,6 +46,10 @@ class RestoFacetUtil {
             'swath'
         ),
         array(
+            'isNrt',
+        	'realtime'
+        ),
+        array(
             'continent',
             'country',
             'region',

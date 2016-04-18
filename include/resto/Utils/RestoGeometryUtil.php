@@ -255,7 +255,7 @@ class RestoGeometryUtil {
          * Patterns
         */
         $lon = $lat = '[-]?[0-9]{1,3}\.?[0-9]*';
-        $values = "($lon $lat)(\s*,\s*$lon $lat)*";
+        $values = "($lon\s+$lat)(\s*,\s*$lon\s+$lat)*";
         $pattern = "/^POLYGON\s*\(\s*\(\s*($values)\s*\)\s*\)$/i";
         /*
          * Checks input parameter (WKT String)

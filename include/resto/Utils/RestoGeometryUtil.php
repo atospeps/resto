@@ -271,7 +271,8 @@ class RestoGeometryUtil {
                  * For each coordinate, stores lon/lat
                 */
                 for($i = 0; $i < count($coordinates); $i++) {
-                    $coordinates[$i] = explode(' ', $coordinates[$i]);
+                    preg_match_all("/$lon/", $coordinates[$i], $coord_matches);
+                    $coordinates[$i] = $coord_matches[0];
                 }
             }
         } else {

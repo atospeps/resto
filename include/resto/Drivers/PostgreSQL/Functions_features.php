@@ -126,6 +126,24 @@ class Functions_features {
     
     /**
      * Check if feature identified by $identifier exists within {schemaName}.features table
+     *
+     * @param string $identifier - feature unique identifier
+     * @param string $schema - schema name
+     * @return boolean
+     * @throws Exception
+     */
+    public function getOldFeature($partial_identifier, $schema = null) {
+        $query = 'SELECT * FROM ' . pg_escape_string($schema) . '.features WHERE productidentifier LIKE \'' . pg_escape_string($partial_identifier) . '\'';
+        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
+        if (empty($results)) {
+            return false;
+        }else{
+            return $results[0];
+        }
+    }
+    
+    /**
+     * Check if feature identified by $identifier exists within {schemaName}.features table
      * 
      * @param string $identifier - feature unique identifier 
      * @param string $schema - schema name
@@ -255,6 +273,44 @@ class Functions_features {
             }
         } else {
             RestoLogUtil::httpError(409, 'Feature ' . $featureId . ' does not exist in database');
+        }
+    }
+    
+    /**
+     * Update feature within collection
+     *
+     * @param RestoCollection $collection
+     * @param array $featureArray
+     * @throws Exception
+     */
+    public function updateOldFeature($collection, $featureArray) {
+
+        $columnsAndValues = array (
+            $collection->model->getDbKey('visible') => 0,
+            $collection->model->getDbKey('newVersion') => "'" . $featureArray["new_version"] . "'" ,
+            'updated' => 'now()' 
+        );
+        // Convert the array ion a format accepted for the "update" sql query
+        $values = implode(', ', array_map(function ($v, $k) {
+            return $k . '=' . $v;
+        }, $columnsAndValues, array_keys($columnsAndValues)));
+        
+        try {
+            
+            /*
+             * Start transaction
+             */
+            pg_query($this->dbh, 'BEGIN');
+            
+            /*
+             * Store feature
+             */
+            pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE productidentifier='" . $featureArray['title'] . "'");
+
+            pg_query($this->dbh, 'COMMIT');
+        } catch (Exception $e) {
+            pg_query($this->dbh, 'ROLLBACK');
+            RestoLogUtil::httpError(500, 'Previous feature ' . $featureId . ' cannot be updated in database');
         }
     }
     

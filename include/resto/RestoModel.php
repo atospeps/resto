@@ -690,6 +690,23 @@ abstract class RestoModel {
         } else {
             $featureIdentifier = $data['id'];
         }
+
+        /*
+         * Validate if the feature is a new version of an already created one
+         */
+        $oldVersion = $this->hasOldFeature($data['id'], $collection);
+
+        // If we have an old version of the feature, has to be updated
+        if ($oldVersion !== false) {
+            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
+                'collection' => $collection,
+                'featureArray' => array (
+                    'type' => 'Feature',
+                    'title' => $oldVersion["productidentifier"],
+                    'new_version' => $featureIdentifier
+                )
+            ));
+        }
         
         /*
          * Store feature
@@ -705,7 +722,7 @@ abstract class RestoModel {
                         )) 
                 ) 
         ));
-        
+
         return new RestoFeature($collection->context, $collection->user, array (
                 'featureIdentifier' => $featureIdentifier 
         ));
@@ -851,5 +868,42 @@ abstract class RestoModel {
         }
         
         return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
+    }
+    
+    /**
+     * Verify if a previous version of the feature exists
+     *
+     * @param string $featureIdentifier
+     * @param string $collection
+     */
+    private function hasOldFeature($product_indetifier, $collection) {
+        // We verify all the cases by collection
+        switch ($collection->name) {
+            case 'S1' :
+                $partial_indetifier = substr($product_indetifier, 0, -4);
+                return $this->validateOldVersion($partial_indetifier . '%', $collection);
+                break;
+            case 'S2' :
+                $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
+                return $this->validateOldVersion($partial_indetifier, $collection);
+                break;
+            case 'S3' :
+                $partial_indetifier = substr($product_indetifier, 0, -80) . '%' . substr($product_indetifier, 32);
+                return $this->validateOldVersion($partial_indetifier, $collection);
+                break;           
+            default :
+                return false;
+                break;
+        }
+    }
+    
+    /**
+     * Get the old version of a feature
+     *  
+     *  @param string $featureIdentifier
+     */
+    private function validateOldVersion($partial_indetifier, $collection){ 
+        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION, 
+                array('partial_indentifier' => $partial_indetifier, 'schema' => '_' . strtolower($collection->name)));
     }
 }

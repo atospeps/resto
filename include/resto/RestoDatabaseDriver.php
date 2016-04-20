@@ -60,6 +60,7 @@ abstract class RestoDatabaseDriver {
     const ORDER_SIZE = 36;
     const GROUP_DESCRIPTIONS = 37;
     const USER_DOWNLOADED_VOLUME = 38;
+    const FEATURES_OLD_VERSION = 39;
     
     /*
      * Results per page

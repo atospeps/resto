@@ -97,11 +97,18 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $featuresFunctions->getFeatureDescription($params['context'], $params['user'], $params['featureIdentifier'], isset($params['collection']) ? $params['collection'] : null, isset($params['filters']) ? $params['filters'] : array());
             
             /*
+             * Get old version of the feature going to be inserted
+             */
+            case parent::FEATURES_OLD_VERSION:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->getOldFeature($params['partial_indentifier'], $params['schema']);
+                
+            /*
              * Get feature collections description
              */
             case parent::FEATURES_DESCRIPTIONS:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options']);
+                return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options']);                
             
             /*
              * Get Keywords
@@ -522,6 +529,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::FEATURE:
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->updateFeature($params['collection'], $params['featureArray']);
+                
+           /*
+            * Update the old version of the feature going to be inserted
+            */
+            case parent::FEATURES_OLD_VERSION:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->updateOldFeature($params['collection'], $params['featureArray']);
                     
             default:
                 return null;
@@ -572,6 +586,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @throws Exception
      */
     public function query($query, $errorCode = 500, $errorMessage = null) {
+        
         try {
             $results = pg_query($this->dbh, $query);
             if (!$results) {

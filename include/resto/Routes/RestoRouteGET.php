@@ -769,6 +769,10 @@ class RestoRouteGET extends RestoRoute {
             }
         }
         
+        if(isset($featureProp['properties']['visible']) && $featureProp['properties']['visible'] == 0) {
+            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $featureProp['properties']['newVersion']);
+        }
+        
         // Secondly we verify all the rights
         /*
          * User do not have right to download product

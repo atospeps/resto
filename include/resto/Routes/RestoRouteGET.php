@@ -253,12 +253,14 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_apiUsersConnect() {
         if (isset($this->user->profile['email']) && $this->user->profile['activated'] === 1) {
+
             $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => strtolower($this->user->profile['email'])));
-            if (isset($this->context->query['admin'])) {
-                $this->user->token = $this->context->createToken($this->user->profile['userid'], $profile,  $this->context->query['admin']);
-            }else{
-                $this->user->token = $this->context->createToken($this->user->profile['userid'], $profile,  false);
-            } 
+
+            // Refresh token
+            $isadmin = $profile['groupname'] === 'admin' ? true : false;
+            $this->user->token = $this->context->createToken($profile['userid'], $profile,  $isadmin);
+
+            // Returns token
             return array(
                 'token' => $this->user->token
             );

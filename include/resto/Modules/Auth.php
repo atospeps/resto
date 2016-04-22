@@ -336,7 +336,8 @@ class Auth extends RestoModule {
             RestoLogUtil::httpError(401, 'Unauthorized');
         }
         
-        return $this->context->createToken($user->profile['userid'], $user->profile);
+        $isadmin = $user->profile['groupname'] === 'admin' ? true : false;
+        return $this->context->createToken($user->profile['userid'], $user->profile, $isadmin);
         
     }
     

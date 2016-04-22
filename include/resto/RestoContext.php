@@ -174,13 +174,10 @@ class RestoContext {
      * @param json $jsonData
      * @return string
      */
-    public function createToken($identifier, $jsonData, $administration = false) {
+    public function createToken($identifier, $jsonData, $isadmin = false) {
         $expiration = time();
-        if($administration) {
-            $expiration +=  $this->tokenAdministrationDuration;
-        } else {
-            $expiration +=  $this->tokenDuration;
-        }
+        $expiration += $isadmin ? $this->tokenAdministrationDuration : $this->tokenDuration;
+
         return JWT::encode(array(
             'iss' => 'resto:server',
             'sub' => $identifier,

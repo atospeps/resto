@@ -211,20 +211,19 @@ abstract class RestoModel {
             ),
             'visible' => array (
                     'name' => 'visible',
-                    'type' => 'INTEGER',
-                    'notDisplayed' => true 
+                    'type' => 'INTEGER'
             ),
             'newVersion' => array (
                     'name' => 'new_version',
-                    'type' => 'TEXT',
+                    'type' => 'TEXT'
             ) ,
             'isNrt' => array (
                     'name' => 'isnrt',
-                    'type' => 'INTEGER',
+                    'type' => 'INTEGER'
             ) ,
             'realtime' => array (
                     'name' => 'realtime',
-                    'type' => 'TEXT',
+                    'type' => 'TEXT'
             ) 
     );
     

@@ -253,12 +253,14 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_apiUsersConnect() {
         if (isset($this->user->profile['email']) && $this->user->profile['activated'] === 1) {
+
             $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => strtolower($this->user->profile['email'])));
-            if (isset($this->context->query['admin'])) {
-                $this->user->token = $this->context->createToken($this->user->profile['userid'], $profile,  $this->context->query['admin']);
-            }else{
-                $this->user->token = $this->context->createToken($this->user->profile['userid'], $profile,  false);
-            } 
+
+            // Refresh token
+            $isadmin = $profile['groupname'] === 'admin' ? true : false;
+            $this->user->token = $this->context->createToken($profile['userid'], $profile,  $isadmin);
+
+            // Returns token
             return array(
                 'token' => $this->user->token
             );
@@ -765,6 +767,10 @@ class RestoRouteGET extends RestoRoute {
                 $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
+        }
+        
+        if(isset($featureProp['properties']['visible']) && $featureProp['properties']['visible'] == 0) {
+            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $featureProp['properties']['newVersion']);
         }
         
         // Secondly we verify all the rights

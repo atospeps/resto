@@ -154,22 +154,18 @@ class RestoRoutePOST extends RestoRoute {
             if (!isset($this->user->profile['email']) || $this->user->profile['activated'] !== 1) {
                 throw new Exception();
             }
-            if (isset($this->context->query['admin'])) {
-                return array(
-                    'token' => $this->context->createToken($this->user->profile['userid'], $this->user->profile, $this->context->query['admin'])
-                );
-            }else{
-                return array(
-                    'token' => $this->context->createToken($this->user->profile['userid'], $this->user->profile, false)
-                );
-            }
 
+            $isadmin = $this->user->profile['groupname'] === 'admin' ? true : false;
+            $this->user->token = $this->context->createToken($this->user->profile['userid'], $this->user->profile,  $isadmin);
+
+            return array(
+                'token' => $this->user->token
+            );
         } catch (Exception $ex) {
             RestoLogUtil::httpError(403);
         }
-
     }
-    
+
     /**
      * Process api/users/disconnect
      */

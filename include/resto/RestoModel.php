@@ -691,21 +691,26 @@ abstract class RestoModel {
             $featureIdentifier = $data['id'];
         }
 
-        /*
-         * Validate if the feature is a new version of an already created one
-         */
-        $oldVersion = $this->hasOldFeature($data['id'], $collection);
+        // If the product identifier is set we can look for ancient versions of the product
+        if(isset($properties["productIdentifier"])){
+            /*
+            * Validate if the feature is a new version of an already created one
+            */
+            $oldVersions = $this->hasOldFeature($properties["productIdentifier"], $collection);
 
-        // If we have an old version of the feature, has to be updated
-        if ($oldVersion !== false) {
-            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
-                'collection' => $collection,
-                'featureArray' => array (
-                    'type' => 'Feature',
-                    'title' => $oldVersion["productidentifier"],
-                    'new_version' => $featureIdentifier
-                )
-            ));
+            // If we have an (or multiple) old version/s of the feature, we update them
+            if ($oldVersions !== false) {
+                foreach ($oldVersions as $oldVersion) {
+                    $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
+                        'collection' => $collection,
+                        'featureArray' => array (
+                            'type' => 'Feature',
+                            'title' => $oldVersion["productidentifier"],
+                            'new_version' => $featureIdentifier
+                        )
+                    ));
+                }
+            }
         }
         
         /*
@@ -871,39 +876,15 @@ abstract class RestoModel {
     }
     
     /**
-     * Verify if a previous version of the feature exists
-     *
-     * @param string $featureIdentifier
-     * @param string $collection
+     * We verify if the feature has an (or multiple) old feature/s. We update them in order to have
+     * a reerence to the new feature, and make them invisible
+     * 
+     * @param string $product_indetifier
+     * @param string collectionName
      */
-    private function hasOldFeature($product_indetifier, $collection) {
-        // We verify all the cases by collection
-        switch ($collection->name) {
-            case 'S1' :
-                $partial_indetifier = substr($product_indetifier, 0, -4);
-                return $this->validateOldVersion($partial_indetifier . '%', $collection);
-                break;
-            case 'S2' :
-                $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
-                return $this->validateOldVersion($partial_indetifier, $collection);
-                break;
-            case 'S3' :
-                $partial_indetifier = substr($product_indetifier, 0, -80) . '%' . substr($product_indetifier, 32);
-                return $this->validateOldVersion($partial_indetifier, $collection);
-                break;           
-            default :
-                return false;
-                break;
-        }
-    }
-    
-    /**
-     * Get the old version of a feature
-     *  
-     *  @param string $featureIdentifier
-     */
-    private function validateOldVersion($partial_indetifier, $collection){ 
-        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION, 
+    public function hasOldFeature($partial_indetifier, $collection){
+        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION,
                 array('partial_indentifier' => $partial_indetifier, 'schema' => '_' . strtolower($collection->name)));
     }
+    
 }

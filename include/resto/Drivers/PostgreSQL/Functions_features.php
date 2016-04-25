@@ -138,7 +138,7 @@ class Functions_features {
         if (empty($results)) {
             return false;
         }else{
-            return $results[0];
+            return $results;
         }
     }
     

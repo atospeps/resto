@@ -277,7 +277,7 @@ class RestoFeatureUtil {
          */
         if (!RestoUtil::isUrl($properties['resource'])) {
             $properties['resourceInfos'] = array(
-                'path' => method_exists($collection->model,'generateResourcePath') ? $collection->model->generateResourcePath($properties) : $properties['resource'],
+                'path' => method_exists($collection->model,'generateResourcePath') ? $collection->model->generateResourcePath($properties) : $properties['isNrt'] ? $properties['nrtResource'] : $properties['resource'],
                 'mimeType' => $properties['services']['download']['mimeType'],
                 'size' => isset($properties['services']['download']['size']) ? $properties['services']['download']['size'] : null,
                 'checksum' => isset($properties['services']['download']['checksum']) ? $properties['services']['download']['checksum'] : null

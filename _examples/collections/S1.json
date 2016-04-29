@@ -29,6 +29,7 @@
         "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg",
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
         "resourceMimeType": "application/zip",
-        "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}"
+        "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}",
+        "nrtResource" : "/data/NRT/{:quicklook:}.zip"
     }
 }

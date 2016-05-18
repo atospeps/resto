@@ -127,6 +127,16 @@ class RestoCollection {
     public function search() {
         return new RestoFeatureCollection($this->context, $this->user, $this);
     }
+
+    /**
+     * Count features within collections
+     *
+     * @return int
+     */
+    public function countFeature() {
+        $featureCollection = new RestoFeatureCollection($this->context, $this->user, $this, true);
+        return $featureCollection->countFeature();
+    }
     
     /**
      * Add feature to the {collection}.features table

@@ -76,7 +76,7 @@ class RestoFeatureCollection {
      * @param RestoUser $user : Resto user
      * @param RestoCollection or array of RestoCollection $collections => First collection is the master collection !!
      */
-    public function __construct($context, $user, $collections) {
+    public function __construct($context, $user, $collections, $countFeature = false) {
         
         if (!isset($context) || !is_a($context, 'RestoContext')) {
             RestoLogUtil::httpError(500, 'Context is undefined or not valid');
@@ -88,7 +88,7 @@ class RestoFeatureCollection {
             $this->queryAnalyzer = new QueryAnalyzer($this->context, $this->user);
         }
  
-        $this->initialize($collections);
+        $this->initialize($collections, $countFeature);
         
     }
   
@@ -146,7 +146,7 @@ class RestoFeatureCollection {
      * @param RestoCollection or array of RestoCollection $collections
      * @return type
      */
-    private function initialize($collections) {
+    private function initialize($collections, $countFeature = false) {
         if (!isset($collections) || (is_array($collections) && count($collections) === 0)) {
             $this->defaultModel = new RestoModel_default();
         }
@@ -160,7 +160,39 @@ class RestoFeatureCollection {
             $this->defaultCollection = $this->collections[key($collections)];
             $this->defaultModel = $this->defaultCollection->model;
         }
-        return $this->loadFromStore();
+        
+        if(!$countFeature) {
+            return $this->loadFromStore();
+        }
+    }
+    
+    /**
+     * Count features according to search criteria.
+     *
+     * @return int
+     */
+    public function countFeature() {
+        /*
+         * Clean search filters
+         */
+        $originalFilters = $this->getOriginalFilters();
+        /*
+         * Query Analyzer 
+         */
+        $analysis = $this->analyze($originalFilters);
+        
+        if (isset($analysis['notUnderstood'])) {
+            return 0;
+        }
+        
+        
+        $result = array ('count' => $this->context->dbDriver->get(RestoDatabaseDriver::COUNT_FEATURES, array(
+                'context' => $this->context,
+                'user' => $this->user,
+                'collection' => isset($this->defaultCollection) ? $this->defaultCollection : null,
+                'filters' => $analysis['searchFilters'])));
+        
+        return $result;
     }
 
     /**
@@ -249,7 +281,6 @@ class RestoFeatureCollection {
             'properties' => array(
                 'title' => $analysis['analysis']['query'],
                 'id' => RestoUtil::UUIDv5((isset($this->defaultCollection) ? $this->defaultCollection->name : '*') . ':' . json_encode($query)),
-                'totalResults' => $this->totalCount !== -1 ? $this->totalCount : null,
                 'startIndex' => $offset + 1,
                 'itemsPerPage' => count($this->restoFeatures),
                 'totalItemsPerPage' => $limit,

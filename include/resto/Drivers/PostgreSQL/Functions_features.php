@@ -93,7 +93,7 @@ class Functions_features {
          * Note that the total number of results (i.e. with no LIMIT constraint)
          * is retrieved with PostgreSQL "count(*) OVER()" technique
          */
-        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ($options['count'] ? ', count(' . $model->getDbKey('identifier') . ') OVER() AS totalcount' : '') . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '') . ' ORDER BY startdate DESC LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '') . ' ORDER BY startdate DESC LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
         
         /*
          * Retrieve products from database
@@ -101,6 +101,58 @@ class Functions_features {
         return $this->toFeatureArray($context, $user, $collection, $results = $this->dbDriver->query($query));
         
     }
+
+    /**
+     *
+     * Count features corresponding to the search
+     *
+     * @param RestoContext $context
+     * @param RestoUser $user
+     * @param RestoCollection $collection
+     * @param RestoModel $params
+     * @return array
+     * @throws Exception
+     */
+    public function getSearchCount($context, $user, $collection, $params) {
+    
+        /*
+         * Search filters functions
+         */
+        $filtersUtils = new Functions_filters();
+    
+        /*
+         * Set model
+        */
+        $model = isset($collection) ? $collection->model : new RestoModel_default();
+    
+        /*
+         * Check that mandatory filters are set
+        */
+        $this->checkMandatoryFilters($model, $params);
+    
+        /*
+         * Set search filters
+        */
+        $filters = $filtersUtils->prepareFilters($model, $params);
+    
+        /*
+         * TODO - get count from facet statistic and not from count() OVER()
+         *
+         * TODO - Add filters depending on user rights
+         * $oFilter = superImplode(' AND ', array_merge($filters, $this->getRightsFilters($this->R->getUser()->getRights($this->description['name'], 'get', 'search'))));
+        */
+        $oFilter = implode(' AND ', $filters);
+    
+        $query = 'SELECT count(*) AS totalcount FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '');
+    
+        /*
+         * Retrieve products from database
+        */
+        $results = pg_fetch_assoc($this->dbDriver->query($query));
+        
+        return $results['totalcount'];
+    }
+    
     
     /**
      * 

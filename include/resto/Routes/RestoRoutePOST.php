@@ -504,6 +504,7 @@ class RestoRoutePOST extends RestoRoute {
             } else {
                 array_push($availableFeatures, $feature);
             }
+//             array_push($availableFeatures, $feature);
         }
         
         /*

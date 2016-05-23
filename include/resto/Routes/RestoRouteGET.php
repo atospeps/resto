@@ -719,14 +719,16 @@ class RestoRouteGET extends RestoRoute {
         // We get a correct array format
         $featureProp = $feature->toArray();
         //We get the size limit of the user
-        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
+        // Product with undefined size are initialized to 100Mb
+        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 104857600;
         // Refresh user profile
         $this->user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $this->user->profile['email']));
         
         /*
          * Or the user has reached his instant download limit
+         * 
          */
-        if ($size > $this->user->profile['instantdownloadvolume'] * 1000000) {
+        if ($size > $this->user->profile['instantdownloadvolume'] * 1048576) {
             $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
             return RestoLogUtil::httpError(420, "instant|" . $this->user->profile['instantdownloadvolume']);
         }

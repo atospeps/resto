@@ -423,13 +423,6 @@ class RestoRouteGET extends RestoRoute {
         else if ($segments[3] === 'check' && $segments[4] === 'download') {
             return $this->GET_featureCheckFileDownload($collection, $feature);
         }
-        
-        /*
-         * Check the zip file of the feature
-         */
-        else if ($segments[3] === 'check' && $segments[4] === 'cart') {
-            return $this->GET_featureCheckFileCart($collection, $feature);
-        }
 
         /*
          * Download feature then exit
@@ -444,23 +437,6 @@ class RestoRouteGET extends RestoRoute {
         else {
             RestoLogUtil::httpError(404);
         }
-    }
-    
-    /**
-     * We verify all the elements to add a product to the cart
-     *
-     * @param RestoCollection $collection
-     * @param RestoFeature $feature
-     * @return type
-     */
-    private function GET_featureCheckFileCart($collection, $feature) {
-        //We validate all the possible elemnts to allow the product download
-        $downloadState = $this->validateDownload($collection, $feature);
-        
-        if ($downloadState !== "OK") {
-            return $downloadState;
-        }
-        
     }
     
     /**
@@ -711,6 +687,49 @@ class RestoRouteGET extends RestoRoute {
         
         return $result;
     }
+
+    /**
+     * Validate that a user can download a certain product
+     */
+    private function validateDownload($collection, $feature) {
+        // We get a correct array format
+        $featureProp = $feature->toArray();
+    
+        // First we verify if the product's file is in our infrastructure
+        // We verify th existence of a file in the server
+        if (isset($featureProp['properties']['resourceInfos']['path'])) {
+            $filePath = $featureProp['properties']['resourceInfos']['path'];
+            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
+                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+                RestoLogUtil::httpError(404);
+            }
+            // We verify the existence of an external file
+        } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
+            $filePath = $featureProp['properties']['services']['download']['url'];
+            if ( ($fp = fopen($filePath, "rb"))===false ) {
+                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+                RestoLogUtil::httpError(404);
+            }
+        }
+    
+        if(isset($featureProp['properties']['visible']) && $featureProp['properties']['visible'] == 0) {
+            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $featureProp['properties']['newVersion']);
+        }
+    
+        // Secondly we verify all the rights
+        /*
+        * User do not have right to download product
+        */
+        if (!$this->user->canDownload($collection->name, $feature->identifier)) {
+        $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+        RestoLogUtil::httpError(403);
+        }
+    
+        /*
+        * Existinf file + rights = OK
+        */
+        return "OK";
+    }
     
     /**
      * Validate that a user can download a product by it's limit download size
@@ -743,49 +762,6 @@ class RestoRouteGET extends RestoRoute {
         }else {
             return "OK";
         }
-    }
-    
-    /**
-     * Validate that a user can download a certain product
-     */
-    private function validateDownload($collection, $feature) {
-        // We get a correct array format
-        $featureProp = $feature->toArray();
-        
-        // First we verify if the product's file is in our infrastructure
-        // We verify th existence of a file in the server
-        if (isset($featureProp['properties']['resourceInfos']['path'])) {
-            $filePath = $featureProp['properties']['resourceInfos']['path'];
-            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
-                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-                RestoLogUtil::httpError(404);
-            }
-            // We verify the existence of an external file
-        } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
-            $filePath = $featureProp['properties']['services']['download']['url'];
-            if ( ($fp = fopen($filePath, "rb"))===false ) {
-                $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-                RestoLogUtil::httpError(404);
-            }
-        }
-        
-        if(isset($featureProp['properties']['visible']) && $featureProp['properties']['visible'] == 0) {
-            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $featureProp['properties']['newVersion']);
-        }
-        
-        // Secondly we verify all the rights
-        /*
-         * User do not have right to download product
-         */
-        if (!$this->user->canDownload($collection->name, $feature->identifier)) {
-            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-            RestoLogUtil::httpError(403);
-        }
-        
-        /*
-         * Existinf file + rights = OK
-         */
-        return "OK";
     }
     
     /**

@@ -514,7 +514,10 @@ class RestoRoutePOST extends RestoRoute {
             $user->clearCart(true);
         }
         $items = $user->addToCart($availableFeatures, true);
-        $response["added"] = $items;
+
+        foreach($items as $item) {
+            array_push($response["added"], $item["id"]);    
+        }
         
         if ($items !== false) {
             return RestoLogUtil::success($response);

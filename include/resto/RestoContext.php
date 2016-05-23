@@ -115,6 +115,12 @@ class RestoContext {
      * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
      */
     private $passphrase;
+
+    /*
+     * Shared links validity duration (in seconds)
+     * Default is 1 day (i.e. 86400 seconds)
+     */
+    public $sharedLinkDuration = 86400;
     
     /*
      * JSON Web Token duration (in seconds)
@@ -269,6 +275,13 @@ class RestoContext {
          * JSON Web Token accepted encryption algorithms
          */
         $this->tokenEncryptions = $config['general']['tokenEncryptions'];
+        
+        /*
+         * Shared links validity duration
+         */
+        if (isset($config['general']['sharedLinkDuration'])) {
+            $this->sharedLinkDuration = $config['general']['sharedLinkDuration'];
+        }
         
         /*
          * JSON Web Token duration

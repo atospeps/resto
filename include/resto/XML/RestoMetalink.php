@@ -103,7 +103,7 @@ class RestoMetalink extends RestoXML {
      * @return string
      */
     private function getSharedLink($resourceUrl, $email) {
-        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $resourceUrl, 'email' => $email));
+        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $resourceUrl, 'email' => $email, 'duration' => $this->context->sharedLinkDuration));
         return $resourceUrl . (strrpos($resourceUrl, '?') === false ? '?_tk=' : '&_tk=') . $shared['token'];       
     }
     

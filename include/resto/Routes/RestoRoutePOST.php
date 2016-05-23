@@ -488,6 +488,25 @@ class RestoRoutePOST extends RestoRoute {
             ));
         }
         
+        
+        $availableFeatures = array();
+        $response = array("added" => array(),
+                "error" => array()
+        );
+        
+        // Check if features are available to download
+        foreach($features as $feature) {
+            //We validate all the possible elemnts to allow the product download
+            $downloadState = $this->checkFeatureAvailability($feature);
+            
+            if ($downloadState !== "OK") {
+                array_push($response["error"], $downloadState);
+            } else {
+                array_push($availableFeatures, $feature);
+            }
+//             array_push($availableFeatures, $feature);
+        }
+        
         /*
          * Remove items first
          */
@@ -495,12 +514,14 @@ class RestoRoutePOST extends RestoRoute {
         if ($clear) {
             $user->clearCart(true);
         }
-        $items = $user->addToCart($features, true);
+        $items = $user->addToCart($availableFeatures, true);
+
+        foreach($items as $item) {
+            array_push($response["added"], $item["id"]);    
+        }
         
         if ($items !== false) {
-            return RestoLogUtil::success('Add items to cart', array(
-                'items' => $items
-            ));
+            return RestoLogUtil::success($response);
         }
         else {
             return RestoLogUtil::error('Cannot add items to cart');

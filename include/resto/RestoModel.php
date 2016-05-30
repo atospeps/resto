@@ -92,8 +92,16 @@ abstract class RestoModel {
                     'name' => 'sensormode',
                     'type' => 'TEXT' 
             ),
-            'orbitNumber' => array (
-                    'name' => 'orbitnumber',
+            'orbitNumberAbsolute' => array (
+                    'name' => 'orbitnumberabsolute',
+                    'type' => 'NUMERIC' 
+            ),
+            'orbitNumberRelative' => array (
+                    'name' => 'orbitnumberrelative',
+                    'type' => 'NUMERIC' 
+            ),
+            'cycleNumber' => array (
+                    'name' => 'cyclenumber',
                     'type' => 'NUMERIC' 
             ),
             'quicklook' => array (
@@ -410,9 +418,27 @@ abstract class RestoModel {
                     'osKey' => 'organisationName',
                     'operation' => '=' 
             ),
-            'eo:orbitNumber' => array (
-                    'key' => 'orbitNumber',
-                    'osKey' => 'orbitNumber',
+            'eo:orbitNumberAbsolute' => array (
+                    'key' => 'orbitNumberAbsolute',
+                    'osKey' => 'orbitNumberAbsolute',
+                    'operation' => 'interval',
+                    'minInclusive' => 1,
+                    'quantity' => array (
+                            'value' => 'orbit' 
+                    ) 
+            ),
+            'eo:orbitNumberRelative' => array (
+                    'key' => 'orbitNumberRelative',
+                    'osKey' => 'orbitNumberRelative',
+                    'operation' => 'interval',
+                    'minInclusive' => 1,
+                    'quantity' => array (
+                            'value' => 'orbit' 
+                    ) 
+            ),
+            'eo:cycleNumber' => array (
+                    'key' => 'cycleNumber',
+                    'osKey' => 'cycleNumber',
                     'operation' => 'interval',
                     'minInclusive' => 1,
                     'quantity' => array (

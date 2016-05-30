@@ -92,8 +92,16 @@ abstract class RestoModel {
                     'name' => 'sensormode',
                     'type' => 'TEXT' 
             ),
-            'orbitNumber' => array (
-                    'name' => 'orbitnumber',
+            'orbitNumberAbsolute' => array (
+                    'name' => 'orbitnumberabsolute',
+                    'type' => 'NUMERIC' 
+            ),
+            'orbitNumberRelative' => array (
+                    'name' => 'orbitnumberrelative',
+                    'type' => 'NUMERIC' 
+            ),
+            'cycleNumber' => array (
+                    'name' => 'cyclenumber',
                     'type' => 'NUMERIC' 
             ),
             'quicklook' => array (
@@ -410,9 +418,27 @@ abstract class RestoModel {
                     'osKey' => 'organisationName',
                     'operation' => '=' 
             ),
-            'eo:orbitNumber' => array (
-                    'key' => 'orbitNumber',
-                    'osKey' => 'orbitNumber',
+            'eo:orbitNumberAbsolute' => array (
+                    'key' => 'orbitNumberAbsolute',
+                    'osKey' => 'orbitNumberAbsolute',
+                    'operation' => 'interval',
+                    'minInclusive' => 1,
+                    'quantity' => array (
+                            'value' => 'orbit' 
+                    ) 
+            ),
+            'eo:orbitNumberRelative' => array (
+                    'key' => 'orbitNumberRelative',
+                    'osKey' => 'orbitNumberRelative',
+                    'operation' => 'interval',
+                    'minInclusive' => 1,
+                    'quantity' => array (
+                            'value' => 'orbit' 
+                    ) 
+            ),
+            'eo:cycleNumber' => array (
+                    'key' => 'cycleNumber',
+                    'osKey' => 'cycleNumber',
                     'operation' => 'interval',
                     'minInclusive' => 1,
                     'quantity' => array (
@@ -875,34 +901,39 @@ abstract class RestoModel {
      * @param string $featureIdentifier
      * @param string $collection
      */
-    private function hasOldFeature($product_indetifier, $collection) {
+    private function hasOldFeature($productIdentifier, $collection) {
+
+        // Product identifier length
+        $length = strlen($productIdentifier);
+
         // We verify all the cases by collection
         switch ($collection->name) {
             case 'S1' :
-                $partial_indetifier = substr($product_indetifier, 0, -4);
-                return $this->validateOldVersion($partial_indetifier . '%', $collection);
+                $partialIdentifier = substr($productIdentifier, 0, $length - 4);
+                return $this->validateOldVersion($partialIdentifier . '%', $collection);
                 break;
             case 'S2' :
-                $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
-                return $this->validateOldVersion($partial_indetifier, $collection);
+                $partialIdentifier = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                return $this->validateOldVersion($partialIdentifier, $collection);
                 break;
             case 'S3' :
-                $partial_indetifier = substr($product_indetifier, 0, -80) . '%' . substr($product_indetifier, 32);
-                return $this->validateOldVersion($partial_indetifier, $collection);
-                break;           
+                $partialIdentifier = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
+                return $this->validateOldVersion($partialIdentifier, $collection);
+                break;
             default :
                 return false;
                 break;
         }
     }
-    
+
     /**
      * Get the old version of a feature
      *  
      *  @param string $featureIdentifier
      */
-    private function validateOldVersion($partial_indetifier, $collection){ 
+    private function validateOldVersion($regexIdentifier, $collection) {
         return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION, 
-                array('partial_indentifier' => $partial_indetifier, 'schema' => '_' . strtolower($collection->name)));
+                array(  'partial_indentifier' => $regexIdentifier, 
+                        'schema' => '_' . strtolower($collection->name)));
     }
 }

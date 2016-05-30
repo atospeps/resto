@@ -328,10 +328,10 @@ class RestoFeatureCollection {
             'user' => $this->user,
             'collection' => isset($this->defaultCollection) ? $this->defaultCollection : null,
             'filters' => $params,
-                'options' => array(
-                    'limit' => $limit,
-                    'offset' => $offset,
-                    'count' => $realCount
+            'options' => array(
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => $realCount
                 )
             )
         );
@@ -592,7 +592,6 @@ class RestoFeatureCollection {
      * @param array $params
      */
     private function analyze($params) {
-        
         /*
          * No searchTerms specify - leave input search filters untouched
          */

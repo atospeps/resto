@@ -138,9 +138,9 @@ class RestoModel_sentinel2 extends RestoModel {
     	/*
     	 * Retreives orbit direction
     	 */
-    	$orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
+    	$orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
 
-    	$polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
+    	$polygon = RestoGeometryUtil::wktPolygonToArray($this->getElementByName($dom, 'footprint'));
     	
         /*
          * Initialize feature

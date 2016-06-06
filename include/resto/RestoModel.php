@@ -684,13 +684,25 @@ abstract class RestoModel {
         if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
             RestoLogUtil::httpError(500, 'Invalid feature description');
         }
-    
+
         /*
          * Remap properties between RESTo model and input
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
-    
+
+        if (empty($properties['title'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+        }
+        
+        if (empty($properties['orbitDirection'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
+        }
+        
+        if (empty($properties['resourceSize'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
+        }
+
         /*
          * Compute unique identifier
         */
@@ -757,19 +769,31 @@ abstract class RestoModel {
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
      */
     public function updateFeature($feature, $data) {
-    
+
         /*
          * Assume input file or stream is a JSON Feature
          */
         if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
             RestoLogUtil::httpError(500, 'Invalid feature description');
         }
-    
+
         /*
          * Remap properties between RESTo model and input
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
+
+        if (empty($properties['title'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+        }
+        
+        if (empty($properties['orbitDirection'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
+        }
+        
+        if (empty($properties['resourceSize'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
+        }
 
         /*
          * Updates feature

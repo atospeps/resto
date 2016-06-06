@@ -58,13 +58,9 @@ class RestoModel_sentinel1 extends RestoModel {
         'missionTakeId' => array(
             'name' => 'missiontakeid',
             'type' => 'INTEGER'
-        ),
-        'orbitDirection' => array(
-            'name' => 'orbitDirection',
-            'type' => 'TEXT'
         )
     );
-    
+
     /**
      * Constructor
      * 
@@ -73,13 +69,6 @@ class RestoModel_sentinel1 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-
-        $this->searchFilters['eo:orbitDirection'] = array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-        );
         
         $this->searchFilters['eo:polarisation'] = array (
                 'key' => 'polarisation',

@@ -171,27 +171,60 @@ class Functions_features {
     public function getFeatureDescription($context, $user, $identifier, $collection = null, $filters = array()) {
         $model = isset($collection) ? $collection->model : new RestoModel_default();
         $filtersUtils = new Functions_filters();
-        $results = $this->dbDriver->query('SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('identifier') . "='" . pg_escape_string($identifier) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : ''));
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('identifier') . "='" . pg_escape_string($identifier) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : '');
+        $results = $this->dbDriver->query($query);
+        $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
+        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+    }
+
+    /**
+     *
+     * Get feature description by title
+     *
+     * @param RestoContext $context
+     * @param RestoUser $user
+     * @param integer $title
+     * @param RestoModel $model
+     * @param RestoCollection $collection
+     * @param array $filters
+     *
+     * @return array
+     * @throws Exception
+     */
+    public function getFeatureDescriptionByTitle($context, $user, $title, $collection = null, $filters = array()) {
+        $model = isset($collection) ? $collection->model : new RestoModel_default();
+        $filtersUtils = new Functions_filters();
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('title') . "='" . pg_escape_string($title) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : '');
+        $results = $this->dbDriver->query($query);
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
         return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
     }
     
     /**
-     * Check if feature identified by $identifier exists within {schemaName}.features table
+     * Returns old versions of a product
      *
-     * @param string $identifier - feature unique identifier
-     * @param string $schema - schema name
-     * @return boolean
-     * @throws Exception
+     * @param string $identifier product identifier
+     * @param string $partialIdentifier product id pattern
+     * @param RestoCollection $collection collection
+     * @return array
      */
-    public function getOldFeature($partial_identifier, $schema = null) {
-        $query = 'SELECT * FROM ' . pg_escape_string($schema) . '.features WHERE productidentifier LIKE \'' . pg_escape_string($partial_identifier) . '\'';
+    public function getOldFeatures($identifier, $partialIdentifier, $collection) {
+    
+        $schema = isset($collection) ? '_' . strtolower($collection->name) : 'resto';
+    
+        // Retreive published date of feature to store/update
+        $query = 'SELECT identifier, published FROM ' . pg_escape_string($schema) . '.features WHERE identifier=\'' . pg_escape_string($identifier) . '\'';
         $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        if (empty($results)) {
-            return false;
-        }else{
-            return $results;
-        }
+        $feature = !empty($results) ? $results[0] : null;
+    
+        // Retreive old versions of a product
+        $whereClause = 'WHERE productidentifier LIKE \'' . pg_escape_string($partialIdentifier) . '\'';
+        $whereClause .= !empty($feature) ? ' AND published < ' . $feature['published'] : '';
+    
+        $query = 'SELECT identifier FROM ' . pg_escape_string($schema) . '.features ' . $whereClause;
+    
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+        return $results;
     }
     
     /**
@@ -262,23 +295,16 @@ class Functions_features {
      * @throws Exception
      */
     public function updateFeature($collection, $featureArray) {
-        
-        // If we only know the title, we get the id to make the updates
-        if (isset($featureArray['id'])) {
-            $featureId = $featureArray['id'];
-        }elseif (isset($featureArray['title'])){
-            $result = pg_query($this->dbh, "SELECT identifier FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE productidentifier='" . $featureArray['title']  . "'");
-            $array = pg_fetch_row($result);
-            $featureId = $array[0];
-        }
-        
+
+        $featureId = $featureArray['id'];
+
         /*
          * Check that resource exists in database
          */
         if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array (
             'featureIdentifier' => $featureId 
         ))) {
-            
+
             /*
              * Get database columns array
              */
@@ -329,40 +355,49 @@ class Functions_features {
     }
     
     /**
-     * Update feature within collection
-     *
+     * Updates old version of a new product
      * @param RestoCollection $collection
-     * @param array $featureArray
-     * @throws Exception
+     * @param array $featuresArray array of products id to update
+     * @param string $newVersion
+     * @return string
      */
-    public function updateOldFeature($collection, $featureArray) {
-
+    public function updateOldFeatures($collection, $featuresArray, $newVersion) {
+    
+        // Column/Values to update into database
         $columnsAndValues = array (
-            $collection->model->getDbKey('visible') => 0,
-            $collection->model->getDbKey('newVersion') => "'" . $featureArray["new_version"] . "'" ,
-            'updated' => 'now()' 
-        );
-        // Convert the array ion a format accepted for the "update" sql query
-        $values = implode(', ', array_map(function ($v, $k) {
-            return $k . '=' . $v;
-        }, $columnsAndValues, array_keys($columnsAndValues)));
-        
+                $collection->model->getDbKey('visible') => 0,
+                $collection->model->getDbKey('newVersion') => '\'' . $newVersion . '\'' ,
+                'updated' => 'now()'
+                        );
+    
+        // Convert the array in a format accepted for the "update" sql query
+        $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
+    
+        // List of product (by id) to update
+        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($featureId) { return "'{$featureId['identifier']}'"; }, $featuresArray)));
+    
+        // Database schema
+        $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';
+    
+        // SQL update query
+        $query = 'UPDATE ' . pg_escape_string($schema) . '.features SET ' . $values
+        . ' WHERE identifier in (' . $oldFeaturesIdList . ') AND identifier <> \'' . $newVersion.'\'';
         try {
-            
+    
             /*
              * Start transaction
              */
             pg_query($this->dbh, 'BEGIN');
-            
+    
             /*
              * Store feature
-             */
-            pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE productidentifier='" . $featureArray['title'] . "'");
-
+            */
+            pg_query($this->dbh, $query);
+    
             pg_query($this->dbh, 'COMMIT');
         } catch (Exception $e) {
             pg_query($this->dbh, 'ROLLBACK');
-            RestoLogUtil::httpError(500, 'Previous feature ' . $featureId . ' cannot be updated in database');
+            RestoLogUtil::httpError(500, 'Old versions of product ' . $newVersion . ' cannot be updated in database');
         }
     }
     

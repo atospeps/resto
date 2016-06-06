@@ -45,18 +45,14 @@
  * 
  */
 class RestoModel_sentinel2 extends RestoModel {
-    
+
     public $extendedProperties = array(
         's2TakeId' => array(
             'name' => 's2takeid',
             'type' => 'TEXT'
-        ),
-        'orbitDirection' => array(
-            'name' => 'orbitDirection',
-            'type' => 'TEXT'
         )
     );
-    
+
     /**
      * Constructor
      * 
@@ -65,13 +61,6 @@ class RestoModel_sentinel2 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-
-        $this->searchFilters['eo:orbitDirection'] = array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-        );
     }
     
     /**

@@ -45,14 +45,7 @@
  * 
  */
 class RestoModel_sentinel3 extends RestoModel {
-    
-    public $extendedProperties = array(
-            'orbitDirection' => array(
-                    'name' => 'orbitDirection',
-                    'type' => 'TEXT'
-            )
-    );
-    
+
     /**
      * Constructor
      * 
@@ -61,13 +54,6 @@ class RestoModel_sentinel3 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-
-        $this->searchFilters['eo:orbitDirection'] = array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-        );
     }
     
     /**

@@ -90,18 +90,23 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $collectionsFunctions->getCollectionsDescriptions(isset($params['collectionName']) ? $params['collectionName'] : null);
             
             /*
-             * Get collections descriptions
+             * Get feature description
              */
             case parent::FEATURE_DESCRIPTION:
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->getFeatureDescription($params['context'], $params['user'], $params['featureIdentifier'], isset($params['collection']) ? $params['collection'] : null, isset($params['filters']) ? $params['filters'] : array());
-            
+            /*
+             * Get feature description by id
+             */
+            case parent::FEATURE_DESCRIPTION_BY_TITLE:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->getFeatureDescriptionByTitle($params['context'], $params['user'], $params['featureTitle'], isset($params['collection']) ? $params['collection'] : null, isset($params['filters']) ? $params['filters'] : array());
             /*
              * Get old version of the feature going to be inserted
              */
             case parent::FEATURES_OLD_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getOldFeature($params['partial_indentifier'], $params['schema']);
+                return $featuresFunctions->getOldFeatures($params['productIdentifier'], $params['partialIdentifier'], $params['collection']);
                 
             /*
              * Get feature collections description
@@ -366,7 +371,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::COLLECTION:
                 $collectionsFunctions = new Functions_collections($this);
                 return $collectionsFunctions->removeCollection($params['collection']);
-            
+
             /*
              * Remove facet
              */
@@ -542,8 +547,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             */
             case parent::FEATURES_OLD_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->updateOldFeature($params['collection'], $params['featureArray']);
-                    
+                return $featuresFunctions->updateOldFeatures($params['collection'], $params['featuresOldVersion'], $params['newVersion']);
             default:
                 return null;
         }

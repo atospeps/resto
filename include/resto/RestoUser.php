@@ -268,6 +268,29 @@ class RestoUser{
         }
         return $order;
     }
+
+    /**
+     * Create files directories (user storage)
+     */
+    public function createFilesDirectory() {
+        
+        var_dump($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary");
+        
+        // Create auxiliary files directory
+        if (!file_exists($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary")) {
+            if (!mkdir($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0777, true)) {
+                var_dump("Echec");
+            }
+        }
+        // Create processing files directory
+        if (!file_exists($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing")) {
+            mkdir($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing", 0777, true);
+        }
+        
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'], 0755);
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0755);
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing", 0755);
+    }
     
     /**
      * Can User download or visualize 
@@ -327,6 +350,5 @@ class RestoUser{
         
         return $ipaddress;
     }
-    
 }
 

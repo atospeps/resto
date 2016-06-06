@@ -181,7 +181,8 @@ CREATE TABLE usermanagement.users (
     numtel              TEXT,
     numfax              TEXT,
     instantdownloadvolume	INTEGER,
-    weeklydownloadvolume	INTEGER
+    weeklydownloadvolume	INTEGER,
+    storagevolume			INTEGER
 );
 CREATE INDEX idx_email_users ON usermanagement.users (email);
 CREATE INDEX idx_groupname_users ON usermanagement.users (groupname);

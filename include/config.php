@@ -68,7 +68,7 @@ return array(
          * Shared links validity duration (in seconds)
          * Default is 1 day (i.e. 86400 seconds)
          */
-        'sharedLinkDuration' => 86400,
+        'sharedLinkDuration' => 3600,
         
         /*
          * Authentication tokens validity duration (in seconds)
@@ -102,6 +102,11 @@ return array(
          * Upload directory (for POST with attachement request)
          */
         'uploadDirectory' => '/tmp/resto_uploads',
+
+        /*
+         * Files directory (user files, precessing results, processing entries)
+         */
+        'filesDirectory' => '/usr/local/apache2/htdocs/files',
         
         /*
          * Set how the products are streamed to user :
@@ -125,7 +130,14 @@ return array(
          * Set the default user download limit volume (in Megabyte)
          */
         'instantLimitDownloadVolume' => 1000,
-        'weeklyLimitDownloadVolume' => 5000
+        'weeklyLimitDownloadVolume' => 5000,
+            
+
+
+        /*
+         * Set the default user files storage volume (in Megabyte)
+         */
+        'filesStorageVolume' => 10000
     ),
     
     /*
@@ -301,7 +313,7 @@ return array(
          * !!! Require iTag !!!
          */
         'Gazetteer' => array(
-            'activate' => true,
+            'activate' => false,
             'route' => 'api/gazetteer/search',
             'options' => array(
                 'database' => array(
@@ -343,7 +355,7 @@ return array(
          * !!! Require iTag !!!
          */
         'iTag' => array(
-            'activate' => true,
+            'activate' => false,
             'options' => array(
                 'database' => array(
                     'dbname' => 'itag',

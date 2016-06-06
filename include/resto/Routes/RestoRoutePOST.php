@@ -43,6 +43,7 @@ class RestoRoutePOST extends RestoRoute {
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/orders                         |  Send an order for {userid}
+     *    users/{userid}/file                           |  Add file in {userid} storage
      * 
      * @param array $segments
      */
@@ -368,6 +369,13 @@ class RestoRoutePOST extends RestoRoute {
         else if (isset($segments[2]) && $segments[2] === 'orders') {
             return $this->POST_userOrders($segments[1], $data);
         }
+      
+        /*
+         * users/{userid}/file
+         */
+        else if (isset($segments[2]) && $segments[2] === 'file') {
+            return $this->POST_userFile($segments[1], $data);
+        }
         
         /*
          * Unknown route
@@ -438,6 +446,7 @@ class RestoRoutePOST extends RestoRoute {
                 'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
                 'instantdownloadvolume' => $this->context->instantDownloadLimit,
                 'weeklydownloadvolume' => $this->context->weeklyDownloadLimit,
+                'storagevolume' => $this->context->filesStorageVolume,
                 'activated' => 0
             ))
         );
@@ -451,12 +460,15 @@ class RestoRoutePOST extends RestoRoute {
                         'subject' => $this->context->dictionary->translate($this->context->mail['accountActivation'][$fallbackLanguage]['subject'], $this->context->title),
                         'message' => $this->context->dictionary->translate($this->context->mail['accountActivation'][$fallbackLanguage]['message'], $this->context->title, $activationLink)
                     ))) {
-                RestoLogUtil::httpError(3001);
+//                 RestoLogUtil::httpError(3001);
             }
         } else {
             RestoLogUtil::httpError(500, 'Database connection error');
         }
-
+        
+        $user = new RestoUser($userInfo, $this->context);
+        $user->createFilesDirectory();
+        
         return RestoLogUtil::success('User ' . $data['email'] . ' created');
     }
     
@@ -579,7 +591,59 @@ class RestoRoutePOST extends RestoRoute {
         else {
             return RestoLogUtil::error('Cannot place order');
         }
+    }
+    
+    
+    /**
+     * Process HTTP POST request on user file
+     * 
+     *    users/{userid}/file                    |  Upload a file in {userid} storage
+     * 
+     * @param string $emailOrId
+     * @param array $data
+     * @throws Exception
+     */
+    private function POST_userFile($emailOrId, $data) {
         
+    	/*
+    	 * Order can only be modified by its owner or by admin
+    	 */
+        $user = $this->getAuthorizedUser($emailOrId);
+
+        // Retrieve all order items
+        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
+        $items = array();
+        if($fromCart) {
+            $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
+        } else {
+            $items = $data;
+        }
+
+        $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
+        // Refresh user profile
+        $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
+        
+        /*
+         * Check if the user hasn't exceed his download volume limit
+         */
+        if ($size > $user->profile['instantdownloadvolume'] * 1000000) {
+            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
+        }
+        if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $user->profile, 'size' => $size))) {
+            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['weeklydownloadvolume'] . "Mo per week, please wait some days, or contact our administrator");
+        }
+        
+        // Try to place order
+    	$order = $user->placeOrder($data);
+    	
+        if ($order) {
+            return RestoLogUtil::success('Place order', array(
+                'order' => $order
+            ));
+        }
+        else {
+            return RestoLogUtil::error('Cannot place order');
+        }
     }
 
 }

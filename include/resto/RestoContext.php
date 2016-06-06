@@ -96,6 +96,11 @@ class RestoContext {
     public $uploadDirectory = '/tmp/resto_uploads';
     
     /*
+     * Files directory
+     */
+    public $filesDirectory = '/usr/exploit/files';
+    
+    /*
      * Stream method 
      */
     public $streamMethod = 'php';
@@ -109,6 +114,11 @@ class RestoContext {
      * Weekly download limit (in Mb)
      */
     public $weeklyDownloadLimit = 5000;
+    
+    /*
+     * Files storage volume (in Mb)
+     */
+    public $filesStorageVolume = 10000;
     
     /*
      *  JSON Web Token passphrase
@@ -333,6 +343,13 @@ class RestoContext {
         }
         
         /*
+         * Files directory
+         */
+        if (isset($config['general']['filesDirectory'])) {
+            $this->filesDirectory = $config['general']['filesDirectory'];
+        }
+        
+        /*
          * Stream method
          */
         if (isset($config['general']['streamMethod'])) {
@@ -351,6 +368,13 @@ class RestoContext {
          */
         if (isset($config['general']['weeklyLimitDownloadVolume'])) {
             $this->weeklyDownloadLimit = $config['general']['weeklyLimitDownloadVolume'];
+        }
+
+        /*
+         * Weekly download limit
+         */
+        if (isset($config['general']['filesStorageVolume '])) {
+            $this->filesStorageVolume = $config['general']['filesStorageVolume '];
         }
         
         /*

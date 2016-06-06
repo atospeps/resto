@@ -540,6 +540,7 @@ class Administration extends RestoModule {
 	                'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
 	                'instantdownloadvolume' => isset($data['instantdownloadvolume']) ? $data['instantdownloadvolume'] : $this->context->instantDownloadLimit,
 	                'weeklydownloadvolume' => isset($data['weeklydownloadvolume']) ? $data['weeklydownloadvolume'] : $this->context->weeklyDownloadLimit,
+	                'storagevolume' => isset($data['storagevolume']) ? $data['storagevolume'] : $this->context->filesStorageVolume,
                     'activated' => 0
                 ))
             );
@@ -950,7 +951,7 @@ class Administration extends RestoModule {
         try {
             $orderBy = isset($orderBy) ? $orderBy : 'userid';
             $ascOrDesc = isset($ascOrDesc) ? $ascOrDesc : 'DESC';
-            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
+            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, storagevolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
             if (!$results) {
                 throw new Exception();
             }
@@ -1097,7 +1098,7 @@ class Administration extends RestoModule {
                 'organization', 'nationality', 'domain',
                 'use', 'country', 'adress',
                 'numtel', 'numfax',	'instantdownloadvolume',
-                'weeklydownloadvolume')) as $field) {
+                'weeklydownloadvolume', 'storagevolume')) as $field) {
             if (isset($data[$field])) {
                 $profile[$field] = $data[$field];
             }

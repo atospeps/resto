@@ -150,10 +150,11 @@ class RestoCollection {
     /**
      * Update feature to the {collection}.features table
      *
+     * @param RestoFeature $feature : feature to update
      * @param array $data : GeoJSON file or file splitted in array
      */
-    public function updateFeature($data, $featureIdentifier=null, $featureTitle=null) {
-        return $this->model->updateFeature($data, $featureIdentifier, $featureTitle, $this);
+    public function updateFeature($feature, $data) {
+        return $this->model->updateFeature($feature, $data);
     }
     
     /**

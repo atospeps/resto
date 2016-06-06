@@ -193,6 +193,15 @@ class RestoFeature {
             ));
             $this->featureArray = $featureDescription;
         }
+        else if (isset($options['featureTitle'])){
+            $featureDescription = $this->context->dbDriver->get(RestoDatabaseDriver::FEATURE_DESCRIPTION_BY_TITLE, array(
+                    'context' => $this->context,
+                    'user' => $this->user,
+                    'featureTitle' => $options['featureTitle'],
+                    'collection' => isset($this->collection) ? $this->collection : null
+            ));
+            $this->featureArray = $featureDescription;
+        }
         /*
          * ...or from input array
          */

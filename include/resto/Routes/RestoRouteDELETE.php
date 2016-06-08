@@ -38,6 +38,7 @@ class RestoRouteDELETE extends RestoRoute {
      *    
      *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
+     *    users/{userid}/files/{fileid}                 |  Delete user file {fileid}
      *    
      * @param array $segments
      */
@@ -154,6 +155,9 @@ class RestoRouteDELETE extends RestoRoute {
         if ($segments[2] === 'cart') {
             return $this->DELETE_userCart($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
+        else if($segments[2] === 'files' && isset($segments[3])) {
+            return $this->DELETE_userFile($segments[1], $segments[3]);
+        }
         else {
             RestoLogUtil::httpError(404);
         }
@@ -228,4 +232,52 @@ class RestoRouteDELETE extends RestoRoute {
         }
     }
     
+    /**
+     * Delete user file {fileid}
+     * 
+     * @param int $emailOrId
+     * @param string $fileId
+     */
+    private function DELETE_userFile($emailOrId, $fileId) {
+        // File can only be deleted by its owner or by admin
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+        $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => $this->user->profile['email'], 'entryprocessing' => false, 'fileid' => $fileId));
+        
+        if(!isset($file[0])) {
+            RestoLogUtil::httpError(6003, 'The file with id = ' . $fileId . ' doesn\'t exists');
+        }
+        
+        if($this->deleteFile($fileId, $file[0]['path'])) {
+            return RestoLogUtil::success('File successfully deleted');
+        } else {
+            RestoLogUtil::httpError(6002, 'Cannot delete file, an error has occured');
+        }
+    }
+
+    /**
+     * Delete file {fileid}
+     *
+     * @param int $emailOrId
+     * @param string $fileId
+     */
+    private function DELETE_file($emailOrId, $fileId) {
+        // All file can only be deleted by admin
+        $user = $this->getAuthorizedUser($emailOrId);
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
+        $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => null, 'entryprocessing' => false, 'fileid' => $fileId));
+        
+        if(!isset($file[0])) {
+            RestoLogUtil::httpError(6003, 'The file with id = ' . $fileId . ' doesn\'t exists');
+        }
+        
+        if($this->deleteFile($fileId, $file[0]['path'])) {
+            return RestoLogUtil::success('File successfully deleted');
+        } else {
+            RestoLogUtil::httpError(6002, 'Cannot delete file, an error has occured');
+        }
+    }
 }

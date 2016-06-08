@@ -37,6 +37,7 @@ CREATE TABLE usermanagement.files
   gid serial NOT NULL,
   email text,
   jobid integer,
+  name text,
   type text,
   path text,
   date timestamp without time zone,
@@ -47,6 +48,9 @@ CREATE TABLE usermanagement.files
 WITH (
   OIDS=FALSE
 );
+GRANT ALL ON TABLE usermanagement.files TO postgres;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.files TO resto;
+GRANT ALL ON usermanagement.files_gid_seq TO resto;
 
 SELECT f_add_col('usermanagement.users', 'storagevolume', 'integer');
 

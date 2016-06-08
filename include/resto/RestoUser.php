@@ -274,13 +274,9 @@ class RestoUser{
      */
     public function createFilesDirectory() {
         
-        var_dump($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary");
-        
         // Create auxiliary files directory
         if (!file_exists($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary")) {
-            if (!mkdir($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0777, true)) {
-                var_dump("Echec");
-            }
+            mkdir($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0777, true);
         }
         // Create processing files directory
         if (!file_exists($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing")) {

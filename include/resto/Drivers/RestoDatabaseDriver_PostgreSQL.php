@@ -27,6 +27,7 @@ require 'PostgreSQL/Functions_filters.php';
 require 'PostgreSQL/Functions_rights.php';
 require 'PostgreSQL/Functions_users.php';
 require 'PostgreSQL/Functions_groups.php';
+require 'PostgreSQL/Functions_files.php';
 
 /**
  * RESTo PostgreSQL Database
@@ -193,7 +194,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::USER_DOWNLOADED_VOLUME:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->getUserLastWeekDownloadedVolume($params['identifier']);
-            
+
+            /*
+             * Get files
+             */
+            case parent::FILES:
+                $filesFunctions = new Functions_files($this);
+                return $filesFunctions->getFiles($params['userid'], isset($params['entryprocessing']) ? $params['entryprocessing'] : false, isset($params['fileid']) ? $params['fileid'] : null);
+                    
             default:
                 return null;
         }
@@ -401,7 +409,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->removeGroup($params['groupId']);
-                
+
+            /*
+             * Remove file
+             */
+            case parent::FILE:
+                $filesFunctions = new Functions_files($this);
+                return $filesFunctions->removeFile($params['identifier']);
+            
             default:
                 return null;
         }
@@ -479,7 +494,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->createGroup($params['groupName'], $params['groupDescription']);
-            
+
+            /*
+             * Store file
+             */
+            case parent::FILE:
+                $filesFunctions = new Functions_files($this);
+                return $filesFunctions->addFile($params['userid'], $params['jobid'], $params['name'], $params['type'], $params['path'], $params['size'], $params['format']);
+                    
             default:
                 return null;
         }

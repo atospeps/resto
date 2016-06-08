@@ -40,6 +40,8 @@ class RestoRoutePOST extends RestoRoute {
      *    
      *    groups                                        |  Create a new group      
      *    
+     *    file                                          | Add entryprocessing file
+     *    
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/orders                         |  Send an order for {userid}
@@ -511,12 +513,12 @@ class RestoRoutePOST extends RestoRoute {
             //We validate all the possible elemnts to allow the product download
             $downloadState = $this->checkFeatureAvailability($feature);
             
-            if ($downloadState !== "OK") {
-                array_push($response["error"], $downloadState);
-            } else {
-                array_push($availableFeatures, $feature);
-            }
-//             array_push($availableFeatures, $feature);
+//             if ($downloadState !== "OK") {
+//                 array_push($response["error"], $downloadState);
+//             } else {
+//                 array_push($availableFeatures, $feature);
+//             }
+            array_push($availableFeatures, $feature);
         }
         
         /*
@@ -593,7 +595,6 @@ class RestoRoutePOST extends RestoRoute {
         }
     }
     
-    
     /**
      * Process HTTP POST request on user file
      * 
@@ -603,47 +604,56 @@ class RestoRoutePOST extends RestoRoute {
      * @param array $data
      * @throws Exception
      */
-    private function POST_userFile($emailOrId, $data) {
-        
+    private function POST_userFile($emailOrId) {
     	/*
-    	 * Order can only be modified by its owner or by admin
+    	 * File can only be posted by its owner or by admin
     	 */
         $user = $this->getAuthorizedUser($emailOrId);
 
-        // Retrieve all order items
-        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
-        $items = array();
-        if($fromCart) {
-            $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
-        } else {
-            $items = $data;
-        }
-
-        $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
-        // Refresh user profile
-        $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
-        
-        /*
-         * Check if the user hasn't exceed his download volume limit
-         */
-        if ($size > $user->profile['instantdownloadvolume'] * 1000000) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
-        }
-        if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $user->profile, 'size' => $size))) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['weeklydownloadvolume'] . "Mo per week, please wait some days, or contact our administrator");
+        if(!isset($_FILES['file'])) {
+            RestoLogUtil::httpError(400, 'File is not set');
         }
         
-        // Try to place order
-    	$order = $user->placeOrder($data);
-    	
-        if ($order) {
-            return RestoLogUtil::success('Place order', array(
-                'order' => $order
-            ));
-        }
-        else {
-            return RestoLogUtil::error('Cannot place order');
-        }
+        $data = array();
+        $data['userid'] = $this->user->profile['email'];
+        $data['jobid'] = 'null';
+        $data['name'] = $_FILES['file']['name'];
+        $data['size'] = $_FILES['file']['size'];
+        $data['format'] = $_FILES['file']['type'];
+        $tmpFile = $_FILES['file']['tmp_name'];
+        $data['type'] = "auxiliary";
+        
+        $this->saveFile($data, $tmpFile, $this->context->filesDirectory . "/" . $this->user->profile['userid'] . "/auxiliary/" . $data['name']);
+        
+        return RestoLogUtil::success('File successfully saved');
     }
-
+    
+    private function POST_file($emailOrId) {
+        /*
+         * File can only be posted by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+        // Entry processing files can only be added by admin
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+        
+        if(!isset($_FILES['file'])) {
+            RestoLogUtil::httpError(400, 'File is not set');
+        }
+        
+        $data = array();
+        $data['userid'] = '';
+        $data['jobid'] = 'null';
+        $data['name'] = $_FILES['file']['name'];
+        $data['size'] = $_FILES['file']['size'];
+        $data['format'] = $_FILES['file']['type'];
+        $tmpFile = $_FILES['file']['tmp_name'];
+        $data['type'] = "entryprocessing";
+        
+        $this->saveFile($data, $tmpFile, $this->context->filesDirectory . "/entryprocessing/" . $data['name']);
+        
+        return RestoLogUtil::success('File successfully saved');
+    }
 }

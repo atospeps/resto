@@ -95,7 +95,12 @@ class RestoLogUtil {
         4003 => 'Database driver is not instantiable',
         4004 => 'Invalid input object',
         4005 => 'Invalid input array',
-        5000 => 'Cannot create group - group already exists'
+        5000 => 'Cannot create group - group already exists',
+        6000 => 'Cannot save file - file already exists',
+        6001 => 'Cannot save file - an error has occured',
+        6002 => 'Cannot delete file - an error has occured',
+        6003 => 'File doesn\'t exists',
+        6004 => 'Cannot download file - an error has occured'
     );
     
     /*

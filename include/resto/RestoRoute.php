@@ -276,4 +276,66 @@ abstract class RestoRoute {
         */
          return "OK";
     }
+    
+    /**
+     * Try to save the file on the server.
+     *
+     * @param array $data
+     * @param string $tmpFile
+     * @param string $destination
+     */
+    protected function saveFile($data, $tmpFile, $destination) {
+        if (!file_exists($destination)) {
+            if (move_uploaded_file($tmpFile, $destination) !== false) {
+                $data['path'] = $destination;
+                $this->context->dbDriver->store(RestoDatabaseDriver::FILE, $data);
+            } else {
+                RestoLogUtil::httpError(6001, 'Cannot add file : ' . $data['name'] . ', an error has occured');
+            }
+        } else {
+            RestoLogUtil::httpError(6000, 'Cannot add file : ' . $data['name'] . ', it already exists');
+        }
+    }
+    
+    /**
+     * Try to delete the file on the server
+     * 
+     * @param int $fileId
+     * @param string $filePath
+     */
+    protected function deleteFile($fileId, $filePath) {
+        if (file_exists($filePath)) {
+            if(!unlink($filePath)) {
+                RestoLogUtil::httpError(6002, 'Cannot delete file, an error has occured');
+            }
+        }
+
+        return $this->context->dbDriver->remove(RestoDatabaseDriver::FILE, array( "identifier" => $fileId));
+    }
+    
+    /**
+     * Try to download the file on the server
+     * 
+     * @param string $filePath
+     */
+    protected function downloadFile($file) {
+        if (!file_exists($file['path'])) {
+            RestoLogUtil::httpError(6003, 'The file with id = ' . $file['id'] . ' doesn\'t exists');
+        }
+        
+        if(fopen($file['path'], 'r') !== false) {
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename='.basename($file['path']));
+            header('Content-Transfer-Encoding: binary');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Pragma: public');
+            header('Content-Length: ' . filesize($file['path'])); //Remove
+        
+            readfile($file['path']);
+        } else {
+            RestoLogUtil::httpError(6004, 'Cannot download the file with id = ' . $file['id'] . ' - an error has occured');
+        }
+    }
 }

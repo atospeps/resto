@@ -59,6 +59,8 @@ class RestoRouteGET extends RestoRoute {
      *    users/{userid}/rights                             |  Show rights for {userid}
      *    users/{userid}/rights/{collection}                |  Show rights for {userid} on {collection}
      *    users/{userid}/rights/{collection}/{feature}      |  Show rights for {userid} on {feature} from {collection}
+     *    users/{userid}/files                              |  Show files for {userid}
+     *    users/{userid}/files/{fileid}                     |  Download file {fileid} for {userid}
      * 
      * Note: {userid} can be replaced by base64(email) 
      * 
@@ -580,6 +582,20 @@ class RestoRouteGET extends RestoRoute {
             return $this->GET_userDownloadInfo($segments[1]);
         }
         
+        /*
+         * users/{userid}/files
+         */
+        if ($segments[2] === 'files' && !isset($segments[3])) {
+            return $this->GET_userFiles($segments[1]);
+        }
+        
+        /*
+         * users/{userid}/files/{fileid}
+         */
+        if ($segments[2] === 'files' && isset($segments[3])) {
+            return $this->GET_userDownloadFile($segments[1], $segments[3]);
+        }
+        
         return RestoLogUtil::httpError(404);
     }
 
@@ -670,6 +686,43 @@ class RestoRouteGET extends RestoRoute {
             ));
         }
     }
+    
+    /**
+     * GET user files infos
+     *
+     * @param string $emailOrId
+     * @throws Exception
+     */
+    private function GET_userFiles($emailOrId) {
+        /*
+         * Infos can only be seen by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+        $result = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => $this->user->profile['email'], 'entryprocessing' => false));
+        
+        return $result;
+    }
+    
+    /**
+     * Download user file {fileid}
+     *
+     * @param string $emailOrId
+     * @param int $fileId
+     * @throws Exception
+     */
+    private function GET_userDownloadFile($emailOrId, $fileId) {
+        // Files can be downloaded only be its owner or by admin
+        $user = $this->getAuthorizedUser($emailOrId);
+
+        $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => $this->user->profile['email'], 'entryprocessing' => false, 'fileid' => $fileId));
+        
+        if(!isset($file[0])) {
+            RestoLogUtil::httpError(6003, 'The file with id = ' . $fileId . ' doesn\'t exists for this user');
+        }
+        
+        $this->downloadFile($file[0]);
+    }
 
     /**
      * Process HTTP GET request on user download info
@@ -684,7 +737,7 @@ class RestoRouteGET extends RestoRoute {
         $user = $this->getAuthorizedUser($emailOrId);
         
         $result = array("weekDownloadedVolume" => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_VOLUME, array('identifier' => $this->user->profile['userid'])));
-        
+
         return $result;
     }
 

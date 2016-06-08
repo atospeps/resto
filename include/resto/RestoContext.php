@@ -377,6 +377,7 @@ class RestoContext {
          */
         $query = array();
         switch ($this->method) {
+            case 'HEAD':
             case 'GET':
             case 'DELETE':
             case 'POST':

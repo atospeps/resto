@@ -188,8 +188,9 @@ class Resto {
          */
         switch ($this->context->method) {
             /*
-             * GET
+             * HEAD, GET
              */
+            case 'HEAD':
             case 'GET':
                 $route = new RestoRouteGET($this->context, $this->user);
                 break;
@@ -256,7 +257,12 @@ class Resto {
         	 * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
         	 */
         	$this->setCORSHeaders();
-            echo $response;
+            /*
+             * Set HTTP HEAD support.
+             */
+            if (isset($this->context->method) && $this->context->method !== 'HEAD') {
+                echo $response;
+            }
         }
         
     }

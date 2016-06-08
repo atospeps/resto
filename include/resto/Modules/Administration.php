@@ -836,7 +836,8 @@ class Administration extends RestoModule {
         /**
          * Get total user download volume
          */
-        $query = 'SELECT resourceid FROM usermanagement.history  WHERE service=\'download\' AND userid=\'' . pg_escape_string($userid) . '\'';
+        $query = 'SELECT resourceid FROM usermanagement.history';
+        $query .= '  WHERE service=\'download\' AND method=\'GET\' AND userid=\'' . pg_escape_string($userid) . '\'';
         $results = pg_fetch_all($this->context->dbDriver->query($query));
         $features = array ();
         if($results) {
@@ -878,7 +879,8 @@ class Administration extends RestoModule {
          * Compute total downloaded volume
          */
         $productVolume = 0;
-        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid'; 
+        $query .= ' WHERE service=\'download\' AND method=\'GET\'';
         if($startDate && $endDate) {
             $query .= ' AND querytime>\'' . pg_escape_string($startDate) . '\' AND querytime<\'' . pg_escape_string($endDate) . '\'';
         }
@@ -984,6 +986,7 @@ class Administration extends RestoModule {
         $query = 'SELECT count(gid) FROM usermanagement.history WHERE service=\'' . pg_escape_string($service) . '\'';
         $query .= isset($collectionName) ? ' AND collection=\'' . pg_escape_string($collectionName) . '\'' : ''; 
         $query .= isset($userid) ? ' AND userid=\'' . pg_escape_string($userid) . '\'' : '';
+        $query .= (strtolower($service) === 'download' ) ? ' AND method=\'GET\'': ''; 
         if(isset($startDate) && isset($endDate)) {
             $query .= ' AND querytime>\'' . pg_escape_string($startDate) . '\' AND querytime<\'' . pg_escape_string($endDate) . '\'';
         }
@@ -1061,7 +1064,12 @@ class Administration extends RestoModule {
         if (isset($options['minDate'])) {
             $where[] = 'querytime >=\'' . pg_escape_string($options['minDate']) . '\'';
         }
-        $results = pg_query($this->context->dbDriver->dbh, 'SELECT gid, history.userid, users.email, method, service, collection, resourceid, query, querytime, url, ip FROM usermanagement.history as history, usermanagement.users as users  WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex);
+        $query = 'SELECT gid, history.userid, users.email, method, service, collection, resourceid, query, querytime, url, ip';
+        $query .= ' FROM usermanagement.history as history, usermanagement.users as users';
+        $query .= ' WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '');
+        $query .= ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc);
+        $query .= ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex; 
+        $results = pg_query($this->context->dbDriver->dbh, $query);
         while ($row = pg_fetch_assoc($results)) {
             $result[] = $row;
         }

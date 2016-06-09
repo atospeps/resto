@@ -53,6 +53,7 @@ class RestoRouteGET extends RestoRoute {
      *    users                                             |  List all users
      *    users/{userid}                                    |  Show {userid} information
      *    users/{userid}/downloadinfo                       |  Show {userid} download informations
+     *    users/{userid}/storageinfo                        |  Show {userid} storage informations
      *    users/{userid}/cart                               |  Show {userid} cart
      *    users/{userid}/orders                             |  Show orders for {userid}
      *    users/{userid}/orders/{orderid}                   |  Show {orderid} order for {userid}
@@ -583,6 +584,13 @@ class RestoRouteGET extends RestoRoute {
         }
         
         /*
+         * users/{userid}/storageinfo
+         */
+        if ($segments[2] === 'storageinfo') {
+            return $this->GET_userStorageInfo($segments[1]);
+        }
+        
+        /*
          * users/{userid}/files
          */
         if ($segments[2] === 'files' && !isset($segments[3])) {
@@ -737,6 +745,23 @@ class RestoRouteGET extends RestoRoute {
         $user = $this->getAuthorizedUser($emailOrId);
         
         $result = array("weekDownloadedVolume" => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_VOLUME, array('identifier' => $this->user->profile['userid'])));
+
+        return $result;
+    }
+
+    /**
+     * Process HTTP GET request on user storage info
+     *
+     * @param string $emailOrId
+     * @throws Exception
+     */
+    private function GET_userStorageInfo($emailOrId) {
+        /*
+         * Infos can only be seen by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($emailOrId);
+        
+        $result = array("usedStorage" => $this->context->dbDriver->get(RestoDatabaseDriver::USER_STORAGE_VOLUME, array('identifier' => $this->user->profile['email'])));
 
         return $result;
     }

@@ -63,6 +63,7 @@ abstract class RestoDatabaseDriver {
     const FEATURES_OLD_VERSION = 39;
     const FILES = 40;
     const FILE = 41;
+    const USER_STORAGE_VOLUME = 42;
     
     /*
      * Results per page

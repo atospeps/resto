@@ -323,19 +323,13 @@ abstract class RestoRoute {
             RestoLogUtil::httpError(6003, 'The file with id = ' . $file['id'] . ' doesn\'t exists');
         }
         
-        if(fopen($file['path'], 'r') !== false) {
-            header('Content-Description: File Transfer');
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename='.basename($file['path']));
-            header('Content-Transfer-Encoding: binary');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-            header('Pragma: public');
-            header('Content-Length: ' . filesize($file['path'])); //Remove
-        
-            readfile($file['path']);
-        } else {
-            RestoLogUtil::httpError(6004, 'Cannot download the file with id = ' . $file['id'] . ' - an error has occured');
-        }
+        header('Pragma: public');
+        header('Cache-Control: public, must-revalidate, post-check=0, pre-check=0');
+        header('Expires: 0');
+        header('Content-Type: ' . $file['format']);
+        header('Content-Disposition: attachment; filename="' . basename($file['path']) . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Accept-Ranges: bytes');     
+        header('X-Sendfile: ' . $file['path']);
     }
 }

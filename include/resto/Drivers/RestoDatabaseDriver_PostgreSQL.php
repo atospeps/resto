@@ -201,6 +201,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::FILES:
                 $filesFunctions = new Functions_files($this);
                 return $filesFunctions->getFiles($params['userid'], isset($params['entryprocessing']) ? $params['entryprocessing'] : false, isset($params['fileid']) ? $params['fileid'] : null);
+                
+            /*
+             * Get user storage volume
+             */
+            case parent::USER_STORAGE_VOLUME:
+                $usersFunctions = new Functions_users($this);
+                return $usersFunctions->getUserStorageVolumeConsumed($params['identifier']);
                     
             default:
                 return null;

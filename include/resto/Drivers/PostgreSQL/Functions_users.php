@@ -348,6 +348,26 @@ class Functions_users {
         return $totalsize;
     }
     
+    /**
+     * Return the storage volume consumed by the user.
+     * 
+     * @param string $identifier (email)
+     * @return integer $volume
+     */
+    public function getUserStorageVolumeConsumed($identifier) {
+        if(!isset($identifier)) {
+            RestoLogUtil::httpError(404);
+        }
+
+        $volume = 0;
+        $query = 'SELECT sum(size) FROM usermanagement.files WHERE email=\'' . $identifier . '\'';
+        $results = pg_fetch_assoc($this->dbDriver->query($query));
+        if($results['sum']) {
+            $volume = $results['sum'];
+        }
+        return $volume;
+    }
+    
     public function checkPassword($identifier, $password) {
         if(!isset($identifier) || !isset($password)) {
             RestoLogUtil::httpError(404);

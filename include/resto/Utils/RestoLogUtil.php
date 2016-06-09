@@ -100,7 +100,9 @@ class RestoLogUtil {
         6001 => 'Cannot save file - an error has occured',
         6002 => 'Cannot delete file - an error has occured',
         6003 => 'File doesn\'t exists',
-        6004 => 'Cannot download file - an error has occured'
+        6004 => 'Cannot download file - an error has occured',
+        6005 => 'Cannot save file - you exceed your allocated storage volume',
+            
     );
     
     /*

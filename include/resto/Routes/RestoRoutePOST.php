@@ -45,7 +45,7 @@ class RestoRoutePOST extends RestoRoute {
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/orders                         |  Send an order for {userid}
-     *    users/{userid}/file                           |  Add file in {userid} storage
+     *    users/{userid}/files                          |  Add file in {userid} storage
      * 
      * @param array $segments
      */
@@ -375,7 +375,7 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * users/{userid}/file
          */
-        else if (isset($segments[2]) && $segments[2] === 'file') {
+        else if (isset($segments[2]) && $segments[2] === 'files') {
             return $this->POST_userFile($segments[1], $data);
         }
         
@@ -622,6 +622,11 @@ class RestoRoutePOST extends RestoRoute {
         $data['format'] = $_FILES['file']['type'];
         $tmpFile = $_FILES['file']['tmp_name'];
         $data['type'] = "auxiliary";
+        
+        $volumeUsed = $this->context->dbDriver->get(RestoDatabaseDriver::USER_STORAGE_VOLUME, array('identifier' => $this->user->profile['email']));
+        if($data['size'] + $volumeUsed > $this->user->profile['storagevolume'] * 1048576) {
+            RestoLogUtil::httpError(6005, 'Cannot save file - you exceed your allocated storage volume');
+        }
         
         $this->saveFile($data, $tmpFile, $this->context->filesDirectory . "/" . $this->user->profile['userid'] . "/auxiliary/" . $data['name']);
         

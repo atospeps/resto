@@ -956,13 +956,5 @@ abstract class RestoModel {
                         'partialIdentifier' => $regexOldVersions,
                         'collection' => $collection));
     }
-         * Returns previous versions of specified product, otherwise null.
-     * @param RestoCollection $collection
-                return array();
-        // Returns products list which match with product identifier pattern.
-        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION,
-                array(  'productIdentifier' => $productIdentifier,
-                        'partialIdentifier' => $regexOldVersions,
-                        'collection' => $collection));
-
+    
 }

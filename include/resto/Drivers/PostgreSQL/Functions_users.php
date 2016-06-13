@@ -314,18 +314,18 @@ class Functions_users {
 
         $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
         $totalsize = 0;
-        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
-        $query .= ' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\' AND querytime>\'' . $timestamp . '\'';
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid';
+        $query .= ' WHERE service=\'download\' AND method=\'GET\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\' AND querytime>\'' . $timestamp . '\'';
         $results = pg_fetch_assoc($this->dbDriver->query($query));
         if($results) {
             $totalsize = $results['sum'];
         }
-        if ($totalsize + $size > $userprofile['weeklydownloadvolume'] * 1000000) {
+        if ($totalsize + $size > $userprofile['weeklydownloadvolume'] * 1048576) {
              return true;
         }
         return false;
     }
-    
+
     /**
      * Return the volume that a user has downloaded the last 7 days.
      * 
@@ -339,8 +339,8 @@ class Functions_users {
 
         $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
         $totalsize = 0;
-        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid WHERE service=\'download\'';
-        $query .= ' AND userid=\'' . pg_escape_string($identifier) . '\' AND querytime>\'' . $timestamp . '\'';
+        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid';
+        $query .= ' WHERE service=\'download\' AND method=\'GET\' AND userid=\'' . pg_escape_string($identifier) . '\' AND querytime>\'' . $timestamp . '\'';
         $results = pg_fetch_assoc($this->dbDriver->query($query));
         if($results['sum']) {
             $totalsize = $results['sum'];

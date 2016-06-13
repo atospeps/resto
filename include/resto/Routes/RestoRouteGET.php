@@ -131,6 +131,9 @@ class RestoRouteGET extends RestoRoute {
         else if ($segments[2] === 'describe' || (isset($segments[3]) && $segments[3] === 'describe')) {
             return $this->GET_apiCollectionsDescribe(isset($segments[3]) ? $segments[2] : null);
         }
+        else if ($segments[2] === 'count' || (isset($segments[3]) && $segments[3] === 'count')) {
+            return $this->GET_apiCollectionsCountSearch(isset($segments[3]) ? $segments[2] : null);
+        }
         else {
             RestoLogUtil::httpError(404);
         }
@@ -155,6 +158,16 @@ class RestoRouteGET extends RestoRoute {
 
         return $resource->search();
         
+    }
+    
+    private function GET_apiCollectionsCountSearch($collectionName = null) {
+        /*
+         * Search in one collection...or in all collections
+         */
+        $resource = isset($collectionName) ? new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true)) : new RestoCollections($this->context, $this->user);
+        $this->storeQuery('searchCount', isset($collectionName) ? $collectionName : '*', null);
+
+        return $resource->countFeature();
     }
     
     /**
@@ -425,6 +438,13 @@ class RestoRouteGET extends RestoRoute {
          */
         else if ($segments[3] === 'check' && $segments[4] === 'download') {
             return $this->GET_featureCheckFileDownload($collection, $feature);
+        }
+        
+        /*
+         * Check the zip file of the feature
+         */
+        else if ($segments[3] === 'check' && $segments[4] === 'cart') {
+            return $this->GET_featureCheckFileCart($collection, $feature);
         }
 
         /*

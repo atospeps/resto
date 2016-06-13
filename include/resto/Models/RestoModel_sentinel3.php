@@ -39,20 +39,13 @@
  */
 
 /**
- * RESTo Sentinel-2 model 
+ * RESTo Sentinel-3 model 
  * 
  * Input metadata is an XML file 
  * 
  */
 class RestoModel_sentinel3 extends RestoModel {
-    
-    public $extendedProperties = array(
-            'orbitDirection' => array(
-                    'name' => 'orbitDirection',
-                    'type' => 'TEXT'
-            )
-    );
-    
+
     /**
      * Constructor
      * 
@@ -61,13 +54,6 @@ class RestoModel_sentinel3 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-
-        $this->searchFilters['eo:orbitDirection'] = array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-        );
     }
     
     /**
@@ -94,6 +80,18 @@ class RestoModel_sentinel3 extends RestoModel {
     }
     
     /**
+     * We verify if the feature has an (or multiple) old feature/s. We update them in order to have
+     * a reerence to the new feature, and make them invisible
+     *
+     * @param string $product_indetifier
+     * @param string collectionName
+     */
+    public function hasOldFeature($product_indetifier, $collection){
+        $partial_indetifier = substr($product_indetifier, 0, -45) . '%' . substr($product_indetifier, 63);
+        return parent::hasOldFeature($partial_indetifier, $collection);
+    }
+    
+    /**
      * Create JSON feature from xml string
      * 
      * @param {String} $xml : $xml string
@@ -116,9 +114,9 @@ class RestoModel_sentinel3 extends RestoModel {
         /*
          * Retreives orbit direction
          */
-        $orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
+        $orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
 
-        $polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
+        $polygon = RestoGeometryUtil::wktPolygonToArray($this->getElementByName($dom, 'footprint'));
         
         /*
          * Initialize feature

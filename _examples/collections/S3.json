@@ -28,6 +28,7 @@
         "parentIdentifier": "urn:ogc:def:EOP:ESA::SENTINEL-3:",
         "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg",
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
-        "resourceMimeType": "application/zip"
+        "resourceMimeType": "application/zip",
+        "nrtResource" : "/data/NRT/{:quicklook:}.zip"
     }
 }

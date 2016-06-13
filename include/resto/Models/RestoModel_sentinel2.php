@@ -45,18 +45,14 @@
  * 
  */
 class RestoModel_sentinel2 extends RestoModel {
-    
+
     public $extendedProperties = array(
         's2TakeId' => array(
             'name' => 's2takeid',
             'type' => 'TEXT'
-        ),
-        'orbitDirection' => array(
-            'name' => 'orbitDirection',
-            'type' => 'TEXT'
         )
     );
-    
+
     /**
      * Constructor
      * 
@@ -65,13 +61,6 @@ class RestoModel_sentinel2 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
-
-        $this->searchFilters['eo:orbitDirection'] = array (
-                'key' => 'orbitDirection',
-                'osKey' => 'orbitDirection',
-                'operation' => '=',
-                'options' => 'auto'
-        );
     }
     
     /**
@@ -95,6 +84,18 @@ class RestoModel_sentinel2 extends RestoModel {
      */
     public function updateFeature($data, $featureIdentifier=null, $featureTitle=null, $collectionName) {
         return parent::updateFeature($this->parse(join('',$data)), $featureIdentifier, $featureTitle, $collectionName);
+    }
+    
+    /**
+     * We verify if the feature has an (or multiple) old feature/s. We update them in order to have
+     * a reerence to the new feature, and make them invisible
+     *
+     * @param string $product_indetifier
+     * @param string collectionName
+     */
+    public function hasOldFeature($product_indetifier, $collection){
+        $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
+        return parent::hasOldFeature($partial_indetifier, $collection);
     }
     
     /**
@@ -137,9 +138,9 @@ class RestoModel_sentinel2 extends RestoModel {
     	/*
     	 * Retreives orbit direction
     	 */
-    	$orbitDirection = strtolower($dom->getElementsByTagName('orbitDirection')->item(0)->nodeValue);
+    	$orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
 
-    	$polygon = RestoGeometryUtil::wktPolygonToArray($dom->getElementsByTagName('footprint')->item(0)->nodeValue);
+    	$polygon = RestoGeometryUtil::wktPolygonToArray($this->getElementByName($dom, 'footprint'));
     	
         /*
          * Initialize feature

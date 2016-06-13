@@ -221,6 +221,10 @@ abstract class RestoModel {
                     'name' => 'visible',
                     'type' => 'INTEGER'
             ),
+            'orbitDirection' => array(
+                'name' => 'orbitDirection',
+                'type' => 'TEXT'
+            ),
             'newVersion' => array (
                     'name' => 'new_version',
                     'type' => 'TEXT'
@@ -417,6 +421,12 @@ abstract class RestoModel {
                     'key' => 'organisationName',
                     'osKey' => 'organisationName',
                     'operation' => '=' 
+            ),
+            'eo:orbitDirection' => array (
+                'key' => 'orbitDirection',
+                'osKey' => 'orbitDirection',
+                'operation' => '=',
+                'options' => 'auto'
             ),
             'eo:orbitNumberAbsolute' => array (
                     'key' => 'orbitNumberAbsolute',
@@ -693,46 +703,41 @@ abstract class RestoModel {
      *
      */
     public function storeFeature($data, $collection) {
-        
+    
         /*
          * Assume input file or stream is a JSON Feature
          */
         if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
             RestoLogUtil::httpError(500, 'Invalid feature description');
         }
-        
+
         /*
          * Remap properties between RESTo model and input
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
+
+        if (empty($properties['title'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+        }
         
+        if (empty($properties['orbitDirection'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
+        }
+        
+        if (empty($properties['resourceSize'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
+        }
+
         /*
          * Compute unique identifier
-         */
+        */
         if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
             $featureIdentifier = $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
         } else {
             $featureIdentifier = $data['id'];
         }
-
-        /*
-         * Validate if the feature is a new version of an already created one
-         */
-        $oldVersion = $this->hasOldFeature($data['id'], $collection);
-
-        // If we have an old version of the feature, has to be updated
-        if ($oldVersion !== false) {
-            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
-                'collection' => $collection,
-                'featureArray' => array (
-                    'type' => 'Feature',
-                    'title' => $oldVersion["productidentifier"],
-                    'new_version' => $featureIdentifier
-                )
-            ));
-        }
-        
+    
         /*
          * Store feature
          */
@@ -743,80 +748,104 @@ abstract class RestoModel {
                         'id' => $featureIdentifier,
                         'geometry' => $data['geometry'],
                         'properties' => array_merge($properties, array (
-                                'keywords' => $this->getKeywords($properties, $data['geometry'], $collection) 
-                        )) 
-                ) 
+                                'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
+                        ))
+                )
         ));
 
-        return new RestoFeature($collection->context, $collection->user, array (
-                'featureIdentifier' => $featureIdentifier 
+        $feature = new RestoFeature($collection->context, $collection->user, array (
+                'featureIdentifier' => $featureIdentifier
         ));
+
+        /*
+         * Updates old versions (obsolete) of feature
+         */
+        $this->updateOldVersions($feature);
+
+        return $feature;
+    }
+    
+    /**
+     * Updates version of specified feature.
+     * @param RestoFeature $feature
+     */
+    private function updateOldVersions($feature) {
+
+        $featureArray = $feature->toArray();
+        $properties = $featureArray['properties'];
+        /*
+         * Validate if the feature is a new version of an already created one
+         */
+        $featuresOldVersion = $this->getOldFeatures($properties['productIdentifier'], $feature->collection);
+
+        // If we have an old version of the feature, has to be updated
+        if (!empty($featuresOldVersion)) {
+            $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
+                    'collection' => $feature->collection,
+                    'featuresOldVersion' => $featuresOldVersion,
+                    'newVersion' => $feature->identifier
+            ));
+        }
     }
     
     /**
      * Update feature within {collection}.features table following the class model
      *
+     * @param RestoFeature feature : feature to update
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
-     * @param string $featureIdentifier : the id of the feature (not obligatory)
-     * @param string $featureTitle : the title of the feature (not obligatory)
-     * @param RestoCollection $collection
-     *
      */
-    public function updateFeature($data, $featureIdentifier=null, $featureTitle=null, $collection) {
-    
+    public function updateFeature($feature, $data) {
+
         /*
          * Assume input file or stream is a JSON Feature
          */
         if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
             RestoLogUtil::httpError(500, 'Invalid feature description');
         }
-    
+
         /*
          * Remap properties between RESTo model and input
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
-    
+
+        if (empty($properties['title'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+        }
+        
+        if (empty($properties['orbitDirection'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
+        }
+        
+        if (empty($properties['resourceSize'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
+        }
+
         /*
-         * Store feature
-         */
-        // We use the identifier as the key
-        if (!is_null($featureIdentifier)) {
-            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
-                'collection' => $collection,
+         * Updates feature
+        */
+        $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+                'collection' => $feature->collection,
                 'featureArray' => array (
-                    'type' => 'Feature',
-                    'id' => $featureIdentifier,
-                    'geometry' => $data['geometry'],
-                    'properties' => array_merge($properties, array (
-                        'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
-                    ))
+                        'type' => 'Feature',
+                        'id' => $feature->identifier,
+                        'geometry' => $data['geometry'],
+                        'properties' => array_merge($properties, array (
+                                'keywords' => $this->getKeywords($properties, $data['geometry'], $feature->collection)
+                        ))
                 )
-            ));
-        }
-        // We use the title as key
-        if (!is_null($featureTitle)) {
-            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
-                'collection' => $collection,
-                'featureArray' => array (
-                    'type' => 'Feature',
-                    'title' => $featureTitle,
-                    'geometry' => $data['geometry'],
-                    'properties' => array_merge($properties, array (
-                        'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
-                    ))
-                )
-            ));
-        }
+        ));
+
+        $this->updateOldVersions($feature);
     }
-    
+
     /**
      * Get facet fields from model
      */
     public function getFacetFields() {
         $facetFields = array (
                 'collection',
-                'continent' 
+                'continent'
         );
         foreach (array_values($this->searchFilters) as $filter) {
             if (isset($filter['options']) && $filter['options'] === 'auto') {
@@ -834,7 +863,7 @@ abstract class RestoModel {
      *
      */
     public function validateFilter($filterKey, $value) {
-        
+    
         /*
          * Check pattern for string
          */
@@ -842,7 +871,7 @@ abstract class RestoModel {
             if (preg_match('\'' . $this->searchFilters[$filterKey]['pattern'] . '\'', $value) !== 1) {
                 RestoLogUtil::httpError(400, 'Value for "' . $this->searchFilters[$filterKey]['osKey'] . '" must follow the pattern ' . $this->searchFilters[$filterKey]['pattern']);
             }
-        }         
+        }
         /*
          * Check pattern for number
          * By know, we bypass "count" as can't manage a correct error display
@@ -858,12 +887,12 @@ abstract class RestoModel {
                 RestoLogUtil::httpError(400, 'Value for "' . $this->searchFilters[$filterKey]['osKey'] . '" must be lower than ' . ($this->searchFilters[$filterKey]['maxInclusive'] + 1));
             }
         }
-        
+    
         return true;
     }
     
     protected function getElementByName($dom, $tagName) {
-    	return isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
+        return isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
     }
     
     /**
@@ -874,66 +903,66 @@ abstract class RestoModel {
      * @param RestoCollection $collection
      */
     private function getKeywords($properties, $geometry, $collection) {
-        
+    
         /*
          * Keywords utilities
          */
         $keywordsUtil = new RestoKeywordsUtil();
-        
+    
         /*
          * Initialize keywords array
-         */
+        */
         $keywords = isset($properties['keywords']) ? $properties['keywords'] : array ();
-        
+    
         /*
          * Validate keywords
-         */
+        */
         if (!$keywordsUtil->areValids($keywords)) {
             RestoLogUtil::httpError(500, 'Invalid keywords property elements');
         }
-        
+    
         return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
     }
     
     /**
-     * Verify if a previous version of the feature exists
+     * Returns previous versions of specified product, otherwise null.
      *
      * @param string $featureIdentifier
-     * @param string $collection
+     * @param RestoCollection $collection
      */
-    private function hasOldFeature($productIdentifier, $collection) {
-
+    private function getOldFeatures($productIdentifier, $collection) {
+    
         // Product identifier length
         $length = strlen($productIdentifier);
-
+        $regexOldVersions = null;
+    
         // We verify all the cases by collection
         switch ($collection->name) {
             case 'S1' :
-                $partialIdentifier = substr($productIdentifier, 0, $length - 4);
-                return $this->validateOldVersion($partialIdentifier . '%', $collection);
+                $regexOldVersions = substr($productIdentifier, 0, $length - 4) . '%';
                 break;
             case 'S2' :
-                $partialIdentifier = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
-                return $this->validateOldVersion($partialIdentifier, $collection);
+                $regexOldVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
                 break;
             case 'S3' :
-                $partialIdentifier = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
-                return $this->validateOldVersion($partialIdentifier, $collection);
+                $regexOldVersions = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
                 break;
             default :
-                return false;
-                break;
+                return array();
         }
+        // Returns products list which match with product identifier pattern.
+        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION,
+                array(  'productIdentifier' => $productIdentifier,
+                        'partialIdentifier' => $regexOldVersions,
+                        'collection' => $collection));
     }
+         * Returns previous versions of specified product, otherwise null.
+     * @param RestoCollection $collection
+                return array();
+        // Returns products list which match with product identifier pattern.
+        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION,
+                array(  'productIdentifier' => $productIdentifier,
+                        'partialIdentifier' => $regexOldVersions,
+                        'collection' => $collection));
 
-    /**
-     * Get the old version of a feature
-     *  
-     *  @param string $featureIdentifier
-     */
-    private function validateOldVersion($regexIdentifier, $collection) {
-        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION, 
-                array(  'partial_indentifier' => $regexIdentifier, 
-                        'schema' => '_' . strtolower($collection->name)));
-    }
 }

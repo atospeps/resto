@@ -575,7 +575,7 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Check if the user hasn't exceed his download volume limit
          */
-        if ($size > $user->profile['instantdownloadvolume'] * 1000000) {
+        if ($size > $user->profile['instantdownloadvolume'] * 1048576) {
             return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
         }
         if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $user->profile, 'size' => $size))) {

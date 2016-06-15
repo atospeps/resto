@@ -60,8 +60,6 @@ class Functions_features {
      * @throws Exception
      */
     public function search($context, $user, $collection, $params, $options) {
-
-//         var_dump($params);
                 
         /*
          * Search filters functions

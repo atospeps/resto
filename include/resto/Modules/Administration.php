@@ -967,7 +967,8 @@ class Administration extends RestoModule {
             }
             $user['activated'] = $user['activated'] === "1" ? true : false;
             $user['registrationdate'] = substr(str_replace(' ', 'T', $user['registrationdate']), 0, 19) . 'Z';
-
+            
+            $user['usedstorage'] = $this->context->dbDriver->get(RestoDatabaseDriver::USER_STORAGE_VOLUME, array('identifier' => $user['email']));
             $usersProfile[] = $user;
         }
 

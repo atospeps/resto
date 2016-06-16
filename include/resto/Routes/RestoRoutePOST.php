@@ -40,7 +40,7 @@ class RestoRoutePOST extends RestoRoute {
      *    
      *    groups                                        |  Create a new group      
      *    
-     *    file                                          | Add entryprocessing file
+     *    files                                         | Add entryprocessing file
      *    
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
@@ -66,6 +66,8 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->POST_collections($segments, $data);
             case 'groups':
                 return $this->POST_groups($data);
+            case 'files':
+                return $this->POST_files();
             case 'users':
                 return $this->POST_users($segments, $data);
             default:
@@ -376,7 +378,7 @@ class RestoRoutePOST extends RestoRoute {
          * users/{userid}/file
          */
         else if (isset($segments[2]) && $segments[2] === 'files') {
-            return $this->POST_userFile($segments[1], $data);
+            return $this->POST_userFile($segments[1]);
         }
         
         /*
@@ -633,12 +635,12 @@ class RestoRoutePOST extends RestoRoute {
         return RestoLogUtil::success('File successfully saved');
     }
     
-    private function POST_file($emailOrId) {
-        /*
-         * File can only be posted by its owner or by admin
-         */
-        $user = $this->getAuthorizedUser($emailOrId);
-        
+    /**
+     * Process HTTP POST request on file
+     * 
+     * @param string $emailOrId
+     */
+    private function POST_files() {
         // Entry processing files can only be added by admin
         if ($this->user->profile['groupname'] !== 'admin') {
             RestoLogUtil::httpError(403);

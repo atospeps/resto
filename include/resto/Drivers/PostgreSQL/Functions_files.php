@@ -33,15 +33,20 @@ class Functions_files {
      */
     public function getFiles($userid, $entryProcessing, $fileid) {  
         $query = ''; 
+        
         if($entryProcessing) {
             $query = 'SELECT * FROM usermanagement.files WHERE type = \'entryprocessing\'';
         } else {
-            $query = 'SELECT * FROM usermanagement.files WHERE ';
+            $query = 'SELECT * FROM usermanagement.files';
             if(isset($fileid)) {
-                $query .= 'gid = ' . $fileid . ' AND ';
+                $sql[] = " gid = '$fileid' ";
             }
             if(isset($userid)) {
-                $query .= 'email = \'' . $userid . '\'';
+                $sql[] = " email = '$userid' ";
+            }
+            
+            if (!empty($sql)) {
+                $query .= ' WHERE ' . implode(' AND ', $sql);
             }
         }
 

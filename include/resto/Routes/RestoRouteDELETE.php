@@ -36,6 +36,8 @@ class RestoRouteDELETE extends RestoRoute {
      *    
      *    groups/{group}                                |  Delete {group}
      *    
+     *    files/{fileid}                                | Delete {filesid}
+     *    
      *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
      *    users/{userid}/files/{fileid}                 |  Delete user file {fileid}
@@ -48,6 +50,8 @@ class RestoRouteDELETE extends RestoRoute {
                 return $this->DELETE_collections($segments);
             case 'groups':
                 return $this->DELETE_groups($segments);
+            case 'files':
+                return $this->DELETE_files($segments[1]);
             case 'users':
                 return $this->DELETE_users($segments);
             default:
@@ -261,14 +265,12 @@ class RestoRouteDELETE extends RestoRoute {
      * @param int $emailOrId
      * @param string $fileId
      */
-    private function DELETE_file($emailOrId, $fileId) {
-        // All file can only be deleted by admin
-        $user = $this->getAuthorizedUser($emailOrId);
+    private function DELETE_files($fileId) {
         if ($this->user->profile['groupname'] !== 'admin') {
             RestoLogUtil::httpError(403);
         }
 
-        $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => null, 'entryprocessing' => false, 'fileid' => $fileId));
+        $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('fileid' => $fileId));
         
         if(!isset($file[0])) {
             RestoLogUtil::httpError(6003, 'The file with id = ' . $fileId . ' doesn\'t exists');

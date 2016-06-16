@@ -50,6 +50,8 @@ class RestoRouteGET extends RestoRoute {
      *    groups                                            |  List all groups    
      *    groups/{groupid}                                  |  Show group {groupid}         
      *    
+     *    files                                             | List all files
+     *    
      *    users                                             |  List all users
      *    users/{userid}                                    |  Show {userid} information
      *    users/{userid}/downloadinfo                       |  Show {userid} download informations
@@ -76,6 +78,8 @@ class RestoRouteGET extends RestoRoute {
                 return $this->GET_collections($segments);
             case 'groups':
                 return $this->GET_groups($segments);
+            case 'files':
+                return $this->GET_files($segments);
             case 'users':
                 return $this->GET_users($segments);
             default:
@@ -551,6 +555,25 @@ class RestoRouteGET extends RestoRoute {
             return $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
         }
     }
+
+    /**
+     *
+     * Process HTTP GET request on files
+     *
+     * @param array $segments
+     */
+    private function GET_files($segments) {
+        /*
+         * All files can only be seen by admin
+         */
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+        
+        $result = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array());
+        
+        return $result;
+    }
     
 
     /**
@@ -740,7 +763,7 @@ class RestoRouteGET extends RestoRoute {
      * @throws Exception
      */
     private function GET_userDownloadFile($emailOrId, $fileId) {
-        // Files can be downloaded only be its owner or by admin
+        // Files can be downloaded only be its owner
         $user = $this->getAuthorizedUser($emailOrId);
 
         $file = $this->context->dbDriver->get(RestoDatabaseDriver::FILES, array('userid' => $this->user->profile['email'], 'entryprocessing' => false, 'fileid' => $fileId));

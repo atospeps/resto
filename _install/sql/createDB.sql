@@ -12,9 +12,9 @@ ALTER FUNCTION unaccent(text) IMMUTABLE;
 -- in lower case, without accents and with spaces replaced as '-'
 --
 CREATE OR REPLACE FUNCTION normalize(text) 
-RETURNS text AS \$\$ 
-SELECT replace(replace(lower(unaccent(\$1)),' ','-'), '''', '-')
-\$\$ LANGUAGE sql;
+RETURNS text AS $$ 
+SELECT replace(replace(lower(unaccent($1)),' ','-'), '''', '-')
+$$ LANGUAGE sql;
 
 -- 
 -- resto schema contains collections descriptions tables
@@ -276,12 +276,12 @@ CREATE TABLE usermanagement.revokedtokens (
 CREATE INDEX idx_token_revokedtokens ON usermanagement.revokedtokens (token);
 CREATE OR REPLACE FUNCTION delete_old_tokens() RETURNS trigger
     LANGUAGE plpgsql
-    AS \$\$
+    AS $$
 BEGIN
   DELETE FROM usermanagement.revokedtokens WHERE creationdate < now() - INTERVAL '2 days';
   RETURN NEW;
 END;
-\$\$;
+$$;
 CREATE TRIGGER old_tokens_gc AFTER INSERT ON usermanagement.revokedtokens EXECUTE PROCEDURE delete_old_tokens();
 
 

@@ -182,7 +182,7 @@ class RestoFeatureCollection {
         $analysis = $this->analyze($originalFilters);
         
         if (isset($analysis['notUnderstood'])) {
-            return 0;
+            return array('count' => 0);
         }
         
         

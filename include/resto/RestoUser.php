@@ -283,9 +283,9 @@ class RestoUser{
             mkdir($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing", 0777, true);
         }
         
-        chmod($this->context->filesDirectory . "/" . $this->profile['userid'], 0755);
-        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0755);
-        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing", 0755);
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'], 0750);
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/auxiliary", 0750);
+        chmod($this->context->filesDirectory . "/" . $this->profile['userid'] . "/processing", 0750);
     }
     
     /**

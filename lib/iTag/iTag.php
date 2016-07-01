@@ -20,6 +20,7 @@ require 'Taggers/Tagger_Geology.php';
 require 'Taggers/Tagger_Hydrology.php';
 require 'Taggers/Tagger_LandCover.php';
 require 'Taggers/Tagger_Political.php';
+require 'Taggers/Tagger_Toponyms.php';
 require 'Taggers/Tagger_Population.php';
 require 'Taggers/Tagger_Physical.php';
 class iTag {
@@ -27,7 +28,7 @@ class iTag {
     /*
      * iTag version
      */
-    const version = '3.0.7';
+    const version = '3.0.13';
     
     /*
      * Database handler
@@ -92,8 +93,9 @@ class iTag {
         
         /*
          * Convert footprint in case of -180/+180 meridian crossing
+         * Note : This is deprecated and replaced by ST_SplitDateLine function
          */
-        $metadata['footprint'] = $this->correctWrapDateLine($metadata['footprint']);
+        //$metadata['footprint'] = $this->correctWrapDateLine($metadata['footprint']);
         
         /*
          * Datasources reference information

@@ -105,7 +105,7 @@ abstract class Tagger {
      * @param string $geometry
      */
     protected function postgisArea($geometry) {
-        return 'st_area(geography(' . $geometry . '))';
+        return 'st_area(geography(' . $geometry . '), false)';
     }
     
     /**
@@ -148,7 +148,7 @@ abstract class Tagger {
      * 
      */
     protected function postgisGeomFromText($footprint, $srid = '4326') {
-        return 'ST_GeomFromText(\'' . $footprint . '\', ' . $srid . ')';
+        return 'ST_SplitDateLine(ST_GeomFromText(\'' . $footprint . '\', ' . $srid . '))';
     }
     
     /**

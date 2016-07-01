@@ -7,7 +7,7 @@ export PRG_DIR=`(cd ${EXEC_DIR} ; echo $PWD)`
 
 USER=apache
 GROUP=apache
-RIGHTS=755
+RIGHTS=750
 HTTPS=0
 HOST=localhost
 TARGET=resto

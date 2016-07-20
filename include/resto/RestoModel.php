@@ -798,7 +798,7 @@ abstract class RestoModel {
         /*
          * Updates feature
         */
-        $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+        $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
                 'collection' => $feature->collection,
                 'featureArray' => array (
                         'type' => 'Feature',

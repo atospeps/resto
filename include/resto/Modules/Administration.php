@@ -45,6 +45,7 @@
  *    |  GET     administration/stats/users                                           |  Get stats about users
  *    |  GET     administration/stats/users/{userid}                                  |  Get stats about user {userid}
  *    |  GET     administration/stats/collections                                     |  Get stats about collections
+ *    |  POST    administration/facets/update                                         |  Reset all facets.
  * 
  */
 class Administration extends RestoModule {
@@ -141,6 +142,8 @@ class Administration extends RestoModule {
                     return $this->processPostUsers($data);
                 case 'collections':
                     return $this->processPostCollections();
+                case 'facets':
+                    return $this->processPostFacets($data);
                 default:
                     RestoLogUtil::httpError(404);
             }
@@ -230,6 +233,19 @@ class Administration extends RestoModule {
          * Update rights
          */ else {
             return $this->updateRights();
+        }
+    }
+
+    /**
+     * Process when POST on /administration/facets
+     * 
+     * @throws Exception
+     */
+    private function processPostFacets($data) {
+        if (isset($this->segments[1]) && $this->segments[1] == "update") {
+            return $this->updateFacets($data);
+        } else {
+            RestoLogUtil::httpError(404);
         }
     }
 
@@ -727,9 +743,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function activate() {
-
-
-
         try {
             $params = array();
             $params['userid'] = $this->segments[1];
@@ -746,9 +759,6 @@ class Administration extends RestoModule {
      * @throws Exception
      */
     private function deactivate() {
-
-
-
         try {
             $params = array();
             $params['userid'] = $this->segments[1];
@@ -915,14 +925,27 @@ class Administration extends RestoModule {
     }
 
     /**
+     * Update facets.
+     */
+    private function updateFacets($data) {
+        
+        // Create facets for each feature.
+        foreach($data as $feature) {
+            $collection = array();
+            $collection['name'] = $feature['collection'];
+        
+            $this->context->dbDriver->store(RestoDatabaseDriver::FEATURE_FACETS, array( "collection" => (object) $collection, "keywords" => $feature['keywords']));
+        }
+        
+        return RestoLogUtil::success('Facets has been successfully updated');
+    }
+    
+    /**
      * Output collection description as a JSON stream
      * 
      * @param boolean $pretty : true to return pretty print
      */
     public function toJSON($pretty = false) {
-
-
-
         return RestoUtil::json_format($this->data, $pretty);
     }
 

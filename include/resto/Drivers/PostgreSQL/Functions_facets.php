@@ -90,6 +90,14 @@ class Functions_facets {
     }
     
     /**
+     * Remove all facets
+     */
+    public function removeAllFacets() {
+        $this->dbDriver->query('DELETE FROM resto.facets');
+        return true;
+    }
+    
+    /**
      * Return facets elements from a type for a given collection
      * 
      * Returned array structure if collectionName is set

@@ -380,6 +380,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $facetsFunctions->removeFacet($params['hash'], $params['collectionName']);
                 
             /*
+             * Remove all facets
+             */
+            case parent::FACETS:
+                $facetsFunctions = new Functions_facets($this);
+                return $facetsFunctions->removeAllFacets();
+                    
+            /*
              * Remove feature
              */
             case parent::FEATURE:
@@ -456,6 +463,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::FEATURE:
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->storeFeature($params['collection'], $params['featureArray']);
+                
+            /*
+             * Store feature facets
+             */
+            case parent::FEATURE_FACETS:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->storeKeywordsFacets($params['collection'], $params['keywords']);
+                
             
             /*
              * Store cart item

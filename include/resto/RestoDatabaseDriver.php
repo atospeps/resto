@@ -63,6 +63,7 @@ abstract class RestoDatabaseDriver {
     const FEATURES_OLD_VERSION = 39;
     const COUNT_FEATURES = 40;
     const FEATURE_DESCRIPTION_BY_TITLE = 41;
+    const FEATURE_FACETS = 45;
     
     /*
      * Results per page

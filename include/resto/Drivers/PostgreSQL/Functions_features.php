@@ -43,6 +43,27 @@ class Functions_features {
     }
 
     /**
+     * Get all features.
+     * 
+     * @param int $number
+     * @param int $offset
+     * @return array
+     */
+    public function getAllFeatures($number, $offset) {
+        $query = 'SELECT collection, keywords FROM resto.features LIMIT ' . $number . ' OFFSET ' . $offset;
+        $results = $this->dbDriver->query($query);
+
+        $features = array();
+        while ($result = pg_fetch_assoc($results)) {
+            $features[] = array(
+                    'collection' => $result['collection'],
+                    'keywords' => json_decode(trim($result['keywords'], '\''), true)
+            );
+        }
+        return $features;
+    }
+    
+    /**
      * 
      * Get an array of features descriptions
      * 
@@ -60,7 +81,7 @@ class Functions_features {
      * @throws Exception
      */
     public function search($context, $user, $collection, $params, $options) {
-        
+                
         /*
          * Search filters functions
          */
@@ -442,7 +463,7 @@ class Functions_features {
      * @param RestoCollection $collection
      * @param array $keywords
      */
-    private function storeKeywordsFacets($collection, $keywords) {
+    public function storeKeywordsFacets($collection, $keywords) {
         
         /*
          * One facet per keyword

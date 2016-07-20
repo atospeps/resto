@@ -1,6 +1,6 @@
 {
     "type": "Feature",
-    "id": "DS_SPOT6_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809",
+    "id": "DS_SPOT15_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809",
     "geometry": {
         "coordinates": [
             [
@@ -33,6 +33,8 @@
         "archivingStation": "FR1",
         "cloudCoverPercentage": 2,
         "extendedData": null,
+    	"title": "featureTest",
+    	"orbitDirection": "ASCENDING",
         "imageName": "",
         "imageUrl": "http:\/\/ql.astrium-geo.com\/catalog\/img\/getfeatureimage.aspx?ID=DS_SPOT6_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809",
         "incidenceAngle": 24.209953308105,
@@ -40,14 +42,14 @@
         "metadataUrl": "http:\/\/api.astrium-geo.com\/catalog\/data\/features.svc\/Features\/DS_SPOT6_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809?sk=nTTe3gvSZ7-ntG3Cx8qoAU5z2xubPLXEdWAydziJPS4:",
         "minShift": null,
         "orientationAngle": 180.00489807129,
-        "productId": "DS_SPOT6_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809",
+        "productId": "DS_SPOT15_201211101947221_FR1_FR1_FR1_FR1_W152S17_01809",
         "productType": "PX",
         "qualityQuotes": "E",
         "receivingStation": "FR1",
         "resolution": 1.5,
         "resource": "http://localhost/resto/_examples/sentinel.jpg",
         "resourceMimeType": "image/jpeg",
-        "resource_size": "800",
+        "resourceSize": "800",
         "satellite": "SPOT6",
         "instrument": "HRS",
         "sensorFamily": "Multispectral",

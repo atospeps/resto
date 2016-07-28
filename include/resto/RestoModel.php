@@ -440,8 +440,9 @@ abstract class RestoModel {
                     'osKey' => 'cloudCover',
                     'operation' => 'interval',
                     'title' => 'Cloud cover expressed in percent',
-                    'minInclusive' => 0,
-                    'maxInclusive' => 100,
+                    /*'minInclusive' => 0,
+                    'maxInclusive' => 100,*/
+                    'pattern' => '^(\[|\]|[0-9])?[0-9]+$|^[0-9]+?(\[|\])$|^(\[|\])[0-9]+,[0-9]+(\[|\])$',
                     'quantity' => array (
                             'value' => 'cloud',
                             'unit' => '%' 

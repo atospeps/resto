@@ -299,10 +299,12 @@ class Alerts extends RestoModule {
             // We get the current date rounding the hours
             $now = time();
             $date = date("Y-m-d H:00:00", $now);
-            
-            $query = "SELECT aid, title, creation_time, email, last_dispatch, expiration, criterias" 
-                    . " FROM usermanagement.alerts"
-                    . " WHERE '" . $date . "'  >= date_trunc('hour', last_dispatch)::timestamp + ( period || ' hour')::interval AND hasSubscribe=1";
+
+            $query = "SELECT u.country, a.aid, a.title, a.creation_time, a.email, a.last_dispatch, a.expiration, a.criterias"
+                    . " FROM usermanagement.alerts a"
+                    . " INNER JOIN usermanagement.users u"
+                    . " ON u.email=a.email WHERE '" . $date . "'  >= date_trunc('hour', a.last_dispatch)::timestamp + ( a.period || ' hour')::interval AND a.hasSubscribe=1";
+
             $alerts = pg_query($this->dbh, $query);
             if (!$alerts){
                 throw new Exception("Alerts module - An unexpected error has occurred. $query", 500);
@@ -342,13 +344,18 @@ class Alerts extends RestoModule {
                         // We create the content for a meta4 file from the products
                         $content = $this->alertsToMETA4($answer['features'], $row['email']);
                         if ($content !== FALSE) {
+                            
+                            $criterias = isset($row['criterias']) ? json_decode($row['criterias'], true) : array();
+                            $row['title'] = !empty($row['title']) ? $row['title'] : http_build_query($criterias);
+
                             // We established all the parameters used on the mail
                             $params['filename'] = date("Y-m-d H:i:s", $now) . '.meta4';
                             $params['to'] = $row['email'];
-                            $params['message'] = $this->setMailMessage($row);
+                            $params['message'] = $this->getBodyMessage($row);
                             $params['senderName'] = $this->context->mail['senderName'];
                             $params['senderEmail'] = $this->context->mail['senderEmail'];
-                            $params['subject'] = 'PEPS: Abonnement';
+                            $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
+                            $params['subject'] = $this->context->dictionary->translate($this->options['notification'][$langage]['subject'], $row['title']);
                             $params['content'] = $content ;
 
                             // We send the mail
@@ -458,32 +465,35 @@ class Alerts extends RestoModule {
      * @param array $params : parameters to send the mail
      */
     private function sendAttachedMeta4Mail($params) {
-        
-        // We get the file's content to be encoded
-        $content = chunk_split(base64_encode($params['content']));
-        $uid = md5(uniqid(time()));
-        
-        // Header to send the basic mail
-        $headers = 'From: ' . $params['senderName'] . ' <' . $params['senderEmail'] . '>' . "\r\n";
-        $headers .= 'Reply-To: doNotReply <' . $params['senderEmail'] . '>' . "\r\n";
-        $headers .= 'X-Mailer: PHP/' . phpversion() . "\r\n";
-        $headers .= 'X-Priority: 3' . "\r\n";
-        $headers .= 'MIME-Version: 1.0' . "\r\n";
-        $headers .= "Content-Type: multipart/mixed; boundary=\"" . $uid . "\"\r\n\r\n";
-        
-        // message & attachment
-        $nmessage = "--" . $uid . "\r\n";
-        $nmessage .= "Content-type:text/plain; charset=iso-8859-1\r\n";
-        $nmessage .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-        $nmessage .= $params['message'] . "\r\n\r\n";
-        $nmessage .= "--" . $uid . "\r\n";
-        $nmessage .= "Content-Type: application/octet-stream; name=\"" . $params['filename'] . "\"\r\n";
-        $nmessage .= "Content-Transfer-Encoding: base64\r\n";
-        $nmessage .= "Content-Disposition: attachment; filename=\"" . $params['filename'] . "\"\r\n\r\n";
-        $nmessage .= $content . "\r\n\r\n";
-        $nmessage .= "--" . $uid . "--";
 
-        if (mail($params['to'], $params['subject'], $nmessage, $headers, '-f' . $params['senderEmail'])) {
+        // Encode attachment file content
+        $data = chunk_split(base64_encode($params['content']));
+        $uid = md5(uniqid(time()));
+        $rn = "\r\n";
+
+        // Headers
+        $headers = 'From: ' . $params['senderName'] . ' <' . $params['senderEmail'] . '>' . $rn;
+        $headers .= 'Reply-To: doNotReply <' . $params['senderEmail'] . '>' . $rn;
+        $headers .= 'X-Mailer: PHP/' . phpversion() . $rn;
+        $headers .= 'X-Priority: 3' . $rn;
+        $headers .= 'MIME-Version: 1.0' . $rn;
+        $headers .= 'Content-Type: multipart/mixed; boundary="' . $uid .'"' . $rn;
+
+        // Message body
+        $msg = "--" . $uid . $rn;
+        $msg .= 'Content-Type: text/html; charset=UTF-8' . $rn;
+        $msg .= 'Content-Transfer-Encoding: binary' . $rn . $rn;
+        $msg .= $params['message'] . $rn;
+
+        // Message attachment
+        $msg .= "--" . $uid . $rn;
+        $msg .= 'Content-Type: application/octet-stream; name="' . $params['filename'] . '"' . $rn;
+        $msg .= 'Content-Transfer-Encoding: base64' . $rn;
+        $msg .= 'Content-Disposition: attachment; filename="' . $params['filename'] . '"' . $rn . $rn;
+        $msg .= $data . $rn;
+        $msg .= $rn . "--" . $uid . "--" . $rn;
+
+        if (mail($params['to'], $params['subject'], $msg, $headers, '-f' . $params['senderEmail'])) {
             return true;
         }
         return false;
@@ -499,7 +509,7 @@ class Alerts extends RestoModule {
         $criterias = isset($row['criterias']) ? array_merge(json_decode($row['criterias'], true), $params) : $params;
         $collection = isset($criterias['collection']) ? $criterias['collection'] : null;
         $searchUrl = $this->context->baseUrl . '/api/collections/' . (isset($collection) ? $collection . '/' : '') . 'search.json?';
-        
+
         $queryParams = array();
         // Initializes search parameters
         if (!empty($criterias)){
@@ -546,11 +556,12 @@ class Alerts extends RestoModule {
      *
      * @param array $row Element returned from the database
      */
-    private function setMailMessage($row) {
-        $body = "Peps Alert\n";
-        $body .= "Title: " . $row['title'] . "\n";
-        $body .= "Creation time: " . $row['creation_time'] . "\n";
-        $body .= "Criterias: " . $row['criterias'] . "\n";
+    private function getBodyMessage($row) {
+
+        $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
+        $body = $this->context->dictionary->translate(
+                $this->options['notification'][$langage]['message'], 
+                $row['title']);
         return $body;
     }
 }

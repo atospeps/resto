@@ -242,10 +242,17 @@ return array(
                                     . '<a href="https://peps.cnes.fr">https://peps.cnes.fr</a>'
                            ),
                            'en' => array(
+<<<<<<< HEAD
                                    'subject' => 'PEPS : your « {a:1} » subscription results',
                                    'message' => 'Dear PEPS user,<br><br>' 
                                     . 'Please find below a meta4 file containing the list of new acquired PEPS products corresponding to your search « {a:1} ».<br>'
                                     . 'To display your search content or to modify your search criteria, go <a href="https://peps.cnes.fr/rocket/#/account/alerts">there</a>.<br><br>'
+=======
+                                   'subject' => 'PEPS : The results of your « {a:1} » subscription',
+                                   'message' => 'Hello,<br><br>' 
+                                    . 'You will find below a meta4 file containing the list of new acquired PEPS products corresponding to your search « {a:1} ».<br>'
+                                    . 'To display the content of your search or eventually to modify your search criteria, go <a href="https://peps.cnes.fr/rocket/#/account/alerts">there</a>.<br><br>'
+>>>>>>> branch 'dev_1.3.1.4' of https://github.com/atospeps/resto.git
                                     . 'Regards<br>'
                                     . 'PEPS operation team<br>'
                                     . 'CNES<br>'

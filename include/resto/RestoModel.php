@@ -562,6 +562,20 @@ abstract class RestoModel {
                     'operation' => '>=',
                     'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
             ),
+            'resto:publishedBegin' => array (
+                    'key' => 'published',
+                    'osKey' => 'publishedBegin',
+                    'operation' => '>=',
+                    'title' => 'Begin publication date',
+                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
+            ),
+            'resto:publishedEnd' => array (
+                    'key' => 'published',
+                    'osKey' => 'publishedEnd',
+                    'operation' => '<=',
+                    'title' => 'End publication date',
+                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
+            ),
             'resto:isNrt' => array (
                     'key' => 'isNrt',
                     'osKey' => 'isNrt',

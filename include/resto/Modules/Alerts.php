@@ -325,7 +325,7 @@ class Alerts extends RestoModule {
 
                     // Builds OpenSearch URL from user's search criteria
                     // Initializes completion date with new last dispatch date
-                    $params = array('completionDate' => date("Y-m-d\TH:00:00", $now));
+                    $params = array('publishedEnd' => date("Y-m-d\TH:00:00", $now));
                     $url = $this->getUrl($row, $params);
 
                     // we execute the open search
@@ -517,12 +517,12 @@ class Alerts extends RestoModule {
             // startDate is equals to last dispatch date
             foreach ($criterias as $key => $value) {
                 // Ignores following criteria (collection, startDate)
-                if ($key != 'collection' && $key != 'startDate') {
+                if ($key != 'collection' && $key != 'startDate' && $key != 'completionDate') {
                     $queryParams[] = $key . '=' . $value;
                 }
             }
         }
-        $queryParams[] = 'startDate=' . date("Y-m-d\TH:i:s", strtotime($row["last_dispatch"]));
+        $queryParams[] = 'publishedBegin=' . date("Y-m-d\TH:i:s", strtotime($row["last_dispatch"]));
         return $searchUrl . join('&', $queryParams);        
     }
 

@@ -144,7 +144,8 @@ class RestoModel_sentinel3 extends RestoModel {
                     'quicklook'=> $this->getLocation($dom),
                     'cloudCover' => 0,
                     'isNrt' => $this->getElementByName($dom, 'isNrt'),
-                    'realtime' => $this->getElementByName($dom, 'realtime')
+                    'realtime' => $this->getElementByName($dom, 'realtime'),
+                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
       );
 

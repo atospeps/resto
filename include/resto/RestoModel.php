@@ -228,7 +228,11 @@ abstract class RestoModel {
             'realtime' => array (
                     'name' => 'realtime',
                     'type' => 'TEXT'
-            ) 
+            ),
+            'dhusIngestDate' => array (
+                    'name' => 'dhusingestdate',
+                    'type' => 'TIMESTAMP'
+            )
     );
     
     /*
@@ -717,6 +721,10 @@ abstract class RestoModel {
         if (empty($properties['resourceSize'])) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
         }
+        
+        if (empty($properties['dhusIngestDate'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
+        }
 
         /*
          * Compute unique identifier
@@ -726,7 +734,7 @@ abstract class RestoModel {
         } else {
             $featureIdentifier = $data['id'];
         }
-    
+
         /*
          * Store feature
          */
@@ -737,7 +745,7 @@ abstract class RestoModel {
                         'id' => $featureIdentifier,
                         'geometry' => $data['geometry'],
                         'properties' => array_merge($properties, array (
-                                'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
+                            'keywords' => $this->getKeywords($properties, $data['geometry'], $collection)
                         ))
                 )
         ));
@@ -749,41 +757,80 @@ abstract class RestoModel {
         /*
          * Updates old versions (obsolete) of feature
          */
-        $this->updateOldVersions($feature);
+        $this->updateFeatureVersions($feature);
 
         return $feature;
     }
     
+    
     /**
-     * Updates version of specified feature.
+     * Updates versions of specified feature
      * @param RestoFeature $feature
      */
-    private function updateOldVersions($feature) {
+    private function updateFeatureVersions(RestoFeature $feature){
 
-        $featureArray = $feature->toArray();
-        $properties = $featureArray['properties'];
-        /*
-         * Validate if the feature is a new version of an already created one
+        $featureArray = $feature->toArray();   
+        $properties = $featureArray['properties'];    
+        $isnrt = $properties['isNrt'];
+        $collection = $feature->collection;
+
+        /**
+         * NRT product
          */
-        $featuresOldVersion = $this->getOldFeatures($properties['productIdentifier'], $feature->collection);
-
-        // If we have an old version of the feature, has to be updated
-        if (!empty($featuresOldVersion)) {
-            $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURES_OLD_VERSION, array (
+        if ($isnrt == 1) {
+            // Check if there is a new product version
+            $newVersion = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_NEW_VERSION, array(
+                    'context' => $collection->context,
+                    'user' => $collection->user,
+                    'productIdentifier' => $properties['productIdentifier'],
+                    'dhusIngestDate' => $properties['dhusIngestDate'],
                     'collection' => $feature->collection,
-                    'featuresOldVersion' => $featuresOldVersion,
-                    'newVersion' => $feature->identifier
+                    'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
             ));
+            // If a new version exists, sets NRT product to not visible
+            if (!empty($newVersion)){
+                                
+                $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
+                        'collection' => $collection,
+                        'identifier' => $feature->identifier,
+                        'visible' => 0,
+                        'newVersion' => $newVersion['id']
+                ));
+            }
+        }
+        /**
+         * Not NRT product
+         */
+        else {
+            // Check if there is a NRT version of product
+            $nrtVersion = $feature->collection->context->dbDriver->get(RestoDatabaseDriver::FEATURE_NRT_VERSION, array(
+                    'context' => $collection->context, 
+                    'user' => $collection->user,
+                    'productIdentifier' => $properties['productIdentifier'],
+                    'dhusIngestDate' => $properties['dhusIngestDate'],
+                    'collection' => $feature->collection,
+                    'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
+            ));
+            // If a NRT product exists, sets NRT product to not visible
+            if (!empty($nrtVersion)){
+                                         
+                $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
+                    'collection' => $collection,
+                    'identifier' => $nrtVersion['id'],
+                    'visible' => 0,
+                    'newVersion' => $feature->identifier                    
+            ));
+            }
         }
     }
-    
+
     /**
      * Update feature within {collection}.features table following the class model
      *
      * @param RestoFeature feature : feature to update
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
      */
-    public function updateFeature($feature, $data) {
+    public function updateFeature($feature, $data, $obsolescence = true) {
 
         /*
          * Assume input file or stream is a JSON Feature
@@ -809,6 +856,10 @@ abstract class RestoModel {
         if (empty($properties['resourceSize'])) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
         }
+        
+        if (empty($properties['dhusIngestDate'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
+        }
 
         /*
          * Updates feature
@@ -820,12 +871,16 @@ abstract class RestoModel {
                         'id' => $feature->identifier,
                         'geometry' => $data['geometry'],
                         'properties' => array_merge($properties, array (
-                                'keywords' => $this->getKeywords($properties, $data['geometry'], $feature->collection)
+                                'keywords' => $this->getKeywords($properties, $data['geometry'], $feature->collection),
+                                'visible' => 1, // force visibility of products to true (updateFeatureVersions will update visibility),
+                                'newVersion' => null
                         ))
                 )
         ));
 
-        $this->updateOldVersions($feature);
+        if ($obsolescence == true){
+            $this->updateFeatureVersions($feature);
+        }
     }
 
     /**
@@ -912,38 +967,34 @@ abstract class RestoModel {
     
         return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
     }
-    
+
     /**
-     * Returns previous versions of specified product, otherwise null.
-     *
-     * @param string $featureIdentifier
-     * @param RestoCollection $collection
+     * 
+     * @param unknown $productIdentifier
+     * @param unknown $collection
+     * @return Ambigous <NULL, string>
      */
-    private function getOldFeatures($productIdentifier, $collection) {
-    
-        // Product identifier length
-        $length = strlen($productIdentifier);
-        $regexOldVersions = null;
-    
-        // We verify all the cases by collection
-        switch ($collection->name) {
-            case 'S1' :
-                $regexOldVersions = substr($productIdentifier, 0, $length - 4) . '%';
-                break;
-            case 'S2' :
-                $regexOldVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
-                break;
-            case 'S3' :
-                $regexOldVersions = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
-                break;
-            default :
-                return array();
-        }
-        // Returns products list which match with product identifier pattern.
-        return $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSION,
-                array(  'productIdentifier' => $productIdentifier,
-                        'partialIdentifier' => $regexOldVersions,
-                        'collection' => $collection));
+    private function getFeatureVersionPattern($productIdentifier, $collection) {
+        
+            // Product identifier length
+            $length = strlen($productIdentifier);
+            $regexFeatureVersions = null;
+        
+            // We verify all the cases by collection
+            switch ($collection) {
+                case 'S1' :
+                    $regexFeatureVersions = substr($productIdentifier, 0, $length - 4) . '%';
+                    break;
+                case 'S2' :
+                    $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                    break;
+                case 'S3' :
+                    $regexFeatureVersions = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
+                    break;
+                default :
+                    break;
+            }
+            return $regexFeatureVersions;
     }
     
 }

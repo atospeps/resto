@@ -102,12 +102,19 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->getFeatureDescriptionByTitle($params['context'], $params['user'], $params['featureTitle'], isset($params['collection']) ? $params['collection'] : null, isset($params['filters']) ? $params['filters'] : array());
             /*
-             * Get old version of the feature going to be inserted
+             * Get new version of NRT product
              */
-            case parent::FEATURES_OLD_VERSION:
+            case parent::FEATURES_NEW_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getOldFeatures($params['productIdentifier'], $params['partialIdentifier'], $params['collection']);
-                
+                return $featuresFunctions->getNewVersion($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
+
+            /*
+             * Get NRT version of Nominal product
+             */
+            case parent::FEATURE_NRT_VERSION:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->getNRTVersion($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
+            
             /*
              * Get feature collections description
              */
@@ -556,13 +563,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::FEATURE:
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->updateFeature($params['collection'], $params['featureArray']);
-                
-           /*
-            * Update the old version of the feature going to be inserted
-            */
-            case parent::FEATURES_OLD_VERSION:
+
+            /*
+             * Update NRT product (visibility on api search results and add new version link)
+             */
+            case parent::FEATURE_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->updateOldFeatures($params['collection'], $params['featuresOldVersion'], $params['newVersion']);
+                return $featuresFunctions->updateFeatureVersion($params['collection'], $params['identifier'], $params['visible'], $params['newVersion']);
+                
             default:
                 return null;
         }

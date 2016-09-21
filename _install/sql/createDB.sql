@@ -147,7 +147,8 @@ CREATE TABLE resto.features (
     cloudcover          NUMERIC,
     new_version         TEXT,
     isnrt               INTEGER DEFAULT 0,
-    realtime            TEXT
+    realtime            TEXT,
+    dhusingestdate		TIMESTAMP
 );
 CREATE INDEX idx_identifier_features ON resto.features (identifier);
 

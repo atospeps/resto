@@ -171,7 +171,8 @@ class RestoModel_sentinel2 extends RestoModel {
                     's2TakeId' => $this->getElementByName($dom, 's2takeid'),
                     'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
                     'isNrt' => $this->getElementByName($dom, 'isNrt'),
-                    'realtime' => $this->getElementByName($dom, 'realtime')
+                    'realtime' => $this->getElementByName($dom, 'realtime'),
+                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
       );
 

@@ -242,11 +242,28 @@ return array(
                'activate' => true,
                'route' => 'alerts',
                'options' => array(
-                   'allowed_execute_hosts' => array(
-                        'localhost',
-                        '127.0.0.1',
-                        '192.168.56.1'
-                    ),
+                   'notification' => array(
+                           'fr' => array(
+                                   'subject' => 'PEPS : les résultats de votre abonnement « {a:1} »',
+                                   'message' => 'Bonjour,<br><br>' 
+                                    . 'Vous trouverez ci-dessous un fichier meta4 qui contient la liste des nouveaux produits acquis par PEPS qui correspondent à votre recherche « {a:1} ».<br>'
+                                    . 'Pour visualiser le contenu de votre recherche ou éventuellement modifier les critères de cette recherche rendez-vous <a href="https://peps.cnes.fr/rocket/#/account/alerts">ici</a>.<br><br>'
+                                    . 'Cordialement<br>'
+                                    . 'L’équipe d’exploitation PEPS<br>'
+                                    . 'CNES<br>'
+                                    . '<a href="https://peps.cnes.fr">https://peps.cnes.fr</a>'
+                           ),
+                           'en' => array(
+                                   'subject' => 'PEPS : your « {a:1} » subscription results',
+                                   'message' => 'Dear PEPS user,<br><br>' 
+                                    . 'Please find below a meta4 file containing the list of new acquired PEPS products corresponding to your search « {a:1} ».<br>'
+                                    . 'To display your search content or to modify your search criteria, go <a href="https://peps.cnes.fr/rocket/#/account/alerts">there</a>.<br><br>'
+                                    . 'Regards<br>'
+                                    . 'PEPS operation team<br>'
+                                    . 'CNES<br>'
+                                    . '<a href="https://peps.cnes.fr">https://peps.cnes.fr</a>'
+                           )
+                   )
                )
         ),
             

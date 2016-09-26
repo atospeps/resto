@@ -219,33 +219,122 @@ class Functions_features {
         $results = $this->dbDriver->query($query);
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
         return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+    }    
+    
+    /**
+     * Get new version of NRT feature.
+     * @param RestoContext $context
+     * @param RestoUser $user
+     * @param string $productIdentifier
+     * @param string $dhusIngestDate
+     * @param RestoCollection $collection
+     * @param string $pattern
+     * @return array|null
+     */
+    public function getNewVersion($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern){
+        
+        // Product collection
+        $schema = !empty($collection) ? '_' . strtolower($collection->name) : 'resto';
+        
+        $model = isset($collection) ? $collection->model : new RestoModel_default();
+        
+        $filtersUtils = new Functions_filters();
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
+        
+        // WHERE Clause
+        $whereClause = ' WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
+        $whereClause .= ' AND productidentifier <>  \'' . $productIdentifier . '\'';
+        $whereClause .= ' AND dhusingestdate > \'' . $dhusIngestDate . '\'';
+    
+        // Query
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)); 
+        $query .= ' FROM ' . pg_escape_string($schema) . '.features' . $whereClause;
+        $query .= ' ORDER BY dhusingestdate DESC';
+        
+        $results = $this->dbDriver->query(($query));
+        $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
+        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
     }
     
     /**
-     * Returns old versions of a product
-     *
-     * @param string $identifier product identifier
-     * @param string $partialIdentifier product id pattern
-     * @param RestoCollection $collection collection
-     * @return array
+     * Get NRT feature of Nominal feature.
+     * @param RestoContext $context
+     * @param RestoUser $user
+     * @param string $productIdentifier
+     * @param string $dhusIngestDate
+     * @param RestoCollection $collection
+     * @param string $pattern
+     * @return array|null
      */
-    public function getOldFeatures($identifier, $partialIdentifier, $collection) {
+    public function getNRTVersion($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern){
+        
+        // Product collection
+        $schema = !empty($collection) ? '_' . strtolower($collection->name) : 'resto';        
+        $model = isset($collection) ? $collection->model : new RestoModel_default();
+
+        $filtersUtils = new Functions_filters();
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
+        
+        // WHERE Clause
+        $whereClause = 'WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
+        $whereClause .= ' AND isnrt=1';
+        $whereClause .= ' AND productidentifier <> \'' . $productIdentifier . '\'';
+        $whereClause .= ' AND dhusingestdate < \'' . $dhusIngestDate . '\'';
     
-        $schema = isset($collection) ? '_' . strtolower($collection->name) : 'resto';
+        // Query
+        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
+        $query .= ' FROM ' . pg_escape_string($schema) . '.features ' . $whereClause;        
+        
+        $results = $this->dbDriver->query($query);
+
+        $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
+        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+    }
     
-        // Retreive published date of feature to store/update
-        $query = 'SELECT identifier, published FROM ' . pg_escape_string($schema) . '.features WHERE identifier=\'' . pg_escape_string($identifier) . '\'';
-        $results = $this->dbDriver->fetch($this->dbDriver->query(($query)));
-        $feature = !empty($results) ? $results[0] : null;
-    
-        // Retreive old versions of a product
-        $whereClause = 'WHERE productidentifier LIKE \'' . pg_escape_string($partialIdentifier) . '\'';
-        $whereClause .= !empty($feature) ? ' AND published < ' . $feature['published'] : '';
-    
-        $query = 'SELECT identifier FROM ' . pg_escape_string($schema) . '.features ' . $whereClause;
-    
-        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
-        return $results;
+    /**
+     * Update version of feature (NRT product)
+     * @param RestoCollection $collection
+     * @param string $identifier
+     * @param integer $visible
+     * @param string $newVersion
+     * @return string
+     * @throws Exception
+     */
+    public function updateFeatureVersion($collection ,$identifier, $visible, $newVersion){
+        
+        
+        // Column/Values to update into database
+        $columnsAndValues = array (
+                $collection->model->getDbKey('visible') => $visible,
+                $collection->model->getDbKey('newVersion') => '\'' . $newVersion . '\'' ,
+                'updated' => 'now()'
+        );
+        
+        // Convert the array in a format accepted for the "update" sql query
+        $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
+                
+        // Database schema
+        $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';
+        
+        // SQL update query
+        $query = 'UPDATE ' . pg_escape_string($schema) . '.features SET ' . $values . ' WHERE identifier = \'' . $identifier . '\'';
+        try {
+        
+            /*
+             * Start transaction
+             */
+            pg_query($this->dbh, 'BEGIN');
+        
+            /*
+             * Store feature
+            */
+            pg_query($this->dbh, $query);
+        
+            pg_query($this->dbh, 'COMMIT');
+        } catch (Exception $e) {
+            pg_query($this->dbh, 'ROLLBACK');
+            RestoLogUtil::httpError(500, 'Versions of product ' . $newVersion . ' cannot be updated in database');
+        }
     }
     
     /**
@@ -270,7 +359,7 @@ class Functions_features {
      * @throws Exception
      */
     public function storeFeature($collection, $featureArray) {
-        
+
         /*
          * Check that resource does not already exist in database
          */
@@ -340,8 +429,7 @@ class Functions_features {
                 
                 /*
                  * First we delete the current facets
-                 */
-                
+                 */                
                 $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
                 // Format correctly the keywords to be treated by the removeFeatureFacet function
                 $array = pg_fetch_row($result);
@@ -353,12 +441,10 @@ class Functions_features {
                  */
                 pg_query($this->dbh, 'BEGIN');
                 
-                
                 /*
                  * Store feature
                  */
                 pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureId  . "'");
-                
                 
                 /*
                  * We insert the new facets
@@ -374,54 +460,7 @@ class Functions_features {
             RestoLogUtil::httpError(409, 'Feature ' . $featureId . ' does not exist in database');
         }
     }
-    
-    /**
-     * Updates old version of a new product
-     * @param RestoCollection $collection
-     * @param array $featuresArray array of products id to update
-     * @param string $newVersion
-     * @return string
-     */
-    public function updateOldFeatures($collection, $featuresArray, $newVersion) {
-    
-        // Column/Values to update into database
-        $columnsAndValues = array (
-                $collection->model->getDbKey('visible') => 0,
-                $collection->model->getDbKey('newVersion') => '\'' . $newVersion . '\'' ,
-                'updated' => 'now()'
-                        );
-    
-        // Convert the array in a format accepted for the "update" sql query
-        $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
-    
-        // List of product (by id) to update
-        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($featureId) { return "'{$featureId['identifier']}'"; }, $featuresArray)));
-    
-        // Database schema
-        $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';
-    
-        // SQL update query
-        $query = 'UPDATE ' . pg_escape_string($schema) . '.features SET ' . $values
-        . ' WHERE identifier in (' . $oldFeaturesIdList . ') AND identifier <> \'' . $newVersion.'\'';
-        try {
-    
-            /*
-             * Start transaction
-             */
-            pg_query($this->dbh, 'BEGIN');
-    
-            /*
-             * Store feature
-            */
-            pg_query($this->dbh, $query);
-    
-            pg_query($this->dbh, 'COMMIT');
-        } catch (Exception $e) {
-            pg_query($this->dbh, 'ROLLBACK');
-            RestoLogUtil::httpError(500, 'Old versions of product ' . $newVersion . ' cannot be updated in database');
-        }
-    }
-    
+
     /**
      * Remove feature from database
      * 

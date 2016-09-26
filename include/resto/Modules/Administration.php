@@ -72,7 +72,7 @@ class Administration extends RestoModule {
      */
     public function __construct($context, $user, $options = array()) {
 
-        parent::__construct($context, $options);
+        parent::__construct($context, $user);
 
         // Set user
         $this->user = $user;

@@ -214,7 +214,8 @@ class RestoModel_sentinel1 extends RestoModel {
                     'quicklook'=> $this->getLocation($dom),
                     'cloudCover' => 0,
                     'isNrt' => $this->getElementByName($dom,'isNrt'),
-                    'realtime' => $this->getElementByName($dom,'realtime')
+                    'realtime' => $this->getElementByName($dom,'realtime'),
+                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
         );
 
@@ -293,7 +294,8 @@ class RestoModel_sentinel1 extends RestoModel {
                         'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
                         'missionTakeId' => $dom->getElementsByTagName('missionDataTakeId')->item(0)->nodeValue,
                         'quicklook'=> $this->getLocation($dom),
-                        'cloudCover' => 0
+                        'cloudCover' => 0,
+                        'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
         );
         return $feature;

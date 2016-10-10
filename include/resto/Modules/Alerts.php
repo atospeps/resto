@@ -303,7 +303,7 @@ class Alerts extends RestoModule {
             $query = "SELECT u.country, a.aid, a.title, a.creation_time, a.email, a.last_dispatch, a.expiration, a.criterias"
                     . " FROM usermanagement.alerts a"
                     . " INNER JOIN usermanagement.users u"
-                    . " ON u.email=a.email WHERE '" . $date . "'  >= date_trunc('hour', a.last_dispatch)::timestamp + ( a.period || ' hour')::interval AND a.hasSubscribe=1";
+                    . " ON u.email=a.email WHERE u.activated=1 AND '" . $date . "'  >= date_trunc('hour', a.last_dispatch)::timestamp + ( a.period || ' hour')::interval AND a.hasSubscribe=1";
 
             $alerts = pg_query($this->dbh, $query);
             if (!$alerts){

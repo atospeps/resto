@@ -518,18 +518,20 @@ class RestoRouteGET extends RestoRoute {
             if (!$email) {
                 RestoLogUtil::httpError(403);
             }
-            $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
-                    'email' => $email 
-            )), $this->context);
+            if (empty($this->user->profile['email']) || $this->user->profile['email'] !== $email) {
+                $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
+                        'email' => $email
+                )), $this->context);
+            }
         }
-        
+
         //We validate all the possible elemnts to allow the product download
         $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
-        
+
         if ($sizeLimitState !== "OK") {
             return $sizeLimitState;
         }
-        
+
         // We validate all the elemetns needed to make the product available to the user
         $downloadState = $this->validateDownload($collection, $feature);
         
@@ -764,14 +766,42 @@ class RestoRouteGET extends RestoRoute {
     private function validateDownload($collection, $feature) {
         // We get a correct array format
         $featureProp = $feature->toArray();
-        
+
+        /*
+         * Not downloadable
+         */
+        if (!isset($featureProp['properties']['services']) || !isset($featureProp['properties']['services']['download']))  {
+            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+            RestoLogUtil::httpError(404);
+        }
+
         // First we verify if the product's file is in our infrastructure
         // We verify th existence of a file in the server
         if (isset($featureProp['properties']['resourceInfos']['path'])) {
+
             $filePath = $featureProp['properties']['resourceInfos']['path'];
-            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
+            
+            if ( !file_exists($filePath) || ($handle = fopen($filePath, "rb"))===false ) {
                 $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
+            }
+
+            if (!is_resource($handle)) {
+                RestoLogUtil::httpError(404);
+            }
+
+            // Sets time period on file stream
+            stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
+            // Read a bit
+            fread($handle, 1);
+
+            $info = stream_get_meta_data($handle);
+            fclose($handle);
+
+            if ($info['timed_out']) {
+                header('HTTP/1.1 202 You should retry the request');
+                header('X-regards-retry: ' . $this->context->hpssRetryAfter);
+                header('Retry-After: ' . $this->context->hpssRetryAfter);
             }
             // We verify the existence of an external file
         } elseif (isset($featureProp['properties']['services']['download']['url']) && RestoUtil::isUrl($featureProp['properties']['services']['download']['url'])) {
@@ -780,12 +810,14 @@ class RestoRouteGET extends RestoRoute {
                 $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
             }
+            fclose($fp);
         }
         
         if(isset($featureProp['properties']['visible']) && $featureProp['properties']['visible'] == 0) {
-            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $featureProp['properties']['newVersion']);
+            $newVersion = !empty($featureProp['properties']['newVersion']) ? $featureProp['properties']['newVersion'] : 'unavailable';
+            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $newVersion);
         }
-        
+
         // Secondly we verify all the rights
         /*
          * User do not have right to download product

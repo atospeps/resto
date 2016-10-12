@@ -125,7 +125,14 @@ return array(
          * Set the default user download limit volume (in Megabyte)
          */
         'instantLimitDownloadVolume' => 1000,
-        'weeklyLimitDownloadVolume' => 5000
+        'weeklyLimitDownloadVolume' => 5000,$_COOKIE,
+        /*
+         * Tape data management (download service)
+         */
+        'hpss' => array(
+                'timeout' => 30, // seconds
+                'retryAfter' =>  60000 // milliseconds
+        )
     ),
     
     /*

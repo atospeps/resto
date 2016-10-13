@@ -780,10 +780,32 @@ class RestoRouteGET extends RestoRoute {
         if (isset($featureProp['properties']['resourceInfos']['path'])) {
 
             $filePath = $featureProp['properties']['resourceInfos']['path'];
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> branch '1.3.1.7' of https://github.com/atospeps/resto.git
             if ( !file_exists($filePath) || ($handle = fopen($filePath, "rb"))===false ) {
                 $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
                 RestoLogUtil::httpError(404);
+            }
+
+            if (!is_resource($handle)) {
+                RestoLogUtil::httpError(404);
+            }
+
+            // Sets time period on file stream
+            stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
+            // Read a bit
+            fread($handle, 1);
+
+            $info = stream_get_meta_data($handle);
+            fclose($handle);
+
+            if ($info['timed_out']) {
+                header('HTTP/1.1 202 You should retry the request');
+                header('X-regards-retry: ' . $this->context->hpssRetryAfter);
+                header('Retry-After: ' . $this->context->hpssRetryAfter);
             }
 
             if (!is_resource($handle)) {

@@ -92,9 +92,36 @@ class RestoFeature {
             if (!isset($this->featureArray['properties']['resourceInfos']['path']) || !is_file($this->featureArray['properties']['resourceInfos']['path'])) {
                 RestoLogUtil::httpError(404);
             }
-           
-            return $this->streamLocalUrl(realpath($this->featureArray['properties']['resourceInfos']['path']), isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
-            
+
+            /*
+             * 
+             */
+            $path = realpath($this->featureArray['properties']['resourceInfos']['path']);
+
+            /*
+             * Tape data management
+             */
+            $handle = fopen($path, "rb");
+            if (!is_resource($handle)) {
+                RestoLogUtil::httpError(404);
+            }
+
+            // Sets time period on file stream 
+            stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
+            // Read a bit
+            fread($handle, 1);
+
+            $info = stream_get_meta_data($handle);
+            fclose($handle);
+
+            if ($info['timed_out']) {
+                header('HTTP/1.1 202 You should retry the request');
+                header('X-regards-retry: ' . $this->context->hpssRetryAfter);
+                header('Retry-After: ' . $this->context->hpssRetryAfter);
+                return null;
+            }
+
+            return $this->streamLocalUrl($path, isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
         }
         /*
          * Resource is on an external url

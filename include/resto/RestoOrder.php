@@ -47,7 +47,22 @@ class RestoOrder{
     public function __construct($user, $context, $orderId){
         $this->user = $user;
         $this->context = $context;
-        $this->order = $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array('email' => $this->user->profile['email'], 'orderId' => $orderId));
+        $this->order = $this->getCompleteOrders($orderId);
+    }
+
+    /**
+     * Retrieve all order features.
+     */
+    public function getCompleteOrders($orderId) {
+        $userOrder = $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array('email' => $this->user->profile['email'], 'orderId' => $orderId));
+    
+        $features = array();
+        foreach ($userOrder['items'] as $item) {
+            $features[] = $this->context->dbDriver->get(RestoDatabaseDriver::FEATURE_DESCRIPTION, array('context' => $this->context, 'user' => $this->user, 'featureIdentifier' => $item['id']));
+        }
+
+        $userOrder['items'] = $features;
+        return $userOrder;
     }
     
     /**

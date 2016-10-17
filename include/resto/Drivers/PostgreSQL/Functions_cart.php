@@ -310,13 +310,18 @@ class Functions_cart{
             return -1;
         }
         
+        // Get only items id
+        $itemsId = array();
+        foreach($items as $feature) {
+            $itemsId[] = array('id' => $feature['id']);
+        }
+
         try {
-            
             $orderId = RestoUtil::encrypt($identifier . microtime());
             $values = array(
                 '\'' . pg_escape_string($orderId) . '\'',
                 '\'' . pg_escape_string($identifier) . '\'',
-                '\'' . pg_escape_string(json_encode($items)) . '\'',
+                '\'' . pg_escape_string(json_encode($itemsId)) . '\'',
                 'now()'
             );
             $this->dbDriver->query('INSERT INTO usermanagement.orders (orderid, email, items, querytime) VALUES (' . join(',', $values) . ')');

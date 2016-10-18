@@ -302,7 +302,7 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Send email with reset link
          */
-        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->resetPasswordUrl . '/' . base64_encode($this->context->query['email']), 'email' => $this->context->query['email']));
+        $shared = $this->context->dbDriver->get(RestoDatabaseDriver::SHARED_LINK, array('resourceUrl' => $this->context->resetPasswordUrl . '/' . base64_encode($this->context->query['email']), 'email' => $this->context->query['email'], 'duration' => $this->context->sharedLinkDuration));
         $fallbackLanguage = isset($this->context->mail['resetPassword'][$this->context->dictionary->language]) ? $this->context->dictionary->language : 'en';
         if (!$this->sendMail(array(
                     'to' => $this->context->query['email'],

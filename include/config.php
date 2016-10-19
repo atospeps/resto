@@ -49,7 +49,7 @@ return array(
         /*
          * Timezone
          */
-        'timezone' => 'Europe/Paris',
+        'timezone' => 'UTC',
         
         /*
          * Protocol :

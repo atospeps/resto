@@ -252,8 +252,8 @@ class RestoContext {
         /*
          * Set TimeZone
          */
-        date_default_timezone_set(isset($config['timezone']) ? $config['timezone'] : 'Europe/Paris');
-         
+        date_default_timezone_set(isset($config['general']['timezone']) ? $config['general']['timezone'] : 'Europe/Paris');
+
         /*
          * HTTP Method is one of GET, POST, PUT or DELETE
          */

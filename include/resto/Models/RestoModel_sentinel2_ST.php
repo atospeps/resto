@@ -31,6 +31,13 @@ class RestoModel_sentinel2_ST extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
+        
+        $this->searchFilters['resto:tileid'] = array (
+                'key' => 'mgrs',
+                'osKey' => 'tileid',
+                'operation' => '=',
+                'options' => 'auto'
+        );
     }
 
     /**

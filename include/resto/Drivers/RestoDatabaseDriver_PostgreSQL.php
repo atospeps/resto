@@ -109,12 +109,12 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $featuresFunctions->getNewVersion($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
 
             /*
-             * Get NRT version of Nominal product
+             * Get old versions of Nominal product
              */
-            case parent::FEATURE_NRT_VERSION:
+            case parent::FEATURES_OLD_VERSIONS:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getNRTVersion($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
-            
+                return $featuresFunctions->getOldVersions($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
+
             /*
              * Get feature collections description
              */
@@ -569,8 +569,8 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::FEATURE_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->updateFeatureVersion($params['collection'], $params['identifier'], $params['visible'], $params['newVersion']);
-                
+                return $featuresFunctions->updateFeatureVersions($params['collection'], $params['featureArray'], $params['visible'], $params['newVersion']);
+
             default:
                 return null;
         }

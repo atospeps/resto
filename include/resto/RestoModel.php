@@ -775,9 +775,9 @@ abstract class RestoModel {
         $collection = $feature->collection;
 
         /**
-         * NRT product
+         * Updates feature if new version exists
          */
-        if ($isnrt == 1) {
+        if ($isnrt == 1 || $collection->name == 'S2ST') {
             // Check if there is a new product version
             $newVersion = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_NEW_VERSION, array(
                     'context' => $collection->context,
@@ -799,11 +799,11 @@ abstract class RestoModel {
             }
         }
         /**
-         * Not NRT product
+         * Updates old versions
          */
-        else {
+        if ($isnrt == 0 || $collection->name == 'S2ST') {
             // Check if there is a NRT version of product
-            $nrtVersion = $feature->collection->context->dbDriver->get(RestoDatabaseDriver::FEATURE_NRT_VERSION, array(
+            $oldVersions = $feature->collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSIONS, array(
                     'context' => $collection->context, 
                     'user' => $collection->user,
                     'productIdentifier' => $properties['productIdentifier'],
@@ -812,11 +812,11 @@ abstract class RestoModel {
                     'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
             ));
             // If a NRT product exists, sets NRT product to not visible
-            if (!empty($nrtVersion)){
-                                         
+            if (!empty($oldVersions)){
+
                 $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                     'collection' => $collection,
-                    'identifier' => $nrtVersion['id'],
+                    'featureArray' => $oldVersions,
                     'visible' => 0,
                     'newVersion' => $feature->identifier                    
             ));
@@ -987,6 +987,9 @@ abstract class RestoModel {
                     break;
                 case 'S2' :
                     $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                    break;
+                case 'S2ST' :
+                    $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
                     break;
                 case 'S3' :
                     $regexFeatureVersions = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);

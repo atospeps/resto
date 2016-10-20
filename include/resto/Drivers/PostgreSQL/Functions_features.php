@@ -284,11 +284,7 @@ class Functions_features {
         $whereClause = 'WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
         $whereClause .= ($schema != '_s2st') ? ' AND isnrt=1' : '';
         $whereClause .= ' AND productidentifier <> \'' . $productIdentifier . '\'';
-<<<<<<< HEAD
         $whereClause .= ' AND dhusingestdate <= \'' . $dhusIngestDate . '\'';
-=======
-        $whereClause .= ' AND dhusingestdate < \'' . $dhusIngestDate . '\'';
->>>>>>> branch '1.3.1.7' of https://github.com/atospeps/resto.git
         $whereClause .= ($schema == '_s2st') ? (' AND SUBSTRING (productidentifier, 29, 4) < SUBSTRING (\''. $productIdentifier . '\', 29, 4)') : '';
 
         // SQL FROM Clause
@@ -326,11 +322,7 @@ class Functions_features {
         $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
 
         // List of product (by id) to update
-<<<<<<< HEAD
         $oldFeaturesIdList = implode(', ', array_values(array_map(function ($featureId) { return "'{$featureId['id']}'"; }, $featuresArray)));
-=======
-        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($featureId) { return "'{$featureId['identifier']}'"; }, $featuresArray)));
->>>>>>> branch '1.3.1.7' of https://github.com/atospeps/resto.git
 
         // Database schema
         $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';

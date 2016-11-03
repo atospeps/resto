@@ -71,7 +71,7 @@ class Functions_filters {
                 $columns[] = 'Box2D(' . $value . ') AS bbox4326';
             }
             else if ($model->getDbType($key) === 'date') {
-                $columns[] = 'to_char(' . $value . ', \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') AS "' . $key . '"';
+                $columns[] = 'to_char(' . $value . ', \'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"\') AS "' . $key . '"';
             }
             /*
              * Other fields are retrieved normally

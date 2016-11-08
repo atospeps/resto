@@ -29,6 +29,7 @@
         "quicklook" : "https://peps.cnes.fr/quicklook/{:quicklook:}_quicklook.jpg",
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
         "resourceMimeType": "application/zip",
-        "nrtResource" : "/data/NRT/{:quicklook:}.zip"
+        "nrtResource" : "/data/NRT/{:quicklook:}.zip",
+        "hpssResource" : "/peps/data/{:quicklook:}.zip"
     }
 }

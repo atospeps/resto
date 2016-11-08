@@ -92,9 +92,39 @@ class RestoFeature {
             if (!isset($this->featureArray['properties']['resourceInfos']['path']) || !is_file($this->featureArray['properties']['resourceInfos']['path'])) {
                 RestoLogUtil::httpError(404);
             }
-           
-            return $this->streamLocalUrl(realpath($this->featureArray['properties']['resourceInfos']['path']), isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
-            
+
+            /*
+             * 
+             */
+            $path = realpath($this->featureArray['properties']['resourceInfos']['path']);
+            $storage = isset($this->featureArray['properties']['storage']['mode']) ? $this->featureArray['properties']['storage']['mode'] : null;
+
+            if (empty($storage) || $storage == 'tape'){
+                /*
+                 * Stage product from tape to disk
+                 */
+                $handle = fopen($path, "rb");
+                if (!is_resource($handle)) {
+                    RestoLogUtil::httpError(404);
+                }
+
+                // Sets time period on file stream
+                stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
+                // Read a bit in order to stage product from tape
+                fread($handle, 1);
+
+                $info = stream_get_meta_data($handle);
+                fclose($handle);
+
+                if ($info['timed_out']) {
+                    header('HTTP/1.1 202 You should retry the request');
+                    header('X-regards-retry: ' . $this->context->hpssRetryAfter);
+                    header('Retry-After: ' . $this->context->hpssRetryAfter);
+                    return null;
+                }
+            }
+
+            return $this->streamLocalUrl($path, isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
         }
         /*
          * Resource is on an external url
@@ -111,6 +141,51 @@ class RestoFeature {
         
     }
     
+    /**
+     * @param string $hpssPath HPSS resource path
+     * Returns Storage information :
+     * {    "path": “<nom du fichier>", 
+     *      "storage": "<disk ou tape>", 
+     *      "id": "< 0 si sur disque ou XXXXX (numéro de la bande) si sur bande"
+     *  }
+     */
+    private function getStorageInfo($hpssPath) {
+
+        /*
+         * Storage informations
+         */
+        $storage = null;
+
+        if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
+            // http://pepsvfs:8081/hpss?file={hpss_path}
+            $urlGetStorageInfo = $this->context->hpssRestApi['getStorageInfo'] . $hpssPath;
+            $curl = curl_init();
+            curl_setopt_array($curl, array (
+                    CURLOPT_RETURNTRANSFER => 1,
+                    CURLOPT_URL => $urlGetStorageInfo,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                    CURLOPT_SSL_VERIFYPEER => 0
+            ));
+
+            // Perform request
+            $result = curl_exec($curl);
+
+            // Read request response
+            if (isset($result['storage']) && isset($result['id'])){
+                $storage = array(
+                        'mode' => $result['storage'],
+                        'id' => $result['id']
+                );
+            }
+            if(curl_errno($curl)){
+                $error = curl_error($curl);
+                error_log($error, 0);
+            }
+            curl_close($curl);
+        }
+        return $storage;
+    }
+
     /**
      * Update feature from database
      */
@@ -134,6 +209,8 @@ class RestoFeature {
         if ($publicOutput) {
             $feature = $this->featureArray;
             unset($feature['properties']['resourceInfos']);
+            unset($feature['properties']['nrtResource']);
+            unset($feature['properties']['hpssResource']);
             return $feature;
         }
         return $this->featureArray;
@@ -217,6 +294,7 @@ class RestoFeature {
         }
         else {
             $this->identifier = $this->featureArray['id'];
+            $this->featureArray['properties']['storage'] = $this->getStorageInfo($this->featureArray['properties']['hpssResource']);
             $this->setCollection($this->featureArray['properties']['collection']);
         }
         

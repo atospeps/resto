@@ -30,6 +30,7 @@
         "resource" : "/hpss/peps/data/{:quicklook:}.zip",
         "resourceMimeType": "application/zip",
         "wms" : "https://peps.cnes.fr/cgi-bin/mapserver?map=WMS_S1&data={:quicklook:}",
-        "nrtResource" : "/data/NRT/{:quicklook:}.zip"
+        "nrtResource" : "/data/NRT/{:quicklook:}.zip",
+        "hpssResource" : "/peps/data/{:quicklook:}.zip"
     }
 }

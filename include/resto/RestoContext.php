@@ -111,6 +111,23 @@ class RestoContext {
     public $weeklyDownloadLimit = 5000;
     
     /*
+     * 
+     * Default value : 900 0000 milliseconds (15 minutes)
+     */
+    public $hpssRetryAfter = 900000;
+    
+    /*
+     *
+     * Default value: 30 seconds
+     */
+    public $hpssTimeout = 30;
+
+    /*
+     * 
+     */
+    public $hpssRestApi;
+
+    /*
      *  JSON Web Token passphrase
      * (see https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-32)
      */
@@ -354,10 +371,30 @@ class RestoContext {
         }
         
         /*
+         * Tape data management : HTTP Header Retry-After
+         */
+        if (isset($config['general']['hpss']['retryAfter'])) {
+            $this->hpssRetryAfter = $config['general']['hpss']['retryAfter'];
+        }
+
+        /*
+         * Tape data management : Timeout on file access
+         */
+        if (isset($config['general']['hpss']['timeout'])) {
+            $this->hpssTimeout = $config['general']['hpss']['timeout'];
+        }
+
+        /*
+         * HPSS : REST Api services
+         */
+        if (isset($config['general']['hpss']['restapi'])) {
+            $this->hpssRestApi = $config['general']['hpss']['restapi'];
+        }
+
+        /*
          * Initialize modules
          */
         $this->setModules($config['modules']);
-        
     }
     
     /**

@@ -125,9 +125,24 @@ return array(
          * Set the default user download limit volume (in Megabyte)
          */
         'instantLimitDownloadVolume' => 1000,
-        'weeklyLimitDownloadVolume' => 5000
+        'weeklyLimitDownloadVolume' => 5000,
+
+        /*
+         * Tape data management (download service)
+         */
+        'hpss' => array(
+                'restapi' => array(
+                        /* 
+                         * Returns storage information
+                         * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
+                         */
+                        'getStorageInfo' => 'http://pepsvfs:8081/hpss?file='
+                ),
+                'timeout' => 30, // seconds
+                'retryAfter' =>  60000 // milliseconds
+        )
     ),
-    
+
     /*
      * Database configuration
      */

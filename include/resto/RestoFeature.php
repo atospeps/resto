@@ -164,7 +164,8 @@ class RestoFeature {
                     CURLOPT_RETURNTRANSFER => 1,
                     CURLOPT_URL => $urlGetStorageInfo,
                     CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0
+                    CURLOPT_SSL_VERIFYPEER => 0,
+                    CURLOPT_TIMEOUT_MS => isset($this->context->hpssRestApi['timeout']) ? $this->context->hpssRestApi['timeout'] : 1000
             ));
 
             // Perform request

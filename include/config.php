@@ -132,6 +132,7 @@ return array(
          */
         'hpss' => array(
                 'restapi' => array(
+                        'timeout' => 1500, // milliseconds
                         /* 
                          * Returns storage information
                          * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
@@ -139,7 +140,7 @@ return array(
                         'getStorageInfo' => 'http://pepsvfs:8081/hpss?file='
                 ),
                 'timeout' => 30, // seconds
-                'retryAfter' =>  60000 // milliseconds
+                'retryAfter' =>  180000 // milliseconds
         )
     ),
 

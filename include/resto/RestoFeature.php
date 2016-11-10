@@ -168,15 +168,18 @@ class RestoFeature {
             ));
 
             // Perform request
-            $result = curl_exec($curl);
-
-            // Read request response
-            if (isset($result['storage']) && isset($result['id'])){
-                $storage = array(
-                        'mode' => $result['storage'],
-                        'id' => $result['id']
-                );
+            $response = curl_exec($curl);
+            if ($response){
+                $data = json_decode($response, true);
+                // Read request response
+                if ($data != false && isset($data['storage']) && isset($data['id'])){
+                    $storage = array(
+                            'mode' => $data['storage'],
+                            'id' => $data['id']
+                    );
+                }
             }
+
             if(curl_errno($curl)){
                 $error = curl_error($curl);
                 error_log($error, 0);

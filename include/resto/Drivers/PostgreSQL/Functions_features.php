@@ -467,6 +467,42 @@ class Functions_features {
     }
 
     /**
+     * Return exact count or estimate count from query
+     *
+     * @param String $from
+     * @param Boolean $filters
+     */
+    public function getCount($from, $filters = array()) {
+        /*
+         * Determine if the count is estimated or real
+         */
+        $realCount = false;
+        if (isset($filters['geo:lon'])) {
+            $realCount = true;
+        }
+    
+        /*
+         * Perform count estimation
+         */
+        $result = -1;
+        if (!$realCount) {
+            $query = 'SELECT count_estimate(\'' . pg_escape_string('SELECT * ' . $from) . '\') as count';
+            $result = pg_fetch_result($this->dbDriver->query($query), 0, 0);
+        }
+    
+        if ($result !== false && $result < 10 * $this->dbDriver->resultsPerPage) {
+            $query = 'SELECT count(*) as count ' . $from;
+            $result = pg_fetch_result($this->dbDriver->query($query), 0, 0);
+            $realCount = true;
+        }
+    
+        return array(
+                'total' => $result === false ? -1 : (integer) $result,
+                'isExact' => $realCount
+        );
+    }
+
+    /**
      * Store keywords facets
      * 
      * @param RestoCollection $collection

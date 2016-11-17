@@ -109,72 +109,30 @@ class Functions_features {
          * $oFilter = superImplode(' AND ', array_merge($filters, $this->getRightsFilters($this->R->getUser()->getRights($this->description['name'], 'get', 'search'))));
          */
         $oFilter = implode(' AND ', $filters);
-        
-        /*
-         * Note that the total number of results (i.e. with no LIMIT constraint)
-         * is retrieved with PostgreSQL "count(*) OVER()" technique
-         */
-        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '') . ' ORDER BY startdate DESC LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
-        
-        /*
-         * Retrieve products from database
-         */
-        return $this->toFeatureArray($context, $user, $collection, $results = $this->dbDriver->query($query));
-        
-    }
 
-    /**
-     *
-     * Count features corresponding to the search
-     *
-     * @param RestoContext $context
-     * @param RestoUser $user
-     * @param RestoCollection $collection
-     * @param RestoModel $params
-     * @return array
-     * @throws Exception
-     */
-    public function getSearchCount($context, $user, $collection, $params) {
-    
         /*
-         * Search filters functions
+         * Prepare query
          */
-        $filtersUtils = new Functions_filters();
-    
+        $fields = implode(',', $filtersUtils->getSQLFields($model));
+        $from = ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '');
+        
         /*
-         * Set model
-        */
-        $model = isset($collection) ? $collection->model : new RestoModel_default();
-    
-        /*
-         * Check that mandatory filters are set
-        */
-        $this->checkMandatoryFilters($model, $params);
-    
-        /*
-         * Set search filters
-        */
-        $filters = $filtersUtils->prepareFilters($model, $params);
-    
-        /*
-         * TODO - get count from facet statistic and not from count() OVER()
-         *
-         * TODO - Add filters depending on user rights
-         * $oFilter = superImplode(' AND ', array_merge($filters, $this->getRightsFilters($this->R->getUser()->getRights($this->description['name'], 'get', 'search'))));
-        */
-        $oFilter = implode(' AND ', $filters);
-    
-        $query = 'SELECT count(*) AS totalcount FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features' . ($oFilter ? ' WHERE ' . $oFilter : '');
-    
+         * Result set ordering and limit
+         */
+        $extra = ' ORDER BY startdate DESC';
+        $extra .= ' LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
+
         /*
          * Retrieve products from database
-        */
-        $results = pg_fetch_assoc($this->dbDriver->query($query));
+         * Note: totalcount is estimated except if input search contains a lon/lat filter
+         */
+        return array(
+                'count' => $this->getCount($from, $params),
+                'features' => $this->toFeatureArray($context, $user, $collection, $this->dbDriver->query('SELECT ' . $fields . $from . $extra))
+        );
         
-        return $results['totalcount'];
-    }
-    
-    
+    }    
+
     /**
      * 
      * Get feature description
@@ -495,7 +453,43 @@ class Functions_features {
             RestoLogUtil::httpError(500, 'Cannot delete feature ' . $feature->identifier);
         }
     }
-   
+
+    /**
+     * Return exact count or estimate count from query
+     *
+     * @param String $from
+     * @param Boolean $filters
+     */
+    public function getCount($from, $filters = array()) {
+        /*
+         * Determine if the count is estimated or real
+         */
+        $realCount = false;
+        if (isset($filters['geo:lon'])) {
+            $realCount = true;
+        }
+    
+        /*
+         * Perform count estimation
+         */
+        $result = -1;
+        if (!$realCount) {
+            $query = 'SELECT count_estimate(\'' . pg_escape_string('SELECT * ' . $from) . '\') as count';
+            $result = pg_fetch_result($this->dbDriver->query($query), 0, 0);
+        }
+    
+        if ($result !== false && $result < 10 * $this->dbDriver->resultsPerPage) {
+            $query = 'SELECT count(*) as count ' . $from;
+            $result = pg_fetch_result($this->dbDriver->query($query), 0, 0);
+            $realCount = true;
+        }
+    
+        return array(
+                'total' => $result === false ? -1 : (integer) $result,
+                'isExact' => $realCount
+        );
+    }
+
     /**
      * Store keywords facets
      * 
@@ -721,13 +715,7 @@ class Functions_features {
         $featureUtil = new RestoFeatureUtil($context, $user, $collection);
         while ($result = pg_fetch_assoc($results)) {
             $featuresArray[] = $featureUtil->toFeatureArray($result);
-            if (isset($result['totalcount'])) {
-                $totalcount = $result['totalcount'];
-            }
         }
-        return array(
-            'totalcount' => isset($totalcount) ? (integer) $totalcount : -1,
-            'features' => $featuresArray
-        );
+        return $featuresArray;
     }
 }

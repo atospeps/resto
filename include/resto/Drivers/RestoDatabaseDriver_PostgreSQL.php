@@ -123,13 +123,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options']);                
 
             /*
-             * Get total feature number corresponding to criteria
-             */
-            case parent::COUNT_FEATURES:
-                $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getSearchCount($params['context'], $params['user'], $params['collection'], $params['filters']);
-            
-            /*
              * Get Keywords
              */
             case parent::KEYWORDS:

@@ -776,23 +776,6 @@ class RestoRouteGET extends RestoRoute {
             if (!is_resource($handle)) {
                 RestoLogUtil::httpError(404);
             }
-
-            $storage = isset($featureProp['properties']['storage']['mode']) ? $featureProp['properties']['storage']['mode'] : null;
-
-            if (empty($storage) || $storage == 'tape'){
-                // Sets time period on file stream
-                stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
-                // Read a bit
-                fread($handle, 1);
-                
-                $info = stream_get_meta_data($handle);
-                
-                if ($info['timed_out']) {
-                    header('HTTP/1.1 202 You should retry the request');
-                    header('X-regards-retry: ' . $this->context->hpssRetryAfter);
-                    header('Retry-After: ' . $this->context->hpssRetryAfter);
-                }
-            }
             fclose($handle);
         } 
         // We verify the existence of an external file

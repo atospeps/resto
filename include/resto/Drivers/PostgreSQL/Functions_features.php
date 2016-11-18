@@ -152,7 +152,7 @@ class Functions_features {
         $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('identifier') . "='" . pg_escape_string($identifier) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : '');
         $results = $this->dbDriver->query($query);
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
     }
 
     /**
@@ -175,7 +175,7 @@ class Functions_features {
         $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('title') . "='" . pg_escape_string($title) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : '');
         $results = $this->dbDriver->query($query);
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
     }    
 
     /**
@@ -256,7 +256,7 @@ class Functions_features {
         $results = $this->dbDriver->query($query);
 
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features']) ? $arrayOfFeatureArray['features'] : null;
+        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
     }
 
     /**

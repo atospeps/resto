@@ -1,4 +1,4 @@
--- VERSION 1.3.1.7.1 de PEPS
+-- VERSION 1.3.1.7.2 de PEPS
 
 -- PostgreSQL count estimate : https://wiki.postgresql.org/wiki/Count_estimate
 

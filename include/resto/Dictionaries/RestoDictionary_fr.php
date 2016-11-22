@@ -59,7 +59,7 @@ class RestoDictionary_fr extends RestoDictionary {
          * Location modifiers
          */
         'locationModifiers' => array(
-            'in' => array('en', 'au', 'aux', 'a', 'sur', 'pres de', 'vers' , 'de'),
+            'in' => array('en', 'au', 'aux', 'a', 'sur', 'pres de', 'vers' , 'de', 'du'),
         ),
         /*
          * Quantity modifiers
@@ -98,7 +98,7 @@ class RestoDictionary_fr extends RestoDictionary {
          * considered as 'noise' for the query analysis
          * and thus excluded from the analysis
          */
-        'noise' => array('acquis%', 'compris%', 'zone%'),
+        'noise' => array('acquis%', 'compris%'),
         /*
          * Months
          */

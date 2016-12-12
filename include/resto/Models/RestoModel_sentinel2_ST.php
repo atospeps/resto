@@ -36,7 +36,13 @@ class RestoModel_sentinel2_ST extends RestoModel {
                 'key' => 'mgrs',
                 'osKey' => 'tileid',
                 'operation' => '=',
-                'options' => 'auto'
+                'options' => 'auto',
+                'title' => 'MGRS tile identifier',
+                'pattern' => '^[0-6][0-9][A-Za-z]([A-Za-z]){0,2}%?$',
+                'keyword' => array (
+                        'value' => '{:mgrs:}',
+                        'type' => 'mgrs'
+                )
         );
     }
 

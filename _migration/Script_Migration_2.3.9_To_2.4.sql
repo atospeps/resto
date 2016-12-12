@@ -36,4 +36,25 @@ INSERT INTO resto.keywords (name, value, lang, type) VALUES ('zones tropicales',
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('tropical', 'tropical', 'en', 'location');
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('tropical area', 'tropical', 'en', 'location');
 
+--
+-- PEPS-FT-327 (DM-RESTO_PEPS) Possibilité de recherche par identifiant MGRS (tuiles Sentinel 2)
+-- 
+
+DO
+$$
+DECLARE
+	utmZone text[] := array['c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x'];
+	j varchar;
+	tileid varchar;
+BEGIN
+	FOR i IN 01..60 LOOP
+		FOREACH j IN array utmZone LOOP
+		tileid := trim(concat(to_char(i, '00'), j));
+			INSERT INTO resto.keywords (name, value, lang, type) VALUES (tileid, concat(tileid, '%'), '**', 'mgrs');
+		END LOOP;
+	END LOOP;
+END;
+$$
+
+
 

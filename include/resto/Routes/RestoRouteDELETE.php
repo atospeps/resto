@@ -33,6 +33,7 @@ class RestoRouteDELETE extends RestoRoute {
      * 
      *    collections/{collection}                      |  Delete {collection}
      *    collections/{collection}/{feature}            |  Delete {feature}
+     *    collections/{collection}/title/{featureTitle} |  Delete feature from {featureTitle} title
      *    
      *    groups/{group}                                |  Delete {group}
      *    
@@ -60,6 +61,7 @@ class RestoRouteDELETE extends RestoRoute {
      * 
      *    collections/{collection}                      |  Delete {collection}
      *    collections/{collection}/{feature}            |  Delete {feature}
+     *    collections/{collection}/title/{featureTitle} |  Delete feature from {featureTitle} title
      * 
      * @param array $segments
      */
@@ -68,16 +70,19 @@ class RestoRouteDELETE extends RestoRoute {
         /*
          * {collection} is mandatory and no modifier is allowed
          */
-        if (!isset($segments[1]) || isset($segments[3])) {
+        if (!isset($segments[1]) || isset($segments[4]) || (isset($segments[3]) && $segments[2] != 'title')) {
             RestoLogUtil::httpError(404);
         }
         
         $collection = new RestoCollection($segments[1], $this->context, $this->user, array('autoload' => true));
         if (isset($segments[2])) {
-            $feature = new RestoFeature($this->context, $this->user, array(
-                'featureIdentifier' => $segments[2],
-                'collection' => $collection
-            ));
+
+            $bytitle = isset($segments[3]) ? true : false;
+            $options = array(
+                    ($bytitle ? 'featureTitle' : 'featureIdentifier') => $bytitle ? $segments[3] : $segments[2],
+                    'collection' => $collection);
+
+            $feature = new RestoFeature($this->context, $this->user, $options);
             if (!$feature->isValid()) {
                 RestoLogUtil::httpError(404);
             }

@@ -155,8 +155,13 @@ class RestoFeature {
          * Storage informations
          */
         $storage = null;
-
-        if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
+        if (isset($this->featureArray['properties']['isNrt']) && $this->featureArray['properties']['isNrt'] == 1){
+            $storage = array(
+                    'mode' => 'disk',
+                    'id' => 0
+            );
+        }
+        else if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
             // http://pepsvfs:8081/hpss?file={hpss_path}
             $urlGetStorageInfo = $this->context->hpssRestApi['getStorageInfo'] . $hpssPath;
             $curl = curl_init();

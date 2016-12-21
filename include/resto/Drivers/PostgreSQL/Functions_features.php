@@ -217,7 +217,7 @@ class Functions_features {
 
         $results = $this->dbDriver->query(($query));
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray['features']) && isset($arrayOfFeatureArray['features'][0]) ? $arrayOfFeatureArray['features'][0] : null;
+        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
     }
 
     /**
@@ -256,7 +256,7 @@ class Functions_features {
         $results = $this->dbDriver->query($query);
 
         $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
+        return isset($arrayOfFeatureArray) ? $arrayOfFeatureArray : null;
     }
 
     /**

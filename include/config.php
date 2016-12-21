@@ -137,7 +137,7 @@ return array(
                          * Returns storage information
                          * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
                          */
-                        'getStorageInfo' => 'http://pepsvfs:8081/hpss?file='
+                        //'getStorageInfo' => 'http://pepsvfs:8081/hpss?file='
                 ),
                 'timeout' => 30, // seconds
                 'retryAfter' =>  180000 // milliseconds
@@ -165,12 +165,12 @@ return array(
         /*
          * Database name
          */
-        'dbname' => 'resto',
+        'dbname' => 'dbprodcnes',
         
         /*
          * Database host - if not specified connect through socket instead of TCP/IP
          */
-        'host' => 'localhost',
+//         'host' => 'localhost',
         
         /*
          * Database port

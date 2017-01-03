@@ -111,7 +111,6 @@ class HPSS extends RestoModule {
      * @param array $url Request url
      */
     private function staging($path) {
-        error_log("staging ...", 0);
         $handle = fopen($path, "rb");
         if (!is_resource($handle)) {
             RestoLogUtil::httpError(404);

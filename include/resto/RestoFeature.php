@@ -108,9 +108,8 @@ class RestoFeature {
                     RestoLogUtil::httpError(404);
                 }
                 fclose($handle);
-                
-                $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path;
-                $response = $this->callStagingWS($url, $this->context->hpssTimeout);
+
+                $response = $this->callStagingWS($path, $this->context->hpssTimeout);
                 if ($response == false){
                     // file is unavailable
                     header('HTTP/1.1 202 You should retry the request');
@@ -523,15 +522,19 @@ class RestoFeature {
      * @param number $timeout timeout
      * @return boolean file availibility
      */
-    private function callStagingWS($url, $timeout = 30){
+    private function callStagingWS($path, $timeout = 30){
+
+        $token = isset($this->user->token) ? $this->user->token : $this->context->createToken($this->user->profile['userid'], $this->user->profile);
+        $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path . '&_bearer=' . $token;
 
         $curl = curl_init();
         curl_setopt_array($curl, array (
                 CURLOPT_RETURNTRANSFER => 1,
                 CURLOPT_URL => $url,
+                CURLOPT_POST => 1,
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => 0,
-                CURLOPT_TIMEOUT_MS => $timeout
+                CURLOPT_TIMEOUT => $timeout
         ));
 
         $response = curl_exec($curl);

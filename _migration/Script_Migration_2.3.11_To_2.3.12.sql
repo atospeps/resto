@@ -10,7 +10,7 @@ BEGIN
 	raise notice 'UPDATING COLLECTION TYPE FACETS (CAN TAKEN SEVERAL MINUTES)...';
 	
 	IF NOT EXISTS(SELECT 1 FROM resto.facets WHERE type='collection' AND collection='S2ST') THEN
-		INSERT INTO resto.facets(uid, value, type, collection, counter) VALUES ("45038f3c2322ea3", "S2ST", "collection", "S2ST", 0);
+		INSERT INTO resto.facets(uid, value, type, collection, counter) VALUES ('45038f3c2322ea3', 'S2ST', 'collection', 'S2ST', 0);
 	END IF;
 
 	FOR rec IN 

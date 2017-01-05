@@ -107,23 +107,17 @@ class RestoFeature {
                 if (!is_resource($handle)) {
                     RestoLogUtil::httpError(404);
                 }
-
-                // Sets time period on file stream
-                stream_set_timeout($handle, $this->context->hpssTimeout);    // set configuration file
-                // Read a bit in order to stage product from tape
-                fread($handle, 1);
-
-                $info = stream_get_meta_data($handle);
                 fclose($handle);
 
-                if ($info['timed_out']) {
+                $response = $this->callStagingWS($path, $this->context->hpssTimeout);
+                if ($response == false){
+                    // file is unavailable
                     header('HTTP/1.1 202 You should retry the request');
                     header('X-regards-retry: ' . $this->context->hpssRetryAfter);
                     header('Retry-After: ' . $this->context->hpssRetryAfter);
                     return null;
                 }
             }
-
             return $this->streamLocalUrl($path, isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
         }
         /*
@@ -138,7 +132,6 @@ class RestoFeature {
         else {
             RestoLogUtil::httpError(404);
         }
-        
     }
     
     /**
@@ -522,5 +515,36 @@ class RestoFeature {
             $this->collection = new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true));
         }
     }
-  
+    
+    /**
+     * Executes operation of staging (from tape to disk) and returns true if file is available, otherwise false.
+     * @param string $url
+     * @param number $timeout timeout
+     * @return boolean file availibility
+     */
+    private function callStagingWS($path, $timeout = 30){
+
+        $token = isset($this->user->token) ? $this->user->token : $this->context->createToken($this->user->profile['userid'], $this->user->profile);
+        $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path . '&_bearer=' . $token;
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_URL => $url,
+                CURLOPT_POST => 1,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT => $timeout
+        ));
+
+        $response = curl_exec($curl);
+        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        // File is available
+        if ($httpcode == 200){
+            return true;
+        }
+        // Timeout or error
+        return false;
+    }
 }

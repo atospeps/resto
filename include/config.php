@@ -139,7 +139,7 @@ return array(
                          */
                         'getStorageInfo' => 'http://pepsvfs:8081/hpss'
                 ),
-                'timeout' => 30, // seconds
+                'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
         )
     ),
@@ -238,7 +238,11 @@ return array(
      * Modules
      */
     'modules' => array(
-    		
+    	'HPSS' => array(
+    	        'activate' => true,
+    	        'route' => 'hpss',
+    	        'options' => array()
+    	),
         /*
          * Alerts
          */

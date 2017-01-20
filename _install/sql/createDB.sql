@@ -167,7 +167,8 @@ CREATE TABLE resto.features (
     new_version         TEXT,
     isnrt               INTEGER DEFAULT 0,
     realtime            TEXT,
-    dhusingestdate		TIMESTAMP
+    dhusingestdate		TIMESTAMP,
+    relativeorbitnumber INTEGER
 );
 CREATE INDEX idx_identifier_features ON resto.features (identifier);
 

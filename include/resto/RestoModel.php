@@ -232,7 +232,11 @@ abstract class RestoModel {
             'dhusIngestDate' => array (
                     'name' => 'dhusingestdate',
                     'type' => 'TIMESTAMP'
-            )
+            ),
+            'relativeOrbitNumber' => array (
+                    'name' => 'relativeorbitnumber',
+                    'type' => 'NUMERIC'
+            ),
     );
     
     /*
@@ -599,6 +603,15 @@ abstract class RestoModel {
                             'type' => 'realtime' 
                     ),
                     'options' => 'auto' 
+            ),
+            'resto:relativeOrbitNumber' => array (
+                    'key' => 'relativeOrbitNumber',
+                    'osKey' => 'relativeOrbitNumber',
+                    'operation' => 'interval',
+                    'minInclusive' => 1,
+                    'quantity' => array (
+                            'value' => 'relativeorbit'
+                    )
             ),
     );
     public $extendedProperties = array ();

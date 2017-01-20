@@ -58,7 +58,11 @@ class RestoModel_sentinel1 extends RestoModel {
         'missionTakeId' => array(
             'name' => 'missiontakeid',
             'type' => 'INTEGER'
-        )
+        ),
+        'cycleNumber' => array(
+                'name' => 'cyclenumber',
+                'type' => 'INTEGER'
+        ),
     );
 
     /**
@@ -83,6 +87,18 @@ class RestoModel_sentinel1 extends RestoModel {
                 'operation' => '=',
                 'options' => 'auto'
         );
+
+        $this->searchFilters['resto:cycleNumber'] = array (
+                'key' => 'cycleNumber',
+                'osKey' => 'cycleNumber',
+                'operation' => 'interval',
+                'minInclusive' => 1,
+                'quantity' => array (
+                        'value' => 'cyclenumber'
+                )
+        );
+        
+        
     }
 
     /**
@@ -204,6 +220,8 @@ class RestoModel_sentinel1 extends RestoModel {
                     'platform' =>  $this->getElementByName($dom, 'missionId'),
                     'sensorMode' => $this->getElementByName($dom, 'mode'),
                     'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
+                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
+                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
                     'orbitDirection' => $orbitDirection,
                     'swath' => $this->getElementByName($dom, 'swath'),
                     'polarisation' => $this->getElementByName($dom, 'polarisation'),

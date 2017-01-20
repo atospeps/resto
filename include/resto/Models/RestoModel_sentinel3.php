@@ -46,6 +46,13 @@
  */
 class RestoModel_sentinel3 extends RestoModel {
 
+    public $extendedProperties = array(
+            'cycleNumber' => array(
+                    'name' => 'cyclenumber',
+                    'type' => 'INTEGER'
+            ),
+    );
+
     /**
      * Constructor
      * 
@@ -54,6 +61,16 @@ class RestoModel_sentinel3 extends RestoModel {
      */
     public function __construct() {
         parent::__construct();
+        
+        $this->searchFilters['resto:cycleNumber'] = array (
+                'key' => 'cycleNumber',
+                'osKey' => 'cycleNumber',
+                'operation' => 'interval',
+                'minInclusive' => 1,
+                'quantity' => array (
+                        'value' => 'cyclenumber'
+                )
+        );
     }
     
     /**
@@ -139,6 +156,8 @@ class RestoModel_sentinel3 extends RestoModel {
                     'platform' =>  $this->getElementByName($dom, 'missionId'),
                     'sensorMode' => $this->getElementByName($dom, 'mode'),
                     'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
+                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
+                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
                     'orbitDirection' => $orbitDirection,
                     'instrument'=> $this->getElementByName($dom, 'instrument'),
                     'quicklook'=> $this->getLocation($dom),

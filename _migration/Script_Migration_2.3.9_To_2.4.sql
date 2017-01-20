@@ -57,4 +57,48 @@ END;
 $$
 
 
+--
+-- PEPS-FT-280 (DM-ROCKET_PEPS) Possibilité de rechercher les produits Sentinel par le numéro du cycle, 
+-- le numéro d'orbite absolue et le numéro d'orbite relative
+--
+
+-- ajout de colonnes pour la gestion des produits NRT
+
+CREATE OR REPLACE function f_add_col(
+   _tbl regclass, _col  text, _type regtype, OUT success bool)
+    LANGUAGE plpgsql AS
+$func$
+BEGIN
+
+IF EXISTS (
+   SELECT 1 FROM pg_attribute
+   WHERE  attrelid = _tbl
+   AND    attname = _col
+   AND    NOT attisdropped) THEN
+   success := FALSE;
+
+ELSE
+   EXECUTE '
+   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || _col || ' ' || _type;
+   success := TRUE;
+END IF;
+
+END
+$func$;
+
+SELECT f_add_col('resto.features', 'relativeorbitnumber', 'INTEGER');
+SELECT f_add_col('_s1.features', 'cyclenumber', 'INTEGER');
+SELECT f_add_col('_s3.features', 'cyclenumber', 'INTEGER');
+
+-- UPDATE _s1.features.relativeorbitnumber with Acquisition UPDATE function
+
+UPDATE _s2.features set relativeorbitnumber=SUBSTR(title, 43, 3);
+UPDATE _s2st.features set relativeorbitnumber=SUBSTR(title, 35, 3);
+UPDATE _s3.features set relativeorbitnumber=SUBSTR(title, 74, 3);
+
+UPDATE _s1.features set cyclenumber=floor((orbitNumber + 2552) / 175);
+UPDATE _s3.features set cyclenumber=SUBSTR(title, 70, 3);
+
+
+
 

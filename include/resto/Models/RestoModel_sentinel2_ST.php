@@ -146,6 +146,8 @@ class RestoModel_sentinel2_ST extends RestoModel {
                     'platform' =>  $this->getElementByName($dom, 'missionId'),
                     'sensorMode' => $this->getElementByName($dom, 'mode'),
                     'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
+                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
+                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
                     'orbitDirection' => $orbitDirection,
                     'instrument'=> $this->getElementByName($dom, 'instrument'),
                     'quicklook'=> $this->getLocation($dom),

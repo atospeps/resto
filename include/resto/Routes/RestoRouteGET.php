@@ -493,7 +493,7 @@ class RestoRouteGET extends RestoRoute {
      * @param RestoFeature $feature
      * @return type
      */
-    private function GET_featureDownload($collection, $feature) {      
+    private function GET_featureDownload($collection, $feature) {
         /*
          * Token case, retrieve user to perform all controls
          */
@@ -509,6 +509,7 @@ class RestoRouteGET extends RestoRoute {
                 $this->user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
                         'email' => $email
                 )), $this->context);
+                $feature->user = $this->user;
             }
         }
 

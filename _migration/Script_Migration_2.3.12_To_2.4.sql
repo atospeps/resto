@@ -65,18 +65,22 @@ END IF;
 END
 $func$;
 
+ALTER TABLE _s2.features DROP COLUMN relativeorbitnumber;
+ALTER TABLE _s2st.features DROP COLUMN relativeorbitnumber;
+
+
 SELECT f_add_col('resto.features', 'relativeorbitnumber', 'INTEGER');
 SELECT f_add_col('_s1.features', 'cyclenumber', 'INTEGER');
 SELECT f_add_col('_s3.features', 'cyclenumber', 'INTEGER');
 
 -- UPDATE _s1.features.relativeorbitnumber with Acquisition UPDATE function
 
-UPDATE _s2.features set relativeorbitnumber=SUBSTR(title, 43, 3);
-UPDATE _s2st.features set relativeorbitnumber=SUBSTR(title, 35, 3);
-UPDATE _s3.features set relativeorbitnumber=SUBSTR(title, 74, 3);
+UPDATE _s2.features set relativeorbitnumber=SUBSTR(title, 43, 3)::int;
+UPDATE _s2st.features set relativeorbitnumber=SUBSTR(title, 35, 3)::int;
+UPDATE _s3.features set relativeorbitnumber=SUBSTR(title, 74, 3)::int;
 
 UPDATE _s1.features set cyclenumber=floor((orbitNumber + 2552) / 175);
-UPDATE _s3.features set cyclenumber=SUBSTR(title, 70, 3);
+UPDATE _s3.features set cyclenumber=SUBSTR(title, 70, 3)::int;
 
 
 

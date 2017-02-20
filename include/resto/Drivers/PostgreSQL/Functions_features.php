@@ -119,7 +119,7 @@ class Functions_features {
         /*
          * Result set ordering and limit
          */
-        $extra = ' ORDER BY startdate DESC';
+        $extra = ' ORDER BY startdate DESC, identifier';
         $extra .= ' LIMIT ' . $options['limit'] . ' OFFSET ' . $options['offset'];
 
         /*

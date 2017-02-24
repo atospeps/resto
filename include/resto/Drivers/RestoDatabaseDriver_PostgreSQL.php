@@ -613,7 +613,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @throws Exception
      */
     public function query($query, $errorCode = 500, $errorMessage = null) {
-        error_log($query, 0);
+        
         try {
             $results = pg_query($this->dbh, $query);
             if (!$results) {

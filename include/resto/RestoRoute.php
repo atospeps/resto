@@ -229,5 +229,51 @@ abstract class RestoRoute {
         return $user;
         
     }
-   
+    
+    /**
+     * Validate that a user can download a certain product
+     */
+    protected function checkFeatureAvailability($feature) {     
+    
+        // First we verify if the product's file is in our infrastructure
+        // We verify th existence of a file in the server
+        if (isset($feature['properties']['resourceInfos']['path'])) {
+            $filePath = $feature['properties']['resourceInfos']['path'];
+            if ( !file_exists($filePath) || ($fp = fopen($filePath, "rb"))===false ) {
+                return array("message" => "Resource is unavailable",
+                        "feature" => $feature['id']
+                );
+            }
+            // We verify the existence of an external file
+        } elseif (isset($feature['properties']['services']['download']['url']) && RestoUtil::isUrl($feature['properties']['services']['download']['url'])) {
+            $filePath = $feature['properties']['services']['download']['url'];
+            if ( ($fp = fopen($filePath, "rb"))===false ) {
+                return array("message" => "Resource is unavailable",
+                        "feature" => $feature['id']
+                );
+            }
+        }
+    
+        if(isset($feature['properties']['visible']) && $feature['properties']['visible'] == 0) {
+            RestoLogUtil::httpError(404, 'Feature has been moved, new feature id is : ' . $feature['properties']['newVersion']);
+            return array("message" => "Feature has been moved",
+                    "feature" => $feature['id']
+            );
+        }
+    
+        // Secondly we verify all the rights
+        /*
+        * User do not have right to download product
+        */
+        if (!$this->user->canDownload($feature['properties']['collection'], $feature['id'])) {
+            return array("message" => "User doesn't have rights",
+                    "feature" => $feature['id']
+            );
+        }
+    
+        /*
+        * Existinf file + rights = OK
+        */
+         return "OK";
+    }
 }

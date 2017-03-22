@@ -72,8 +72,9 @@ class RestoCart{
      * 
      * @param array $data
      * @param boolean $synchronize : true to synchronize with database
+     * @return array $items les produits réellement ajoutés au panier
      */
-    public function add($data, $synchronize = false) {
+    public function add($data) {
         
         if (!is_array($data)) {
             return false;
@@ -94,10 +95,8 @@ class RestoCart{
                 continue;
             }   
             
-            if ($synchronize) {
-                if (!$this->context->dbDriver->store(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'item' => $data[$i]))) {
-                    return false;
-                }
+            if (!$this->context->dbDriver->store(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'item' => $data[$i]))) {
+                return false;
             }
             $this->items[$itemId] = $data[$i];
             $items[$itemId] = $data[$i];
@@ -138,22 +137,18 @@ class RestoCart{
      * @param string $itemId
      * @param boolean $synchronize : true to synchronize with database
      */
-    public function remove($itemId, $synchronize = false) {
-        if (!isset($itemId)) {
+    public function remove($itemId) {
+        
+        if (isset($itemId) === false) {
             return false;
         }
-        if ($synchronize) {
-            if (isset($this->items[$itemId])) {
-                unset($this->items[$itemId]);
-            }
-            return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'itemId' => $itemId));
-        }
-        else if (isset($this->items[$itemId])) {
-            unset($this->items[$itemId]);
-            return true;
+        
+        $itemCartId = RestoUtil::encrypt($this->user->profile['email'] . $itemId);
+        if (isset($this->items[$itemCartId])) {
+            unset($this->items[$itemCartId]);
         }
         
-        return false;
+        return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'itemId' => $itemCartId));
     }
     
     /**
@@ -181,7 +176,11 @@ class RestoCart{
      * @param boolean $pretty
      */
     public function toJSON($pretty) {
-        return RestoUtil::json_format($this->getItems(), $pretty);
+        $response = array('items' => $this->getItems());
+        if (isset($this->context->query['getMaxProducts'])) {
+            $response['maxProducts'] = $this->context->cartMaxProducts;
+        }
+        return RestoUtil::json_format($response, $pretty);
     }
 
 }

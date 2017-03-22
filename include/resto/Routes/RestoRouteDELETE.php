@@ -205,9 +205,12 @@ class RestoRouteDELETE extends RestoRoute {
      * @param string $itemId
      */
     private function DELETE_userCartItem($user, $itemId) {
+        
         if ($user->removeFromCart($itemId, true)) {
+            $items = array_values($user->getCart()->getItems());
             return RestoLogUtil::success('Item removed from cart', array(
-                'itemid' => $itemId
+                'itemid' => $itemId,
+                'items'  => $items
             ));
         }
         else {
@@ -224,7 +227,8 @@ class RestoRouteDELETE extends RestoRoute {
      * @param RestoUser $user
      * @param string $itemId
      */
-    private function DELETE_userCartAllItems($user) {
+    private function DELETE_userCartAllItems($user)
+    {
         if ($user->clearCart(true)) {
             return RestoLogUtil::success('Cart cleared');
         }

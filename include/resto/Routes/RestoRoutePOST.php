@@ -468,13 +468,36 @@ class RestoRoutePOST extends RestoRoute {
      * @param string $emailOrId
      * @param array $data
      * @throws Exception
+     * @returns array - the execution status
      */
-    private function POST_userCart($emailOrId, $data) {
+    private function POST_userCart($emailOrId, $data)
+    {
+        $aAvailableFeatures = array();
+        $oResponse = array(
+            "added" => 0,
+            "alreadyExists" => 0,
+            "unavailable" => 0
+        );
         
         /*
          * Cart can only be modified by its owner or by admin
          */
         $user = $this->getAuthorizedUser($emailOrId);
+        
+        /*
+         * Check if the maximum products in cart is exceeded
+         */
+        if (isset($this->context->cartMaxProducts) && $this->context->cartMaxProducts > 0) {
+            $countCartItems = count($user->getCart()->getItems());
+            $countDataItems = count($data);
+            if ($countCartItems + $countDataItems > $this->context->cartMaxProducts) {
+                return RestoLogUtil::httpError(1002, 'Cannot add item(s) in cart because the maximum of products is exceeded|'.$this->context->cartMaxProducts);
+            }
+        }
+        
+        /*
+         * Get all features descriptions
+         */
         $features = array();
         for ($i = count($data); $i--;) {
             if (!isset($data[$i]['id'])) {
@@ -488,21 +511,17 @@ class RestoRoutePOST extends RestoRoute {
             ));
         }
         
-        
-        $availableFeatures = array();
-        $response = array("added" => array(),
-                "error" => array()
-        );
-        
-        // Check if features are available to download
+        /*
+         * Check if features are available to download
+         */
         foreach($features as $feature) {
-            //We validate all the possible elemnts to allow the product download
+            // we validate all the possible elements to allow the product download
             $downloadState = $this->checkFeatureAvailability($feature);
             
             if ($downloadState !== "OK") {
-                array_push($response["error"], $downloadState);
+                $oResponse["unavailable"]++;
             } else {
-                array_push($availableFeatures, $feature);
+                $aAvailableFeatures[] = $feature;
             }
         }
         
@@ -513,14 +532,37 @@ class RestoRoutePOST extends RestoRoute {
         if ($clear) {
             $user->clearCart(true);
         }
-        $items = $user->addToCart($availableFeatures, true);
-        $response["added"] = $items;
         
-        if ($items !== false) {
-            return RestoLogUtil::success($response);
+        /*
+         * Add all available features to cart
+         */
+        $aAddedFeatures = $user->addToCart($aAvailableFeatures, true);
+        foreach ($aAddedFeatures as $feature) {
+            $oResponse["added"]++;
+        }
+        
+        /*
+         * Fait un diff entre $aAvailableFeatures et $aAddedFeatures pour obtenir
+         * la liste des produits qui étaient déjà présent dans le panier
+         */
+        foreach ($aAvailableFeatures as $oAvailableFeature) {
+            $itemId = RestoUtil::encrypt($user->profile['email'] . $oAvailableFeature['id']);
+            if (array_key_exists($itemId, $aAddedFeatures) !== true) {
+                $oResponse['alreadyExists']++;
+            }
+        }
+        
+        /*
+         * Return the execution status
+         */
+        if ($aAddedFeatures !== false) {
+            $cartItems = array_values($user->getCart()->getItems());
+            return RestoLogUtil::success($oResponse, array(
+                'items' => $cartItems
+            ));
         }
         else {
-            return RestoLogUtil::error('Cannot add items to cart');
+            return RestoLogUtil::error($oResponse);
         }
     }
     

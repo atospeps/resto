@@ -232,6 +232,9 @@ abstract class RestoRoute {
     
     /**
      * Validate that a user can download a certain product
+     * 
+     * @param {object} $feature 
+     * returns {mixed} "OK" si tous les contrôles sont ok sinon array(message => {string}, feature => {string})
      */
     protected function checkFeatureAvailability($feature) {     
     

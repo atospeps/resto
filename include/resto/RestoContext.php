@@ -140,6 +140,11 @@ class RestoContext {
     public $sharedLinkDuration = 86400;
     
     /*
+     * Maximum number of products that the user can add in the cart (0 = no limit)
+     */
+    public $cartMaxProducts = 0;
+    
+    /*
      * JSON Web Token duration (in seconds)
      */
     private $tokenDuration = 3600;
@@ -298,6 +303,13 @@ class RestoContext {
          */
         if (isset($config['general']['sharedLinkDuration'])) {
             $this->sharedLinkDuration = $config['general']['sharedLinkDuration'];
+        }
+        
+        /*
+         * Maximum products in cart
+         */
+        if (isset($config['general']['cartMaxProducts'])) {
+            $this->cartMaxProducts = $config['general']['cartMaxProducts'];
         }
         
         /*

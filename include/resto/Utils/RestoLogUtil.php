@@ -81,6 +81,7 @@ class RestoLogUtil {
          */
         1000 => 'Cannot add item to cart because item already exist',
         1001 => 'Cannot update item in cart because item does not exist in cart',
+        1002 => 'Cannot add item(s) in cart because the maximum of products is exceeded',
         2000 => 'Abort create collection - schema does not exist',
         2001 => 'Abort create collection collection not created',
         2003 => 'Cannot create collection collection already exist',

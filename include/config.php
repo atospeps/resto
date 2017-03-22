@@ -71,6 +71,11 @@ return array(
         'sharedLinkDuration' => 86400,
         
         /*
+         * Maximum number of products that the user can add in the cart (0 = no limit)
+         */
+        'cartMaxProducts' => 0,
+        
+        /*
          * Authentication tokens validity duration (in seconds)
          * Default is 1 hour (i.e. 3600 seconds)
          */

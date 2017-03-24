@@ -68,3 +68,11 @@ BEGIN
 	RETURN geom_out;
 END
 $$ LANGUAGE 'plpgsql' IMMUTABLE;
+
+
+--
+-- PEPS-FT-477
+--
+ALTER TABLE resto.features ALTER COLUMN relativeorbitnumber TYPE integer USING (relativeorbitnumber::integer);
+ALTER TABLE _s1.features ALTER COLUMN cyclenumber TYPE integer USING (cyclenumber::integer);
+ALTER TABLE _s3.features ALTER COLUMN cyclenumber TYPE integer USING (cyclenumber::integer);

@@ -13,10 +13,6 @@ class RestoModel_sentinel2_ST extends RestoModel {
             'name' => 's2takeid',
             'type' => 'TEXT'
         ),
-        'relativeOrbitNumber' => array(
-                'name' => 'relativeorbitnumber',
-                'type' => 'TEXT'
-        ),
         'mgrs' => array(
                 'name' => 'mgrs',
                 'type' => 'TEXT'

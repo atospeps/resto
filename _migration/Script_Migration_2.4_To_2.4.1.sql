@@ -76,3 +76,36 @@ $$ LANGUAGE 'plpgsql' IMMUTABLE;
 ALTER TABLE resto.features ALTER COLUMN relativeorbitnumber TYPE integer USING (relativeorbitnumber::integer);
 ALTER TABLE _s1.features ALTER COLUMN cyclenumber TYPE integer USING (cyclenumber::integer);
 ALTER TABLE _s3.features ALTER COLUMN cyclenumber TYPE integer USING (cyclenumber::integer);
+
+--
+-- PEPS-FT-402
+--
+
+-- ajout de colonnes pour la gestion des produits S3
+
+CREATE OR REPLACE function f_add_col(
+   _tbl regclass, _col  text, _type regtype, OUT success bool)
+    LANGUAGE plpgsql AS
+$func$
+BEGIN
+
+IF EXISTS (
+   SELECT 1 FROM pg_attribute
+   WHERE  attrelid = _tbl
+   AND    attname = _col
+   AND    NOT attisdropped) THEN
+   success := FALSE;
+
+ELSE
+   EXECUTE '
+   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || _col || ' ' || _type;
+   success := TRUE;
+END IF;
+
+END
+$func$;
+
+SELECT f_add_col('_s3.features', 'approxSize', 'TEXT');
+SELECT f_add_col('_s3.features', 'ecmwfType', 'TEXT');
+SELECT f_add_col('_s3.features', 'processingName', 'TEXT');
+

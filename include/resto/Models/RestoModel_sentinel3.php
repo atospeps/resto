@@ -51,6 +51,18 @@ class RestoModel_sentinel3 extends RestoModel {
                     'name' => 'cyclenumber',
                     'type' => 'INTEGER'
             ),
+            'approxSize' => array(
+                    'name' => 'approxSize',
+                    'type' => 'TEXT'
+            ),
+            'ecmwfType' => array(
+                    'name' => 'ecmwfType',
+                    'type' => 'TEXT'
+            ),
+            'processingName' => array(
+                    'name' => 'processingName',
+                    'type' => 'TEXT'
+            ),
     );
 
     /**
@@ -164,7 +176,10 @@ class RestoModel_sentinel3 extends RestoModel {
                     'cloudCover' => 0,
                     'isNrt' => $this->getElementByName($dom, 'isNrt'),
                     'realtime' => $this->getElementByName($dom, 'realtime'),
-                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
+                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
+                    'approxSize' => $this->getElementByName($dom, 'approxSize'),
+                    'ecmwfType' => $this->getElementByName($dom, 'ecmwfType'),
+                    'processingName' => $this->getElementByName($dom, 'processingName')
                 )
       );
 

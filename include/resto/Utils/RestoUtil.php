@@ -133,6 +133,43 @@ class RestoUtil {
     }
     
     /**
+     * Retourne true si le mot de passe répond à l'exigence suivante :
+     * - au moins 8 lettres
+     * et à 3 des 4 exigences suivantes :
+     * - au moins une minuscule
+     * - au moins une majuscule
+     * - au moins un chiffre
+     * - au moins un caractère spécial
+     * 
+     * @param {string} le mot de passe à vérifier
+     * 
+     * @returns {bool} true si le mot de passse est ocrrect
+     */
+    public static function isValidPassword($password)
+    {
+        if (isset($password) === false || strlen($password) < 8) {
+            return false;
+        }
+        
+        $lowercase = preg_match('/[a-z]/', $password);
+        $uppercase = preg_match('/[A-Z]/', $password);
+        $number    = preg_match('/\d/', $password);
+        $special   = preg_match('/[^0-9a-zA-Z *]/', $password);
+    
+        $pwdrules = 0;
+        $pwdrules += $lowercase ? 1 : 0;
+        $pwdrules += $uppercase ? 1 : 0;
+        $pwdrules += $number ? 1 : 0;
+        $pwdrules += $special ? 1 : 0;
+        
+        if ($pwdrules < 3) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
      * Upgraded implode($glue, $arr) function that
      * do not aggregate NULL elements in result
      */

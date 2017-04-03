@@ -108,4 +108,4 @@ $func$;
 SELECT f_add_col('_s3.features', 'approxSize', 'TEXT');
 SELECT f_add_col('_s3.features', 'ecmwfType', 'TEXT');
 SELECT f_add_col('_s3.features', 'processingName', 'TEXT');
-
+SELECT f_add_col('_s3.features', 'onlineQualityCheck', 'TEXT');

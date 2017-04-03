@@ -63,6 +63,10 @@ class RestoModel_sentinel3 extends RestoModel {
                     'name' => 'processingName',
                     'type' => 'TEXT'
             ),
+            'onlineQualityCheck' => array(
+                    'name' => 'onlineQualityCheck',
+                    'type' => 'TEXT'
+            ),
     );
 
     /**
@@ -179,7 +183,8 @@ class RestoModel_sentinel3 extends RestoModel {
                     'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
                     'approxSize' => $this->getElementByName($dom, 'approxSize'),
                     'ecmwfType' => $this->getElementByName($dom, 'ecmwfType'),
-                    'processingName' => $this->getElementByName($dom, 'processingName')
+                    'processingName' => $this->getElementByName($dom, 'processingName'),
+                    'onlineQualityCheck' => $this->getElementByName($dom, 'onlineQualityCheck')
                 )
       );
 

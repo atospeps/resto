@@ -87,7 +87,9 @@ class RestoKeywordsUtil {
          * Compute keywords from iTag
          */
         if (isset($collection->context->modules['iTag'])) {
-            $iTag = new iTag(isset($collection->context->modules['iTag']['database']) && isset($collection->context->modules['iTag']['database']['dbname']) ? $collection->context->modules['iTag']['database'] : array('dbh' => $collection->context->dbDriver->dbh));
+            
+            $options = isset($collection->context->modules['iTag']['areaLimit']) ? array('areaLimit' => $collection->context->modules['iTag']['areaLimit']) : array();
+            $iTag = new iTag(isset($collection->context->modules['iTag']['database']['dbname']) ? $collection->context->modules['iTag']['database'] : array('dbh' => $collection->context->dbDriver->dbh), $options);
             $metadata = array(
                 'footprint' => RestoGeometryUtil::geoJSONGeometryToWKT($geometry),
                 'timestamp' => isset($properties['startDate']) ? $properties['startDate'] : null
@@ -184,7 +186,7 @@ class RestoKeywordsUtil {
          * Landuse
          */
         if (isset($properties['landUse'])) {
-            foreach (array_values($properties['landUse']) as $landuse) {
+            foreach ($properties['landUse'] as $landuse) {
                 $hash = RestoUtil::getHash($landuse['id']);
                 list($type, $normalized) = explode(':', $landuse['id'], 2);
                 $keywords[$hash] = array(

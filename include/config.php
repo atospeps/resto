@@ -399,7 +399,11 @@ return array(
                 'taggers' => array(
                     'Political' => array(),
                     'LandCover' => array()
-                )
+                ),
+                /*
+                 * iTag doesn't compute land cover keywords if footprint area is greater than "areaLimit" (square kilometers)
+                 */ 
+                'areaLimit' => 3000000
             )
         )
         

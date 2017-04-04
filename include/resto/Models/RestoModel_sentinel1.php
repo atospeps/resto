@@ -105,10 +105,10 @@ class RestoModel_sentinel1 extends RestoModel {
      * Add feature to the {collection}.features table following the class model
      * 
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
-     * @param string $collectionName : collection name
+     * @param RestoCollection $collection : collection
      */
-    public function storeFeature($data, $collectionName) {
-        return parent::storeFeature($this->parse(join('',$data)), $collectionName);
+    public function storeFeature($data, $collection) {
+        return parent::storeFeature($this->parse(join('',$data), $collection), $collection);
     }
 
     /**
@@ -121,7 +121,7 @@ class RestoModel_sentinel1 extends RestoModel {
      *
      */
     public function updateFeature($feature, $data) {
-        return parent::updateFeature($feature, $this->parse(join('',$data)));
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection));
     }
 
     /**
@@ -135,14 +135,14 @@ class RestoModel_sentinel1 extends RestoModel {
         $partial_indetifier = substr($product_indetifier, 0, -4);
         return parent::hasOldFeature($partial_indetifier . '%', $collection);
     }
-    
+
     /**
      * Create JSON feature from xml string
      * 
      * @param {String} $xml : $xml string
      */
-    private function parse($xml) {
-        
+    private function parse($xml, $collection) {
+
         $dom = new DOMDocument();
         $dom->loadXML(rawurldecode($xml));
         /* 
@@ -153,7 +153,7 @@ class RestoModel_sentinel1 extends RestoModel {
             /* 
              * We parse the file with the new version
              */
-            return $this->parseNew($dom);
+            return $this->parseNew($dom, $collection);
         }else{
             /* 
              * We parse the file with the old version 
@@ -183,20 +183,27 @@ class RestoModel_sentinel1 extends RestoModel {
     <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
     </product>
      *
-     * @param {DOMDocument} $dom : $dom DOMDocument
+     * @param string $xml
+     * @param RestoCollection $collection
+     * @return array GeoJson feature
+     * 
      */
-    private function parseNew($dom){
+    private function parseNew($dom, $collection){
 
         /*
          * Retreives orbit direction
          */
         $orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
+        
+        // Simplify polygon
+        $polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $this->getElementByName($dom, 'footprint')));
+        $polygon = RestoGeometryUtil::wktPolygonToArray($polygon);
+
         /*
          * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
          * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside
          * the ZIP files (i.e. as produced by the S1 ground segment).
          */
-        $polygon = RestoGeometryUtil::wktPolygonToArray($this->getElementByName($dom, 'footprint'));
         $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection));
 
         /*

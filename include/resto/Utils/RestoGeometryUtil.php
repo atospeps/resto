@@ -247,6 +247,10 @@ class RestoGeometryUtil {
      * @return multitype:NULL polygon array
      */
     public static function wktPolygonToArray($wktPolygon) {
+        if (!is_string($wktPolygon)){
+            throw new Exception(__method__ . ': Invalid input WKT.');
+        }
+
         /*
          * Result
          */

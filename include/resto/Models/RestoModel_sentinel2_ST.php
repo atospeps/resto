@@ -46,10 +46,10 @@ class RestoModel_sentinel2_ST extends RestoModel {
      * Add feature to the {collection}.features table following the class model
      * 
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
-     * @param string $collectionName : collection name
+     * @param RestoCollection $collection : collection
      */
-    public function storeFeature($data, $collectionName) {
-        return parent::storeFeature($this->parse(join('',$data)), $collectionName);
+    public function storeFeature($data, $collection) {
+        return parent::storeFeature($this->parse(join('',$data), $collection), $collection);
     }
 
     /**
@@ -62,7 +62,7 @@ class RestoModel_sentinel2_ST extends RestoModel {
      *
      */
     public function updateFeature($feature, $data) {
-        return parent::updateFeature($feature, $this->parse(join('',$data)));
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection));
     }
     
     /**
@@ -75,19 +75,6 @@ class RestoModel_sentinel2_ST extends RestoModel {
     public function hasOldFeature($product_indetifier, $collection){
         $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
         return parent::hasOldFeature($partial_indetifier, $collection);
-    }
-    
-    /**
-     * Create JSON feature from xml string
-     * 
-     * @param {String} $xml : $xml string
-     */
-    private function parse($xml) {
-        
-        $dom = new DOMDocument();
-        $dom->loadXML(rawurldecode($xml));
-        
-        return $this->parseNew($dom);
     }
 
     /**
@@ -110,17 +97,25 @@ class RestoModel_sentinel2_ST extends RestoModel {
     <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
     </product>
      *
-     * @param {DOMDocument} $dom : $dom DOMDocument
+     * @param string $xml
+     * @param RestoCollection $collection
+     * @return array GeoJson feature
+     * 
      */
-    private function parseNew($dom){
+    private function parse($xml, $collection){
     	
+        $dom = new DOMDocument();
+        $dom->loadXML(rawurldecode($xml));
+
     	/*
     	 * Retreives orbit direction
     	 */
     	$orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
 
-    	$polygon = RestoGeometryUtil::wktPolygonToArray($this->getElementByName($dom, 'footprint'));
-    	
+    	// Simplify polygon
+    	$polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $this->getElementByName($dom, 'footprint')));
+    	$polygon = RestoGeometryUtil::wktPolygonToArray($polygon);
+
         /*
          * Initialize feature
          */

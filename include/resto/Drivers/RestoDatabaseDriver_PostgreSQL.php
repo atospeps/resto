@@ -27,6 +27,7 @@ require 'PostgreSQL/Functions_filters.php';
 require 'PostgreSQL/Functions_rights.php';
 require 'PostgreSQL/Functions_users.php';
 require 'PostgreSQL/Functions_groups.php';
+require 'PostgreSQL/Functions_geometry.php';
 
 /**
  * RESTo PostgreSQL Database
@@ -242,6 +243,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::DISCONNECT_USER:
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->revokeToken($params['token']);
+
+            /*
+             * Simplify WKT polygon 
+             */
+            case parent::SIMPLIFY_GEOMETRY:
+                $geometryFunctions = new Functions_geometry($this);
+                return $geometryFunctions->simplifyPolygon($params['wkt']);
                 
             default:
                 return null;

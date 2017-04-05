@@ -84,7 +84,7 @@ ALTER TABLE _s3.features ALTER COLUMN cyclenumber TYPE integer USING (cyclenumbe
 -- ajout de colonnes pour la gestion des produits S3
 
 CREATE OR REPLACE function f_add_col(
-   _tbl regclass, _col  text, _type regtype, OUT success bool)
+   _tbl regclass, _col  text, _type regtype)
     LANGUAGE plpgsql AS
 $func$
 BEGIN
@@ -94,12 +94,11 @@ IF EXISTS (
    WHERE  attrelid = _tbl
    AND    attname = _col
    AND    NOT attisdropped) THEN
-   success := FALSE;
+   RETURN FALSE;
 
 ELSE
-   EXECUTE '
-   ALTER TABLE ' || _tbl || ' ADD COLUMN ' || _col || ' ' || _type;
-   success := TRUE;
+	EXECUTE 'ALTER TABLE ' || _tbl || ' ADD COLUMN ' || _col || ' ' || _type;
+   	RETURN TRUE;	
 END IF;
 
 END

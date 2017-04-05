@@ -201,3 +201,14 @@ DROP INDEX IF EXISTS usermanagement.history_querytime_idx;
 CREATE INDEX history_querytime_idx ON usermanagement.history (querytime DESC);
 
 
+--
+-- Opération de maintenance
+-- Récupération de l'espace de stockage occupé par des lignes supprimées et collecte des statistiques Postgresql
+--
+ 
+vacuum analyse resto.keywords;
+vacuum analyse _s1.features;
+vacuum analyse _s2.features;
+vacuum analyse _s2st.features;
+vacuum analyse _s3.features;
+vacuum analyse resto.features;

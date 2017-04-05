@@ -82,13 +82,35 @@ class RestoModel_sentinel3 extends RestoModel {
                 'key' => 'cycleNumber',
                 'osKey' => 'cycleNumber',
                 'operation' => 'interval',
+                'title' => 'Cycle number',
                 'minInclusive' => 1,
                 'quantity' => array (
                         'value' => 'cyclenumber'
                 )
         );
+
+        $this->searchFilters['resto:ecmwfType'] = array (
+                'key' => 'ecmwfType',
+                'osKey' => 'ecmwfType',
+                'title' => 'ECMWF Type',
+                'operation' => '='
+        );
+
+        $this->searchFilters['resto:onlineQualityCheck'] = array (
+                'key' => 'onlineQualityCheck',
+                'osKey' => 'onlineQualityCheck',
+                'title' => 'Online Quality Check',
+                'operation' => '='
+        );
+
+        $this->searchFilters['resto:processingName'] = array (
+                'key' => 'processingName',
+                'osKey' => 'processingName',
+                'title' => 'Processing name',
+                'operation' => '='
+        );
     }
-    
+
     /**
      * Add feature to the {collection}.features table following the class model
      * 

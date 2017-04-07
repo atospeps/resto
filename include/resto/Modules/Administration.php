@@ -930,8 +930,8 @@ class Administration extends RestoModule {
         if (isset($options['method'])) {
             $where[] = 'method=\'' . pg_escape_string($options['method']) . '\'';
         }
-        if (isset($options['collection'])) {
-            $where[] = 'collection=\'' . pg_escape_string($options['collection']) . '\'';
+        if (isset($options['collectionName'])) {
+            $where[] = 'collection=\'' . pg_escape_string($options['collectionName']) . '\'';
         }
         if (isset($options['email'])) {
             $where[] = 'users.email LIKE \'%' . pg_escape_string($options['email']) . '%\'';
@@ -942,15 +942,29 @@ class Administration extends RestoModule {
         if (isset($options['minDate'])) {
             $where[] = 'querytime >=\'' . pg_escape_string($options['minDate']) . '\'';
         }
+        
+        // get results
         $query = 'SELECT gid, history.userid, users.email, method, service, collection, resourceid, query, querytime, url, ip';
         $query .= ' FROM usermanagement.history as history, usermanagement.users as users';
         $query .= ' WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '');
         $query .= ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc);
         $query .= ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex; 
         $results = pg_query($this->context->dbDriver->dbh, $query);
+        $result['history'] = array();
         while ($row = pg_fetch_assoc($results)) {
-            $result[] = $row;
+            $result['history'][] = $row;
         }
+        
+        // get total results
+        $queryTotal = 'SELECT COUNT(*)'
+                    . ' FROM usermanagement.history as history, usermanagement.users as users'
+                    . ' WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '');
+        $results = pg_query($this->context->dbDriver->dbh, $queryTotal);
+        $row = pg_fetch_assoc($results);
+        $result['total'] = (int)$row['count'];
+        $result['count'] = count($result['history']);
+        $result['offset'] = (int)$startIndex;
+        
         return $result;
     }
     

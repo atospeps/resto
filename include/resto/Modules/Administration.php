@@ -388,7 +388,7 @@ class Administration extends RestoModule {
                     'orderBy' => $this->orderBy,
                     'ascOrDesc' => $this->ascordesc,
                     'email' => $this->email,
-                    'collection' => $this->collectionFilter,
+                    'collectionName' => $this->collectionFilter,
                     'service' => $this->service,
                     'method' => $this->method,
                     'startIndex' => $this->startIndex,
@@ -948,7 +948,7 @@ class Administration extends RestoModule {
         $query .= ' FROM usermanagement.history as history, usermanagement.users as users';
         $query .= ' WHERE users.userid = history.userid' . (count($where) > 0 ? ' AND ' . join(' AND ', $where) : '');
         $query .= ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc);
-        $query .= ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex; 
+        $query .= ' LIMIT ' . $numberOfResults . ' OFFSET ' . $startIndex;
         $results = pg_query($this->context->dbDriver->dbh, $query);
         $result['history'] = array();
         while ($row = pg_fetch_assoc($results)) {

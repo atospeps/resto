@@ -295,6 +295,12 @@ class Alerts extends RestoModule {
      * We send the mails to the users
      */
     private function alertExecute() {
+        
+        // Only admin users can notify users of the publication of new products
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
         try {
             // We get the current date rounding the hours
             $now = time();

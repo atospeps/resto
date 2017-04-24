@@ -66,7 +66,6 @@ class RestoFeatureUtil {
      * 
      */
     public function toFeatureArray($rawFeatureArray) {
-        
         /*
          * No result - throw Not Found exception
          */

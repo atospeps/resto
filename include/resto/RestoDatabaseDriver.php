@@ -66,6 +66,8 @@ abstract class RestoDatabaseDriver {
     const FEATURE_VERSION = 41;
     const FEATURES_OLD_VERSIONS = 42;
     const SIMPLIFY_GEOMETRY = 43;
+    const PROCESSING_CART_ITEM = 44;
+    const PROCESSING_CART_ITEMS = 45;
     
     /*
      * Results per page

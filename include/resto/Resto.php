@@ -132,7 +132,6 @@ class Resto {
      * 
      */
     public function __construct($configFile) {
-        
         try {
            
             /*
@@ -182,7 +181,6 @@ class Resto {
      * Initialize route and get response from server
      */
     private function getResponse() {
-
         /*
          * Initialize route from HTTP method
          */

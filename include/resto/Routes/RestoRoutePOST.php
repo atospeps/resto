@@ -42,6 +42,7 @@ class RestoRoutePOST extends RestoRoute {
      *    
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
+     *    users/{userid}/processingcart                 |  Add new item in {userid} processing cart
      *    users/{userid}/orders                         |  Send an order for {userid}
      * 
      * @param array $segments
@@ -363,6 +364,13 @@ class RestoRoutePOST extends RestoRoute {
         }
       
         /*
+         * users/{userid}/processingcart
+         */
+        else if (isset($segments[2]) && $segments[2] === 'processingcart') {
+            return $this->POST_userProcessingCart($segments[1], $data);
+        }
+        
+        /*
          * users/{userid}/orders
          */
         else if (isset($segments[2]) && $segments[2] === 'orders') {
@@ -440,7 +448,7 @@ class RestoRoutePOST extends RestoRoute {
     /**
      * Process HTTP POST request on user cart
      * 
-     *    users/{userid}/cart                           |  Add new item in {userid} cart
+     *    users/{userid}/cart                           |  Add new items in {userid} cart
      * 
      * @param string $emailOrId
      * @param array $data
@@ -449,8 +457,8 @@ class RestoRoutePOST extends RestoRoute {
      */
     private function POST_userCart($emailOrId, $data)
     {
-        $aAvailableFeatures = array();
-        $oResponse = array(
+        $availableFeatures = array();
+        $response = array(
             "added" => 0,
             "alreadyExists" => 0,
             "unavailable" => 0
@@ -496,9 +504,9 @@ class RestoRoutePOST extends RestoRoute {
             $downloadState = $this->checkFeatureAvailability($feature);
             
             if ($downloadState !== "OK") {
-                $oResponse["unavailable"]++;
+                $response["unavailable"]++;
             } else {
-                $aAvailableFeatures[] = $feature;
+                $availableFeatures[] = $feature;
             }
         }
         
@@ -513,36 +521,93 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Add all available features to cart
          */
-        $aAddedFeatures = $user->addToCart($aAvailableFeatures, true);
-        foreach ($aAddedFeatures as $feature) {
-            $oResponse["added"]++;
+        $addedFeatures = $user->addToCart($availableFeatures, true);
+        foreach ($addedFeatures as $feature) {
+            $response["added"]++;
         }
         
         /*
-         * Fait un diff entre $aAvailableFeatures et $aAddedFeatures pour obtenir
+         * Fait un diff entre $availableFeatures et $addedFeatures pour obtenir
          * la liste des produits qui étaient déjà présent dans le panier
          */
-        foreach ($aAvailableFeatures as $oAvailableFeature) {
-            $itemId = RestoUtil::encrypt($user->profile['email'] . $oAvailableFeature['id']);
-            if (array_key_exists($itemId, $aAddedFeatures) !== true) {
-                $oResponse['alreadyExists']++;
+        foreach ($availableFeatures as $availableFeature) {
+            $itemId = RestoUtil::encrypt($user->profile['email'] . $availableFeature['id']);
+            if (array_key_exists($itemId, $addedFeatures) !== true) {
+                $response['alreadyExists']++;
             }
         }
         
         /*
          * Return the execution status
          */
-        if ($aAddedFeatures !== false) {
+        if ($addedFeatures !== false) {
             $cartItems = array_values($user->getCart()->getItems());
-            return RestoLogUtil::success($oResponse, array(
+            return RestoLogUtil::success($response, array(
                 'items' => $cartItems
             ));
         }
         else {
-            return RestoLogUtil::error($oResponse);
+            return RestoLogUtil::error($response);
         }
     }
     
+    /**
+     * Process HTTP POST request on user processing cart
+     *
+     *    users/{userid}/processingcart                   |  Add new items in {userid} processing cart
+     *
+     * @param string $userid
+     * @param array $data
+     * 
+     * @throws Exception
+     * @returns array - the execution status
+     */
+    private function POST_userProcessingCart($userid, $data)
+    {
+        $response = array(
+            "added" => 0,
+            "alreadyExists" => 0
+        );
+    
+        $user = $this->getAuthorizedUser($userid);
+    
+        /*
+         *  Get all features descriptions
+         */
+        $features = array();
+        for ($i = count($data); $i--;) {
+            if (!isset($data[$i]['id'])) {
+                continue;
+            }
+            $features[] = $this->context->dbDriver->get(RestoDatabaseDriver::FEATURE_DESCRIPTION, array(
+                'context' => $this->context,
+                'user' => $this->user,
+                'featureIdentifier' => $data[$i]['id'],
+                'collection' => isset($data[$i]['collection']) ? new RestoCollection($data[$i]['collection'], $this->context, $this->user, array('autoload' => true)) : null
+            ));
+        }
+        
+        /*
+         * Add all features to processing cart (ignores those that already exist) 
+         */
+        $addedFeatures = $user->addToProcessingCart($features);
+        
+        $response["added"] = count($addedFeatures);
+        $response['alreadyExists'] = count($features) - count($addedFeatures);
+        
+        /*
+         * Returns the execution status
+         */
+        if ($addedFeatures !== false) {
+            $cartItems = array_values($user->getProcessingCart()->getItems());
+            return RestoLogUtil::success($response, array(
+                'items' => $cartItems
+            ));
+        }
+        else {
+            return RestoLogUtil::error($response);
+        }
+    }
     
     /**
      * Process HTTP POST request on user orders

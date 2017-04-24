@@ -20,6 +20,7 @@
  */
 require 'PostgreSQL/Functions_general.php';
 require 'PostgreSQL/Functions_cart.php';
+require 'PostgreSQL/Functions_processingcart.php';
 require 'PostgreSQL/Functions_collections.php';
 require 'PostgreSQL/Functions_facets.php';
 require 'PostgreSQL/Functions_features.php';
@@ -82,6 +83,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::CART_ITEMS:
                 $cartFunctions = new Functions_cart($this);
                 return $cartFunctions->getCartItems($params['email']);
+            
+            /*
+             * Get processing cart items
+             */
+            case parent::PROCESSING_CART_ITEMS:
+                $processingCartFunctions = new Functions_processingcart($this);
+                return $processingCartFunctions->getProcessingCartItems($params['context'], $params['user']);
             
             /*
              * Get collections descriptions
@@ -289,6 +297,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $cartFunctions->isInCart($params['itemId']);
             
             /*
+             * True if user is item is in cart
+             */
+            case parent::PROCESSING_CART_ITEM:
+                $cartFunctions = new Functions_processingcart($this);
+                return $cartFunctions->isInProcessingCart($params['itemId']);
+            
+            /*
              * True if user is license is signed
              */
             case parent::LICENSE_SIGNED:
@@ -416,6 +431,20 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $cartFunctions->clearCart($params['email']);
             
             /*
+             * Remove processing cart item
+             */
+            case parent::PROCESSING_CART_ITEM:
+                $cartFunctions = new Functions_processingcart($this);
+                return $cartFunctions->removeFromProcessingCart($params['userid'], $params['itemId']);
+            
+            /*
+             * Remove all processing cart items
+             */
+            case parent::PROCESSING_CART_ITEMS:
+                $cartFunctions = new Functions_processingcart($this);
+                return $cartFunctions->clearProcessingCart($params['userid']);
+            
+                /*
              * Remove collection/feature rights for user
              */
             case parent::RIGHTS:
@@ -452,6 +481,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $cartFunctions->addToCart($params['email'], $params['item']);
             
             /*
+             * Store processing cart item
+             */
+            case parent::PROCESSING_CART_ITEM:
+                $cartFunctions = new Functions_processingcart($this);
+                return $cartFunctions->addToProcessingCart($params['userid'], $params['email'], $params['item']);
+            
+             /*
              * Store collection
              */
             case parent::COLLECTION:
@@ -538,6 +574,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $cartFunctions->updateCart($params['email'], $params['itemId'], $params['item']);
             
             /*
+             * Update processing cart item
+             */
+            case parent::PROCESSING_CART_ITEM:
+                $cartFunctions = new Functions_processingcart($this);
+                return $cartFunctions->updateProcessingCart($params['userid'], $params['itemId'], $params['item']);
+            
+             /*
              * Update rights
              */
             case parent::RIGHTS:

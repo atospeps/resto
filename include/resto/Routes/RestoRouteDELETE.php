@@ -40,6 +40,9 @@ class RestoRouteDELETE extends RestoRoute {
      *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
      *    
+     *    users/{userid}/processingcart                 |  Remove all processing cart items
+     *    users/{userid}/processingcart/{itemid}        |  Remove {itemid} from {userid} processing cart
+     *    
      * @param array $segments
      */
     public function route($segments) {
@@ -159,6 +162,9 @@ class RestoRouteDELETE extends RestoRoute {
         if ($segments[2] === 'cart') {
             return $this->DELETE_userCart($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
+        elseif ($segments[2] === 'processingcart') {
+            return $this->DELETE_userProcessingCart($segments[1], isset($segments[3]) ? $segments[3] : null);
+        }
         else {
             RestoLogUtil::httpError(404);
         }
@@ -234,6 +240,78 @@ class RestoRouteDELETE extends RestoRoute {
         }
         else {
             return RestoLogUtil::error('Cannot clear cart');
+        }
+    }
+    
+    /**
+     * 
+     * Process HTTP DELETE request on users processing cart
+     * 
+     *    users/{userid}/processingcart                   |  Remove all processing cart items
+     *    users/{userid}/processingcart/{itemid}          |  Remove {itemid} from {userid} processing cart
+     * 
+     * @param string $userid
+     * @param string $itemId
+     */
+    private function DELETE_userProcessingCart($userid, $itemId) {
+        
+        /*
+         * Cart can only be modified by its owner or by admin
+         */
+        $user = $this->getAuthorizedUser($userid);
+                
+        /*
+         * users/{userid}/processingcart
+         */
+        if (!isset($itemId)) {
+            return $this->DELETE_userProcessingCartAllItems($user);
+        }
+        /*
+         * users/{userid}/processingcart/{itemId}
+         */
+        else {
+            return $this->DELETE_userProcessingCartItem($user, $itemId);
+        }
+     
+    }
+    
+    /**
+     * 
+     * Delete one item from processing cart
+     * 
+     * @param RestoUser $user
+     * @param string $itemId
+     */
+    private function DELETE_userProcessingCartItem($user, $itemId) {
+        
+        if ($user->removeFromProcessingCart($itemId)) {
+            $items = array_values($user->getProcessingCart()->getItems());
+            return RestoLogUtil::success('Item removed from cart', array(
+                'itemid' => $itemId,
+                'items'  => $items
+            ));
+        }
+        else {
+            return RestoLogUtil::error('Item cannot be removed', array(
+                'itemid' => $itemId
+            ));
+        }
+    }
+    
+    /**
+     * 
+     * Delete all items within processing cart
+     * 
+     * @param RestoUser $user
+     * @param string $itemId
+     */
+    private function DELETE_userProcessingCartAllItems($user)
+    {
+        if ($user->clearProcessingCart()) {
+            return RestoLogUtil::success('Processing cart cleared');
+        }
+        else {
+            return RestoLogUtil::error('Cannot clear processing cart');
         }
     }
     

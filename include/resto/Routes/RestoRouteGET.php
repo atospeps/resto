@@ -54,6 +54,7 @@ class RestoRouteGET extends RestoRoute {
      *    users/{userid}                                    |  Show {userid} information
      *    users/{userid}/downloadinfo                       |  Show {userid} download informations
      *    users/{userid}/cart                               |  Show {userid} cart
+     *    users/{userid}/processingcart                     |  Show {userid} processing cart
      *    users/{userid}/orders                             |  Show orders for {userid}
      *    users/{userid}/orders/{orderid}                   |  Show {orderid} order for {userid}
      *    users/{userid}/rights                             |  Show rights for {userid}
@@ -540,7 +541,6 @@ class RestoRouteGET extends RestoRoute {
      * @param array $segments
      */
     private function GET_users($segments) {
-
         /*
          * users
          */
@@ -567,6 +567,13 @@ class RestoRouteGET extends RestoRoute {
          */
         if ($segments[2] === 'cart') {
             return $this->GET_userCart($segments[1], isset($segments[3]) ? $segments[3] : null);
+        }
+        
+        /*
+         * users/{userid}/processingcart
+         */
+        if ($segments[2] === 'processingcart') {
+            return $this->GET_userProcessingCart($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
         
         /*
@@ -647,6 +654,24 @@ class RestoRouteGET extends RestoRoute {
         return $user->getCart();
     }
 
+    /**
+     * Process HTTP GET request on user processing cart
+     *
+     * @param string $userid
+     * @param string $itemid
+     * @throws Exception
+     */
+    private function GET_userProcessingCart($userId, $itemid = null)
+    {
+        $user = $this->getAuthorizedUser($userId);
+
+        if (isset($itemid)) {
+            RestoLogUtil::httpError(404);
+        }
+
+        return $user->getProcessingCart();
+    }
+    
     /**
      * Process HTTP GET request on user orders
      *

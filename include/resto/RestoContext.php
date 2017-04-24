@@ -166,7 +166,6 @@ class RestoContext {
      * @throws Exception
      */
     public function __construct($config) {
-        
         /*
          * JSON Web Token is mandatory
          */

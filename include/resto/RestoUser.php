@@ -38,6 +38,11 @@ class RestoUser{
     private $cart;
     
     /*
+     * User processing cart
+     */
+    private $processingCart;
+    
+    /*
      * Resto rights
      */
     private $rights;
@@ -75,6 +80,7 @@ class RestoUser{
         else {
             $this->rights = new RestoRights($this->profile['email'], $this->profile['groupname'], $this->context);
             $this->cart = new RestoCart($this, $this->context, true);
+            $this->processingCart = new RestoProcessingCart($this, $this->context);
         }
         
     }
@@ -278,8 +284,8 @@ class RestoUser{
      * @param string $token
      * @return boolean
      */
-    private function canDownloadOrVisualize($action, $collectionName = null, $featureIdentifier = null, $token = null){
-        
+    private function canDownloadOrVisualize($action, $collectionName = null, $featureIdentifier = null, $token = null)
+    {
         /*
          * Token case - bypass user rights
          */
@@ -300,12 +306,56 @@ class RestoUser{
     }
     
     /**
+     * Return user processing cart
+     */
+    public function getProcessingCart() {
+        return $this->processingCart;
+    }
+    
+    /**
+     * Add item to processing cart
+     * 
+     * @param array $data
+     */
+    public function addToProcessingCart($data) {
+        return isset($this->processingCart) ? $this->processingCart->add($data) : false;
+    }
+    
+    /**
+     * Update item from processing cart
+     * 
+     * @param string $itemId
+     * @param array $item
+     */
+    public function updateProcessingCart($itemId, $item) {
+        return isset($this->processingCart) ? $this->processingCart->update($itemId, $item) : false;
+    }
+    
+    /**
+     * Remove item from processing cart
+     * 
+     * @param string $itemId
+     */
+    public function removeFromProcessingCart($itemId) {
+        return isset($this->processingCart) ? $this->processingCart->remove($itemId) : false;
+    }
+    
+    /**
+     * Clear processing cart
+     * 
+     */
+    public function clearProcessingCart() {
+        return isset($this->processingCart) ? $this->processingCart->clear() : false;
+    }
+    
+    /**
      * We get the ip.
      * We try differents values to get the true ip beyond any firewall
      *
      * @return string
      */
-    private function getIp() {
+    private function getIp()
+    {
         // Variables to verify. We verify them by order,
         // so at the start we sure get REMOTE_ADD, which is
         // the firewall ip

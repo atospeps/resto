@@ -93,9 +93,12 @@ class RestoCart{
             $itemId = RestoUtil::encrypt($this->user->profile['email'] . $data[$i]['id']);
             if (isset($this->items[$itemId])) {
                 continue;
-            }   
+            }
             
-            if (!$this->context->dbDriver->store(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'item' => $data[$i]))) {
+            if (!$this->context->dbDriver->store(RestoDatabaseDriver::CART_ITEM, array(
+                'email' => $this->user->profile['email'],
+                'item'  => $data[$i]))
+            ) {
                 return false;
             }
             $this->items[$itemId] = $data[$i];

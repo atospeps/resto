@@ -129,6 +129,7 @@ class RestoModel_sentinel2_ST extends RestoModel {
                     'productIdentifier' => $this->getElementByName($dom, 'title'),
                     'title' => $this->getElementByName($dom, 'title'),
                     'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
+                    'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
                     'authority' => 'ESA',
                     'startDate' => $this->getElementByName($dom, 'startTime'),
                     'completionDate' => $this->getElementByName($dom, 'stopTime'),

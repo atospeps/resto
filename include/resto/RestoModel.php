@@ -236,11 +236,7 @@ abstract class RestoModel {
             'relativeOrbitNumber' => array (
                     'name' => 'relativeorbitnumber',
                     'type' => 'NUMERIC'
-            ),
-            'checksum' => array (
-                    'name' => 'checksum',
-                    'type' => 'TEXT'
-            ),
+            )
     );
     
     /*

@@ -155,7 +155,7 @@ class RestoRoutePOST extends RestoRoute {
             if (!isset($this->user->profile['email']) || $this->user->profile['activated'] !== 1) {
                 throw new Exception();
             }
-
+            
             $isadmin = $this->user->profile['groupname'] === 'admin' ? true : false;
             $this->user->token = $this->context->createToken($this->user->profile['userid'], $this->user->profile,  $isadmin);
 
@@ -571,6 +571,17 @@ class RestoRoutePOST extends RestoRoute {
     
         $user = $this->getAuthorizedUser($userid);
     
+        /*
+         * Check if the maximum products in processing cart is exceeded
+         */
+        if (isset($this->context->processingCartMaxProducts) && $this->context->processingCartMaxProducts > 0) {
+            $countCartItems = count($user->getProcessingCart()->getItems());
+            $countDataItems = count($data);
+            if ($countCartItems + $countDataItems > $this->context->processingCartMaxProducts) {
+                return RestoLogUtil::httpError(6002, 'Cannot add item(s) in processing cart because the maximum of products is exceeded|'.$this->context->processingCartMaxProducts);
+            }
+        }
+        
         /*
          *  Get all features descriptions
          */

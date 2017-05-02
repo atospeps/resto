@@ -485,7 +485,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_CART_ITEM:
                 $cartFunctions = new Functions_processingcart($this);
-                return $cartFunctions->addToProcessingCart($params['userid'], $params['email'], $params['item']);
+                return $cartFunctions->addToProcessingCart($params['userid'], $params['item']);
             
              /*
              * Store collection

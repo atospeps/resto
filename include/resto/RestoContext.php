@@ -145,6 +145,11 @@ class RestoContext {
     public $cartMaxProducts = 0;
     
     /*
+     * Maximum number of products that the user can add in the processing cart (0 = no limit)
+     */
+    public $processingCartMaxProducts = 0;
+    
+    /*
      * JSON Web Token duration (in seconds)
      */
     private $tokenDuration = 3600;
@@ -309,6 +314,13 @@ class RestoContext {
          */
         if (isset($config['general']['cartMaxProducts'])) {
             $this->cartMaxProducts = $config['general']['cartMaxProducts'];
+        }
+        
+        /*
+         * Maximum products in processing cart
+         */
+        if (isset($config['general']['processingCartMaxProducts'])) {
+            $this->processingCartMaxProducts = $config['general']['processingCartMaxProducts'];
         }
         
         /*

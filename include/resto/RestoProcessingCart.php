@@ -158,6 +158,9 @@
     public function toJSON($pretty)
     {
         $response = array('items' => $this->getItems());
+            if (isset($this->context->query['getMaxProducts'])) {
+            $response['maxProducts'] = $this->context->processingCartMaxProducts;
+        }
         return RestoUtil::json_format($response, $pretty);
     }
 

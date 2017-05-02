@@ -98,30 +98,28 @@ class Functions_processingcart
     }
     
     /**
-     * Add resource url to processing cart
+     * Add one item to processing cart
      * 
-     * @param string $identifier
+     * @param string $userid
      * @param array $item
      *   
      * @return boolean
      * @throws exception
      */
-    public function addToProcessingCart($userid, $email, $item = array())
+    public function addToProcessingCart($userid, $item)
     {
-        if (!isset($userid) || !isset($email) || !isset($item) || !is_array($item) || !isset($item['id'])) {
+        if (!isset($userid) || !isset($item) || !isset($item['id'])) {
             return false;
-        }
-        if ($this->isInProcessingCart($item['id'])) {
-            RestoLogUtil::httpError(6000, 'Cannot add item : ' . $item['id'] . ' already exists');
         }
         
         $values = array(
             '\'' . pg_escape_string($item['id']) . '\'',
+            '\'' . pg_escape_string($item['properties']['title']) . '\'',
             '\'' . pg_escape_string($userid) . '\'',
             'now()'
         );
         
-        $query = 'INSERT INTO usermanagement.processingcart (itemid, userid, querytime) '
+        $query = 'INSERT INTO usermanagement.processingcart (itemid, title, userid, querytime) '
                . 'VALUES (' . join(',', $values) . ')';
         
         $this->dbDriver->query($query);

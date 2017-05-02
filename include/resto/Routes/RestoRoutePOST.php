@@ -509,19 +509,11 @@ class RestoRoutePOST extends RestoRoute {
                 $availableFeatures[] = $feature;
             }
         }
-        
-        /*
-         * Remove items first
-         */
-        $clear = isset($this->context->query['_clear']) ? filter_var($this->context->query['_clear'], FILTER_VALIDATE_BOOLEAN) : false;
-        if ($clear) {
-            $user->clearCart(true);
-        }
-        
+
         /*
          * Add all available features to cart
          */
-        $addedFeatures = $user->addToCart($availableFeatures, true);
+        $addedFeatures = $user->addToCart($availableFeatures);
         foreach ($addedFeatures as $feature) {
             $response["added"]++;
         }
@@ -536,7 +528,7 @@ class RestoRoutePOST extends RestoRoute {
                 $response['alreadyExists']++;
             }
         }
-        
+
         /*
          * Return the execution status
          */
@@ -550,7 +542,7 @@ class RestoRoutePOST extends RestoRoute {
             return RestoLogUtil::error($response);
         }
     }
-    
+
     /**
      * Process HTTP POST request on user processing cart
      *

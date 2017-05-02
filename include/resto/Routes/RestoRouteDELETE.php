@@ -235,7 +235,7 @@ class RestoRouteDELETE extends RestoRoute {
      */
     private function DELETE_userCartAllItems($user)
     {
-        if ($user->clearCart(true)) {
+        if ($user->clearCart()) {
             return RestoLogUtil::success('Cart cleared');
         }
         else {

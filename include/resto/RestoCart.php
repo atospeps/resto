@@ -28,14 +28,13 @@ class RestoCart{
     
     /*
      * Cart items 
-     *  array(
-     *      'url' //
-     *      'size'
-     *      'checksum'
-     *      'mimeType'
-     *  )
      */
     private $items = array();
+    
+    /*
+     * RestoCart instance.
+     */
+    private static $_instance = null;
     
     /**
      * Constructor
@@ -43,12 +42,25 @@ class RestoCart{
      * @param RestoUser $user
      * @param RestoContext $context
      */
-    public function __construct($user, $context, $synchronize = false){
+    private function __construct($user, $context){
         $this->user = $user;
         $this->context = $context;
-        if ($synchronize) {
-            $this->items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $this->user->profile['email']));
+        $this->items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array(
+                'email' => $this->user->profile['email']
+        ));
+    }
+
+    /**
+     * 
+     * Returns RestoCart instance (singleton).
+     * @param RestoUser $user
+     * @param RestoContext $context
+     */
+    public static function getInstance($user, $context){
+        if(is_null(self::$_instance)) {
+            self::$_instance = new RestoCart($user, $context);
         }
+        return self::$_instance;
     }
     
     /**
@@ -71,7 +83,6 @@ class RestoCart{
      *      )
      * 
      * @param array $data
-     * @param boolean $synchronize : true to synchronize with database
      * @return array $items les produits réellement ajoutés au panier
      */
     public function add($data) {
@@ -113,32 +124,26 @@ class RestoCart{
      * 
      * @param string $itemId
      * @param array $item
-     * @param boolean $synchronize : true to synchronize with database
+     * 
      */
-    public function update($itemId, $item, $synchronize = false) {
+    public function update($itemId, $item) {
         if (!isset($itemId)) {
             return false;
         }
         if (!isset($this->items[$itemId])) {
             RestoLogUtil::httpError(1001, 'Cannot update item : ' . $itemId . ' does not exist');
         }
-        if ($synchronize) {
-            $this->items[$itemId] = $item;
-            return $this->context->dbDriver->update(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'itemId' => $itemId, 'item' => $item));
-        }
-        else {
-            $this->items[$itemId] = $item;
-            return true;
-        }
-        
-        return false;
+        $this->items[$itemId] = $item;
+        return $this->context->dbDriver->update(RestoDatabaseDriver::CART_ITEM, array(
+                'email' => $this->user->profile['email'], 
+                'itemId' => $itemId, 'item' => $item
+        ));
     }
     
     /**
      * Remove item from cart
      * 
      * @param string $itemId
-     * @param boolean $synchronize : true to synchronize with database
      */
     public function remove($itemId) {
         
@@ -151,19 +156,20 @@ class RestoCart{
             unset($this->items[$itemCartId]);
         }
         
-        return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array('email' => $this->user->profile['email'], 'itemId' => $itemCartId));
+        return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array(
+                'email' => $this->user->profile['email'], 
+                'itemId' => $itemCartId
+        ));
     }
     
     /**
-     * Remove all items from cart
-     * 
-     * @param boolean $synchronize : true to synchronize with database
+     * Remove all items from cart 
      */
-    public function clear($synchronize = false) {
+    public function clear() {
         $this->items = array();
-        if ($synchronize) {
-            return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEMS, array('email' => $this->user->profile['email']));
-        }
+        return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEMS, array(
+                'email' => $this->user->profile['email']
+        ));
     }
     
     /**

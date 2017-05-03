@@ -59,7 +59,6 @@ GRANT ALL ON TABLE usermanagement.jobs TO resto;
 GRANT ALL ON SEQUENCE usermanagement.jobs_gid_seq TO postgres;
 GRANT SELECT, UPDATE ON SEQUENCE usermanagement.jobs_gid_seq TO resto;
 
-
 -- ----------------------------------------------------------------------------------------
 --
 -- Jeu de données de test
@@ -76,5 +75,3 @@ INSERT INTO jobs (gid, email, identifier, querytime, status, statuslocation, per
 INSERT INTO jobs (gid, email, identifier, querytime, status, statuslocation, percentcompleted, outputs, statusmessage) VALUES (167, 'admin', 'S2L1C_MERGE', '2016-03-24 15:22:59', 'ProcessSucceeded', 'http://172.24.218.59:8081/wps/outputs/pywps-e829bfd4-f1cb-11e5-ad0c-0242ac110003.xml', 100, '[{"identifier":"file_url","title":"Image url","type":"string","value":"http:\/\/172.24.218.59\/results\/S2A_OPER_PRD_MSIL1C_PDMC_20160128T061653_R105_V20160126T054720_20160126T054720.tif"}]', 'PyWPS Process S2L1C_MERGE successfully calculated');
 INSERT INTO jobs (gid, email, identifier, querytime, status, statuslocation, percentcompleted, outputs, statusmessage) VALUES (164, 'admin', 'S2L1C_MERGE', '2016-03-24 14:14:52', 'ProcessSucceeded', 'http://172.24.218.59:8081/wps/outputs/pywps-64bc8a86-f1c2-11e5-b13f-0242ac110003.xml', 100, '[{"identifier":"file_url","title":"Image url","type":"string","value":"http:\/\/172.24.218.59:8080\/results\/S2A_OPER_PRD_MSIL1C_PDMC_20160128T061653_R105_V20160126T054720_20160126T054720.tif"}]', 'PyWPS Process S2L1C_MERGE successfully calculated');
 INSERT INTO jobs (gid, email, identifier, querytime, status, statuslocation, percentcompleted, outputs, statusmessage) VALUES (166, 'admin', 'S2L1C_MERGE', '2016-03-24 14:46:29', 'ProcessSucceeded', 'http://172.24.218.59:8081/wps/outputs/pywps-cf20122c-f1c6-11e5-8861-0242ac110003.xml', 100, '[{"identifier":"file_url","title":"Image url","type":"string","value":"http:\/\/172.24.218.59\/results\/S2A_OPER_PRD_MSIL1C_PDMC_20160128T061653_R105_V20160126T054720_20160126T054720.tif"}]', 'PyWPS Process S2L1C_MERGE successfully calculated');
-
-

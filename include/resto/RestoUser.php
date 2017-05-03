@@ -156,6 +156,15 @@ class RestoUser{
     }
     
     /**
+     * Can User execute WPS service ?
+     * @return Ambigous <multitype:number >
+     */
+    public function canExecuteWPS(){
+        $rights = $this->rights->getRights();
+        return $rights['wps'];
+    }
+
+    /**
      * Can User POST ?
      * 
      * @param string $collectionName

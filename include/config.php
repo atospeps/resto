@@ -253,6 +253,14 @@ return array(
     	        'route' => 'hpss',
     	        'options' => array()
     	),
+        'WPS' => array(
+                'activate' => true,
+                'route' => 'wps',
+                'options' => array(
+                        'wpsServerUrl' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi?'
+        
+                )
+        ),
         /*
          * Alerts
          */

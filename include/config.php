@@ -76,6 +76,11 @@ return array(
         'cartMaxProducts' => 0,
         
         /*
+         * Maximum number of products that the user can add in the processing cart (0 = no limit)
+         */
+        'processingCartMaxProducts' => 0,
+        
+        /*
          * Authentication tokens validity duration (in seconds)
          * Default is 1 hour (i.e. 3600 seconds)
          */

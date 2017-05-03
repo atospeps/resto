@@ -42,7 +42,8 @@ class RestoRights{
             'download' => 0,
             'post' => 0,
             'put' => 0,
-            'delete' => 0
+            'delete' => 0,
+            'wps' => 0
         ),
         'default' => array(
             'search' => 1,
@@ -50,7 +51,8 @@ class RestoRights{
             'download' => 1,
             'post' => 1,
             'put' => 0,
-            'delete' => 0
+            'delete' => 0,
+            'wps' => 0
         ),
         'admin' => array(
             'search' => 1,
@@ -58,7 +60,8 @@ class RestoRights{
             'download' => 1,
             'post' => 1,
             'put' => 1,
-            'delete' => 1
+            'delete' => 1,
+            'wps' => 1
         )
     );
     

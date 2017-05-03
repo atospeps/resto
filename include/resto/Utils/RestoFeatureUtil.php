@@ -335,7 +335,6 @@ class RestoFeatureUtil {
               $properties['wms'],
               $properties['resource'],
               $properties['resourceMimeType'],
-              $properties['resourceChecksum'],
               $properties['bbox3857'],
               $properties['bbox4326']
         );

@@ -79,8 +79,6 @@ class RestoUser{
         }
         else {
             $this->rights = new RestoRights($this->profile['email'], $this->profile['groupname'], $this->context);
-            $this->cart = new RestoCart($this, $this->context, true);
-            $this->processingCart = new RestoProcessingCart($this, $this->context);
         }
         
     }
@@ -206,17 +204,16 @@ class RestoUser{
      * Return user cart
      */
     public function getCart() {
-        return $this->cart;
+        return RestoCart::getInstance($this, $this->context);
     }
     
     /**
      * Add item to cart
      * 
      * @param array $data
-     * @param boolean $synchronize
      */
-    public function addToCart($data, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->add($data, $synchronize) : false;
+    public function addToCart($data) {
+        return $this->getCart()->add($data);
     }
     
     /**
@@ -224,36 +221,34 @@ class RestoUser{
      * 
      * @param string $itemId
      * @param array $item
-     * @param boolean $synchronize
      */
-    public function updateCart($itemId, $item, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->update($itemId, $item, $synchronize) : false;
+    public function updateCart($itemId, $item) {
+        return $this->getCart()->update($itemId, $item);
     }
     
     /**
      * Remove item from cart
      * 
      * @param string $itemId
-     * @param boolean $synchronize
      */
-    public function removeFromCart($itemId, $synchronize = false) {
-        return isset($this->cart) ? $this->cart->remove($itemId, $synchronize) : false;
+    public function removeFromCart($itemId) {
+        return $this->getCart()->remove($itemId);
     }
     
     /**
      * Clear cart
-     * 
-     * @param boolean $synchronize
      */
-    public function clearCart($synchronize = false) {
-        return isset($this->cart) ? $this->cart->clear($synchronize) : false;
+    public function clearCart() {
+        return $this->getCart()->clear();
     }
     
     /**
      * Return user orders
      */
     public function getOrders() {
-        return $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array('email' => $this->profile['email']));
+        return $this->context->dbDriver->get(RestoDatabaseDriver::ORDERS, array(
+                'email' => $this->profile['email']
+        ));
     }
     
     /**
@@ -265,8 +260,8 @@ class RestoUser{
         $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
         if ($fromCart) {
             $order = $this->context->dbDriver->store(RestoDatabaseDriver::ORDER, array('email' => $this->profile['email']));
-            if (isset($order) && isset($this->cart)) {
-                $this->cart->clear();
+            if (isset($order)) {
+                $this->getCart()->clear();
             }
         }
         else {
@@ -309,7 +304,7 @@ class RestoUser{
      * Return user processing cart
      */
     public function getProcessingCart() {
-        return $this->processingCart;
+        return RestoProcessingCart::getInstance($this, $this->context);
     }
     
     /**
@@ -318,7 +313,7 @@ class RestoUser{
      * @param array $data
      */
     public function addToProcessingCart($data) {
-        return isset($this->processingCart) ? $this->processingCart->add($data) : false;
+        return $this->getProcessingCart()->add($data);
     }
     
     /**
@@ -328,7 +323,7 @@ class RestoUser{
      * @param array $item
      */
     public function updateProcessingCart($itemId, $item) {
-        return isset($this->processingCart) ? $this->processingCart->update($itemId, $item) : false;
+        return $this->getProcessingCart()->update($itemId, $item);
     }
     
     /**
@@ -337,7 +332,7 @@ class RestoUser{
      * @param string $itemId
      */
     public function removeFromProcessingCart($itemId) {
-        return isset($this->processingCart) ? $this->processingCart->remove($itemId) : false;
+        return $this->getProcessingCart()->remove($itemId);
     }
     
     /**
@@ -345,7 +340,7 @@ class RestoUser{
      * 
      */
     public function clearProcessingCart() {
-        return isset($this->processingCart) ? $this->processingCart->clear() : false;
+        return $this->getProcessingCart()->clear();
     }
     
     /**

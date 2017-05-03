@@ -236,11 +236,7 @@ abstract class RestoModel {
             'relativeOrbitNumber' => array (
                     'name' => 'relativeorbitnumber',
                     'type' => 'NUMERIC'
-            ),
-            'checksum' => array (
-                    'name' => 'checksum',
-                    'type' => 'TEXT'
-            ),
+            )
     );
     
     /*
@@ -750,6 +746,16 @@ abstract class RestoModel {
             $featureIdentifier = $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
         } else {
             $featureIdentifier = $data['id'];
+        }
+
+        /*
+         * First check if feature is already in database
+         * (do this before getKeywords to avoid iTag process)
+         */
+        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array(
+                'featureIdentifier' => $featureIdentifier
+        ))) {
+            RestoLogUtil::httpError(500, 'Feature ' . $featureIdentifier . ' already in database');
         }
 
         /*

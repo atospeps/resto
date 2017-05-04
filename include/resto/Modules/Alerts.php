@@ -75,6 +75,13 @@ class Alerts extends RestoModule {
             RestoLogUtil::httpError(401);
         }
 
+        /*
+         * Only administrators can access to administration
+         */
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
         $this->segments = $segments;
         $method = $this->context->method;
 

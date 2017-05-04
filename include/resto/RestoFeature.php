@@ -181,7 +181,6 @@ class RestoFeature {
 
             if(curl_errno($curl)){
                 $error = curl_error($curl);
-                error_log($error, 0);
             }
             curl_close($curl);
         }

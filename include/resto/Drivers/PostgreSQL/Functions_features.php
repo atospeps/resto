@@ -467,6 +467,73 @@ class Functions_features {
     }
 
     /**
+     * Update feature keywords
+     *
+     * @param RestoFeature $feature
+     * @param array $keywords
+     * @throws Exception
+     */
+    public function updateFeatureKeywords($feature, $keywords) {
+       
+        $featureId = $feature->identifier;
+        
+        $toUpdate = array();
+        $columns = array();
+        /*
+         * Store new keywords
+        */
+        if (is_array($keywords)) {
+            $columns[$feature->collection->model->getDbKey('keywords')] = '\'' . pg_escape_string(json_encode($keywords)) . '\'';
+            $columns[$feature->collection->model->getDbKey('hashes')] = '\'{' . join(',', $this->getHashes($keywords)) . '}\'';
+            foreach ($columns as $columnName => $columnValue) {
+                array_push($toUpdate, $columnName . '=' . $columnValue);
+            }
+        }
+        if (empty($toUpdate)) {
+            RestoLogUtil::httpError(400, 'Nothing to update for ' . $feature->identifier);
+        }
+        
+        
+        if (empty($toUpdate)) {
+            RestoLogUtil::httpError(400, 'Nothing to update for ' . $feature->identifier);
+        }
+        try {
+            
+            /*
+             * First we delete the current facets
+             */                
+            $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($feature->collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
+            /* 
+             * Format correctly the keywords to be treated by the removeFeatureFacet function
+             */                 
+            $array = pg_fetch_row($result);
+            $_keywords['properties']['keywords'] = json_decode($array[0], true);
+            $this->removeFeatureFacets($_keywords, $feature->collection->name);
+            
+            /*
+             * Start transaction
+             */
+            pg_query($this->dbh, 'BEGIN');
+            
+            /*
+             * Update feature
+             */
+            $this->dbDriver->query('UPDATE ' .  (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
+            /*
+             * We insert the new facets
+             */
+            $this->storeKeywordsFacets($feature->collection, $keywords, true);
+            
+            pg_query($this->dbh, 'COMMIT');
+        } catch (Exception $e) {
+            pg_query($this->dbh, 'ROLLBACK');
+            RestoLogUtil::httpError(500, 'Cannot update feature ' . $featureId);
+        }
+
+        return true;
+    }
+
+    /**
      * Return exact count or estimate count from query
      *
      * @param String $from
@@ -509,7 +576,6 @@ class Functions_features {
      * @param array $keywords
      */
     public function storeKeywordsFacets($collection, $keywords) {
-        
         /*
          * One facet per keyword
          */

@@ -89,11 +89,18 @@ class Administration extends RestoModule {
      */
     public function run($segments, $data = array()) {
         
-        if ($this->user->profile['groupname'] !== 'admin') {
-            /*
-             * Only administrators can access to administration
-             */
+        /*
+         * Only autenticated user.
+         */
+        if ($this->user->profile['userid'] == -1) {
             RestoLogUtil::httpError(401);
+        }
+
+        /*
+         * Only administrators can access to administration
+         */
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
         }
         
         if ($this->context->method === 'POST' && $this->context->outputFormat !== 'json') {

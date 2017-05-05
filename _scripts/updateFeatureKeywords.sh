@@ -41,7 +41,7 @@ function logMessage() {
 # Help
 #####################################
 usage() { 
-	echo "Usage: $0 -f <file_path> -H <resto_hostname> -a <resto_bd_user:password> -g <dhus_db_user:password> -w <user_resto_webservice:password> [ -s (use HTTPS protocol) -N (use --noproxy curl options) -b <resto_db_hostname> -D <dhus_db_hostname> -d <archive_directory> -q <quicklooks_dir> -u <unix_user> ]" 1>&2; 
+	echo "Usage: $0 -f <file_path> -H <resto_hostname> -a <resto_bd_user:password> -b <dhus_db_user:password> [ -s (use HTTPS protocol) -n (use --noproxy curl options) -d <resto_db_hostname> -q <resto_sql_query> ]" 1>&2; 
 	exit 1; 
 }
 

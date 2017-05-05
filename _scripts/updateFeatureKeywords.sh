@@ -10,7 +10,6 @@ export PRG_DIR=`(cd ${EXEC_DIR} ; echo $PWD)`
 
 HTTPS=0
 RESTO_CURL_PROXY=0
-RESTO_HOST=localhost
 RESTO_DB_HOST="localhost"
 RESTO_DB_NAME=resto
 

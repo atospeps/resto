@@ -86,15 +86,15 @@ class RestoKeywordsUtil {
         /* 
          * Compute keywords from iTag
          */
-        if (isset($collection->context->modules['iTag'])) {
+        if (isset($collection->context->modules['Tag'])) {
             
-            $options = isset($collection->context->modules['iTag']['areaLimit']) ? array('areaLimit' => $collection->context->modules['iTag']['areaLimit']) : array();
-            $iTag = new iTag(isset($collection->context->modules['iTag']['database']['dbname']) ? $collection->context->modules['iTag']['database'] : array('dbh' => $collection->context->dbDriver->dbh), $options);
+            $options = isset($collection->context->modules['Tag']['areaLimit']) ? array('areaLimit' => $collection->context->modules['Tag']['areaLimit']) : array();
+            $iTag = new iTag(isset($collection->context->modules['Tag']['database']['dbname']) ? $collection->context->modules['Tag']['database'] : array('dbh' => $collection->context->dbDriver->dbh), $options);
             $metadata = array(
                 'footprint' => RestoGeometryUtil::geoJSONGeometryToWKT($geometry),
                 'timestamp' => isset($properties['startDate']) ? $properties['startDate'] : null
             );
-            $keywords = $this->keywordsFromITag($iTag->tag($metadata, isset($collection->context->modules['iTag']['taggers']) ? $collection->context->modules['iTag']['taggers'] : array()));
+            $keywords = $this->keywordsFromITag($iTag->tag($metadata, isset($collection->context->modules['Tag']['taggers']) ? $collection->context->modules['Tag']['taggers'] : array()));
         }
         
         /*

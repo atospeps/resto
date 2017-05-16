@@ -399,8 +399,9 @@ return array(
          * 
          * !!! Require iTag !!!
          */
-        'iTag' => array(
+        'Tag' => array(
             'activate' => true,
+            'route' => 'api/tag',
             'options' => array(
                 'database' => array(
                     'dbname' => 'itag',

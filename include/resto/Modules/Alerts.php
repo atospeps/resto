@@ -75,13 +75,6 @@ class Alerts extends RestoModule {
             RestoLogUtil::httpError(401);
         }
 
-        /*
-         * Only administrators can access to administration
-         */
-        if ($this->user->profile['groupname'] !== 'admin') {
-            RestoLogUtil::httpError(403);
-        }
-
         $this->segments = $segments;
         $method = $this->context->method;
 
@@ -302,6 +295,12 @@ class Alerts extends RestoModule {
      * We send the mails to the users
      */
     private function alertExecute() {
+        
+        // Only admin users can notify users of the publication of new products
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
         try {
             // We get the current date rounding the hours
             $now = time();
@@ -319,7 +318,9 @@ class Alerts extends RestoModule {
 
             // We iterate over all the results.
             // We will make the research and send the mail
-            while ($row = pg_fetch_assoc($alerts)) { 
+            $countMails = 0; $countAlerts = 0;
+            while ($row = pg_fetch_assoc($alerts)) {
+                $countAlerts++;
                 // We validate if the expiration is set. Then we compare with the current date
                 // If it's not the case we launch mails
                 if (!empty($row['expiration'])) {
@@ -369,6 +370,7 @@ class Alerts extends RestoModule {
                             if (!$this->sendAttachedMeta4Mail($params)) {
                                 // TODO: log error sending mail...
                             }
+                            $countMails++;
                         }
                     }
                 }
@@ -376,7 +378,7 @@ class Alerts extends RestoModule {
                 $query = "UPDATE usermanagement.alerts SET last_dispatch='" . $date . "' WHERE aid=" . $row["aid"];               
                 pg_query($this->dbh, $query);
             }
-            return RestoLogUtil::success('Alerts notification successfully launched');
+            return RestoLogUtil::success('Alerts notification successfully launched ('.$countMails.'/'.$countAlerts.')');
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());
         }

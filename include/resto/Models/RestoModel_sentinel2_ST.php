@@ -16,6 +16,34 @@ class RestoModel_sentinel2_ST extends RestoModel {
         'mgrs' => array(
                 'name' => 'mgrs',
                 'type' => 'TEXT'
+        ),
+        'bareSoilPercentage' => array(
+                'name' => 'baresoil',
+                'type' => 'NUMERIC'
+        ),
+        'highProbaCloudsPercentage' => array(
+                'name' => 'highprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'mediumProbaCloudsPercentage' => array(
+                'name' => 'mediumprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'lowProbaCloudsPercentage' => array(
+                'name' => 'lowprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'snowIcePercentage' => array(
+                'name' => 'snowice',
+                'type' => 'NUMERIC'
+        ),
+        'vegetationPercentage' => array(
+                'name' => 'vegetation',
+                'type' => 'NUMERIC'
+        ),
+        'waterPercentage' => array(
+                'name' => 'water',
+                'type' => 'NUMERIC'
         )
     );
 
@@ -80,21 +108,21 @@ class RestoModel_sentinel2_ST extends RestoModel {
     /**
      * Create JSON feature from new resource xml string
      *
-     * <product>
-    <title>S1A_IW_OCN__2SDV_20150727T044706_20150727T044731_006992_0097D1_F6DA</title>
-    <resourceSize>6317404</resourceSize>
-    <startTime>2015-07-27T04:47:06.611</startTime>
-    <stopTime>2015-07-27T04:47:31.061</stopTime>
-    <productType>OCN</productType>
-    <missionId>S1A</missionId>
-    <processingLevel>1</processingLevel>
-    <mode>IW</mode>
-    <absoluteOrbitNumber>6992</absoluteOrbitNumber>
-    <orbitDirection>ASCENDING</orbitDirection>
-    <s2takeid>38865</s2takeid>
-    <cloudcover>0.0</cloudcover>
-    <instrument>Multi-Spectral Instrument</instrument>
-    <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
+    <product>
+        <title>S1A_IW_OCN__2SDV_20150727T044706_20150727T044731_006992_0097D1_F6DA</title>
+        <resourceSize>6317404</resourceSize>
+        <startTime>2015-07-27T04:47:06.611</startTime>
+        <stopTime>2015-07-27T04:47:31.061</stopTime>
+        <productType>OCN</productType>
+        <missionId>S1A</missionId>
+        <processingLevel>1</processingLevel>
+        <mode>IW</mode>
+        <absoluteOrbitNumber>6992</absoluteOrbitNumber>
+        <orbitDirection>ASCENDING</orbitDirection>
+        <s2takeid>38865</s2takeid>
+        <cloudcover>0.0</cloudcover>
+        <instrument>Multi-Spectral Instrument</instrument>
+        <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
     </product>
      *
      * @param string $xml
@@ -148,11 +176,17 @@ class RestoModel_sentinel2_ST extends RestoModel {
                     'isNrt' => $this->getElementByName($dom, 'isNrt'),
                     'realtime' => $this->getElementByName($dom, 'realtime'),
                     'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title'))
+                    'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title')),
+                    'bareSoilPercentage' => $this->getElementByName($dom, 'bareSoilPercentage'),
+                    'highProbaCloudsPercentage' => $this->getElementByName($dom, 'highProbaCloudsPercentage'),
+                    'mediumProbaCloudsPercentage' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage'),
+                    'lowProbaCloudsPercentage' => $this->getElementByName($dom, 'lowProbaCloudsPercentage'),
+                    'snowIcePercentage' => $this->getElementByName($dom, 'snowIcePercentage'),
+                    'vegetationPercentage' => $this->getElementByName($dom, 'vegetationPercentage'),
+                    'waterPercentage' => $this->getElementByName($dom, 'waterPercentage')
                 )
       );
-
+        
       return $feature;
     }
 

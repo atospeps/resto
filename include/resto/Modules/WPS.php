@@ -41,6 +41,8 @@ class WPS extends RestoModule {
      */
     private $wpsServerUrl;
     
+    private $curl_options = array();
+    
     /**
      * WPS module route.
      */
@@ -65,6 +67,7 @@ class WPS extends RestoModule {
 
         // WPS server url
         $this->wpsServerUrl = isset($this->context->modules[get_class($this)]['wpsServerUrl']) ? $this->context->modules[get_class($this)]['wpsServerUrl'] : null ;
+        $this->curl_options = isset($this->context->modules[get_class($this)]['http']) ? $this->context->modules[get_class($this)]['http'] : array() ;
         
         // WPS module route
         $this->route = isset($this->context->modules[get_class($this)]['route']) ? $this->context->modules[get_class($this)]['route'] : '' ;
@@ -130,14 +133,23 @@ class WPS extends RestoModule {
          * - Execute
          */
         if (!isset($this->segments[0])) {
+            $this->context->outputFormat =  'xml';
 
             // Checks if WPS server url is configured
             if (empty($this->wpsServerUrl)){
                 throw new Exception('WPS Configuration problem', 500);
             }
 
-            $query = http_build_query($this->context->query);            
-            return $this->callWPSServer($this->wpsServerUrl . $query);
+            $wps = WPSRequest::getInstance($this->wpsServerUrl, $this->curl_options);
+
+            /* 
+             * ###################################################
+             * TODO : manage processes enabled
+             * ###################################################
+             */
+            $processes_enabled = array('all');
+            $response =  $wps->Get($this->context->query, $processes_enabled);
+            return new WPSResponse($response); 
         } else {
             switch ($this->segments[0]) {
                 /*
@@ -154,14 +166,18 @@ class WPS extends RestoModule {
                     /*
                      * Transform the proxy request received to WPS server request.
                      */
-                    $query = http_build_query($this->context->query);
-                    $path = implode('/', $this->segments) . (isset($this->context->outputFormat) ? ('.' . $this->context->outputFormat) : '');
-                    $url = $this->getWPSServerAddress() . '/' . $path . $query;
+//                     $query = http_build_query($this->context->query);
+//                     $path = implode('/', $this->segments) . (isset($this->context->outputFormat) ? ('.' . $this->context->outputFormat) : '');
+//                     $url = $this->getWPSServerAddress() . '/' . $path . $query;
 
-                    /*
-                     * Returns response.
-                     */
-                    $response = Request::execute($url);
+//                     /*
+//                      * Returns response.
+//                      */
+//                     $response = Request::execute($url);
+
+                    $processes_enabled = array('all');
+                    $response =  $wps->Get($this->context->query, $processes_enabled);
+                    return new WPSResponse($response);
                     if (!ob_start("ob_gzhandler")) ob_start();
                     echo  $response;
                     flush();

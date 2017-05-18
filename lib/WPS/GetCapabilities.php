@@ -1,16 +1,54 @@
 <?php
-
 class GetCapabilities {
-
-    public static function Get($url, $data, $processes_enabled, $options){
+    /**
+     * 
+     * @param string $url
+     * @param array $data
+     * @param array $processes_enabled
+     * @param array $options
+     */
+    public static function Get($url, $data, $processes_enabled, $options) {
         
+        $full_wps_rights = in_array('all', $processes_enabled);
         $response = Curl::Get($url, $data, $options);
+
+        if ($full_wps_rights == false) {
+            
+            libxml_use_internal_errors(true);
+            $sxe = new SimpleXMLElement($response);
+            libxml_clear_errors();
+            
+            $sxe->registerXPathNamespace('ows', 'http://www.opengis.net/ows/1.1');
+            $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/1.0.0');            
+
+            $processes = $sxe->xpath('//wps:Process');
+            $processesToRemove = array();
+
+            if ($processes && count($processes) > 0){
+                // on parcours les process de la reponse et on supprime les process non autorisés
+                foreach ($processes as $process){
+                    $identifier = $process->xpath('.//ows:Identifier');
+                    if ($identifier && count($identifier) > 0){
+                        $processesToRemove[] = $process;
+                    }                    
+                }
+                unset ($processesToRemove);
+                
+            } 
+            $response = $sxe->asXML();           
+        }
         return $response;
     }
-
-    public static function Post($url, $data, $processes_enabled, $options){
+    
+    /**
+     * 
+     * @param unknown $url
+     * @param unknown $data
+     * @param unknown $processes_enabled
+     * @param unknown $options
+     */
+    public static function Post($url, $data, $processes_enabled, $options) {
         // TODO
         return Curl::Post($url, $data, $options);
     }
-    
 }

@@ -14,16 +14,18 @@ class Curl {
      */
     public static function Get($url, $data, $options=array()){    
         $opts = array (
-                'CURLOPT_RETURNTRANSFER' => 1,
-                'CURLOPT_VERBOSE' => 0,
-                'CURLOPT_TIMEOUT' => 60,
-                'CURLOPT_RETURNTRANSFER' => 1,
-                'CURLOPT_FOLLOWLOCATION' => 1,
-                'CURLOPT_FAILONERROR' => 1
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_VERBOSE => 0,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_FOLLOWLOCATION => 1,
+                CURLOPT_FAILONERROR => 1
         );
-        $opts = array_merge($opts, $options);
-        $_url = $url . (substr($url, -1) == '?' ? '' : '?') . http_build_query($data);
 
+        foreach ($options as $key => $value){
+            $opts[$key] = $value;
+        }
+
+        $_url = $url . (substr($url, -1) == '?' ? '' : '?') . http_build_query($data);
         return self::exec($_url, $opts);
     }
 
@@ -39,16 +41,18 @@ class Curl {
         $ch = curl_init($url);
 
         $opts = array (
-                'CURLOPT_RETURNTRANSFER' => 1,
-                'CURLOPT_VERBOSE' => 0,
-                'CURLOPT_TIMEOUT' => 60,
-                'CURLOPT_RETURNTRANSFER' => 1,
-                'CURLOPT_FOLLOWLOCATION' => 1,
-                'CURLOPT_FAILONERROR' => 1,
-                'CURLOPT_POST' => 1,
-                'CURLOPT_POSTFIELDS' => $data
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_VERBOSE => 0,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_FOLLOWLOCATION => 1,
+                CURLOPT_FAILONERROR => 1,
+                CURLOPT_POST => 1,
+                CURLOPT_POSTFIELDS => $data
         );
-        $opts = array_merge($opts, $options);
+
+        foreach ($options as $key => $value){
+            $opts[$key] = $value;
+        }
 
         return self::exec($url, $curl_options);
     }
@@ -67,7 +71,7 @@ class Curl {
          * Sets request options.
         */
         foreach ($curl_options as $option => $value){
-            curl_setopt($ch, $option, $value);
+            @curl_setopt($ch, $option, $value);
         }
     
         /*

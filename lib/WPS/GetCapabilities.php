@@ -81,6 +81,7 @@ class GetCapabilities {
             }
             $response = $sxe->saveXML();
         }
+    
         return $response;
     }
     

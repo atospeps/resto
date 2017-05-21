@@ -147,7 +147,7 @@ class WPS extends RestoModule {
              * TODO : manage processes enabled
              * ###################################################
              */
-            $processes_enabled = array('all');
+            $processes_enabled = array('S2L1C_MOSAIC', 'QL_S2');
             $response =  $wps->Get($this->context->query, $processes_enabled);
             return new WPSResponse($response); 
         } else {

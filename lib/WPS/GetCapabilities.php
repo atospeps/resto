@@ -29,14 +29,15 @@ class GetCapabilities {
                 foreach ($processes as $process){
                     $identifier = $process->xpath('.//ows:Identifier');
                     if ($identifier && count($identifier) > 0){
-                        $processesToRemove[] = $process;
+                        if (!in_array($identifier[0]->__toString(), $processes_enabled)){
+                            unset($process[0]);
+                        }                        
                     }                    
-                }
-                unset ($processesToRemove);
-                
+                }                
             } 
-            $response = $sxe->asXML();           
+            $response = $sxe->saveXML();           
         }
+
         return $response;
     }
     

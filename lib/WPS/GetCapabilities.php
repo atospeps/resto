@@ -37,8 +37,8 @@ class GetCapabilities {
                 foreach($processesToRemove as $process) {
                     $process->parentNode->removeChild($process);
                 }
+                $response = $dom->saveXML();
             }
-            $response = $dom->saveXML();
         }
         return $response;
     }

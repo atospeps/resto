@@ -4,6 +4,7 @@ require 'Utils/Curl.php';
 require 'GetCapabilities.php';
 require 'DescribeProcess.php';
 require 'Execute.php';
+require 'ExceptionReport.php';
 
 /**
  *

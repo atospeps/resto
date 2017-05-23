@@ -144,10 +144,10 @@ class WPS extends RestoModule {
 
             /* 
              * ###################################################
-             * TODO : manage processes enabled
+             * TODO : Getting WPS rights - manage processes enabled
              * ###################################################
              */
-            $processes_enabled = array('S2L1C_MOSAIC', 'QL_S2');
+            $processes_enabled = array(/*'all',*/ 'echotiff', 'QL_S2');
             $response =  $wps->Get($this->context->query, $processes_enabled);
             return new WPSResponse($response); 
         } else {
@@ -468,56 +468,6 @@ class WPS extends RestoModule {
         } else {
             RestoLogUtil::httpError(404);
         }
-    }
-
-
-    private function forward($url) {
-//         $this->context->outputFormat =  'xml';
-    
-        // Call the WPS Server
-        $ch = curl_init($url);
-    
-        $options = array(
-                CURLOPT_RETURNTRANSFER 	=> true,
-                CURLOPT_VERBOSE			=> RestoLogUtil::$debug ? 1 : 0,
-                CURLOPT_TIMEOUT         => 60,
-                CURLOPT_RETURNTRANSFER  => 1,
-                CURLOPT_FOLLOWLOCATION  => 1,
-                CURLOPT_FAILONERROR     => 1
-        );
-    
-        /*
-         * Sets request options.
-         */
-        curl_setopt_array($ch, $options);
-    
-        /*
-         * Get the response
-        */
-        $response = curl_exec($ch);
-        
-        /*
-         * Checks errors.
-         */
-        if(curl_errno($ch))
-        {
-            $error = curl_error($ch);
-            /*
-             * logs error.
-            */
-            error_log(__METHOD__ . ' ' . $error, 0);
-            /*
-             * Close cURL session
-            */
-            curl_close($ch);
-            /*
-             * Throw cURL exception
-            */
-            throw new Exception($error, 500);
-        }
-    
-        curl_close($ch);
-        return $response;
     }
     
     /**

@@ -83,16 +83,12 @@ class WPS extends RestoModule {
      */
     public function run($segments, $data = array()) {
 
-        /*
-         * Only GET method on 'search' route with json outputformat is accepted
-         */
+        // Only GET method on 'search' route with json outputformat is accepted
         if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
             RestoLogUtil::httpError(404);
         }
-        
-        /*
-         * Only autenticated user.
-         */
+
+        // Only autenticated user.
         if ($this->user->profile['userid'] === -1) {
             RestoLogUtil::httpError(401);
         }
@@ -103,10 +99,8 @@ class WPS extends RestoModule {
             // We get URL segments and the http method
             $this->segments = $segments;
             $method = $this->context->method;
-            
-            /*
-             * Switch on HTTP methods
-             */
+
+            // Switch on HTTP methods
             switch ($method) {
                 case 'GET' :
                     return $this->processGET();
@@ -115,8 +109,9 @@ class WPS extends RestoModule {
                 default :
                     RestoLogUtil::httpError(404);
             }
-        } else {
-            // Right denied
+        } 
+        // Rights denied
+        else {           
             RestoLogUtil::httpError(403);
         }
     }

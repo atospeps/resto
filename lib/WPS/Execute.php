@@ -8,27 +8,27 @@ class Execute {
          */
         if (isset($data['identifier'])) {
             $identifiers = array();
-            $processes = explode(',', $data['identifier']);
-            
+            $identifier = $data['identifier'];
+
+            // Is allowed to perform all processes ?
             $full_wps_rights = in_array('all', $processes_enabled);
+
+            // ? Is not allowed to perform all processes
             if ($full_wps_rights == false){
-                foreach ($processes as $key => $identifier){
-                    if ($identifier == 'all') {
-                        unset ($processes[$key]);
-                        $processes = array_merge($processes, $processes_enabled);
-                        break;
-                    }
+                
+                // Is process not allowed ? Return ExceptionReport
+                if (!in_array($identifier, $processes_enabled)) {
+                    $response = new ExceptionReport('InvalidParameterValue', $identifier);
+                    return $response->toXML();
                 }
-                foreach ($processes as $key => $identifier) {
-                    if (in_array($identifier, $processes_enabled)) {
-                        $identifiers[] = $identifier;
-                    }
-                }
-                $data['identifier'] = implode(',', $identifiers);
             }
         }
-
-        /**
+        // ? Is missing 'identifier' parameter
+        else {
+            $response = new ExceptionReport('MissingParameterValue', 'identifier');
+            return $response->toXML();
+        }
+        /*
          * Forward
          */
         return Curl::Get($url, $data, $options);

@@ -71,12 +71,14 @@ class DescribeProcess {
                     return $response;
                 }                
             }
-        } else {
+        } 
+        // ? Is missing 'identifier' parameter
+        else {
             $response = new ExceptionReport('MissingParameterValue', 'identifier');
             return $response->toXML();
         }
 
-        /**
+        /*
          * Forward
          */
         return Curl::Get($url, $data, $options);

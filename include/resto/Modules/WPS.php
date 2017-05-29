@@ -152,7 +152,7 @@ class WPS extends RestoModule {
                  * HTTP/GET wps/users/{userid}/jobs/{jobid}
                  */
                 case 'users' :
-                    return $this->GET_users($segments);
+                    return $this->GET_users($this->segments);
                     break;
                 /*
                  * Unknown route
@@ -248,45 +248,26 @@ class WPS extends RestoModule {
      */
     private function GET_userWPSJobs($userid) {
 
-        /*
-         * Only user admin can see WPS jobs of all users.
-         */
+
+        // Only user admin can see WPS jobs of all users.
         if ($this->user->profile['userid'] !== $userid) {
             if ($this->user->profile['groupname'] !== 'admin') {
                 RestoLogUtil::httpError(403);
             }
         }
 
-        /*
-         * Checks user id pattern.
-         */
-        if (is_numeric($userid)) {
-            /*
-             * Gets user. 
-             */
-            $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
-                    'userid' => $userid 
-            )), $this->context);
-
-            if ($user->profile['userid'] === -1) {
-                RestoLogUtil::httpError(400);
-            } else {
-                $identifier = $user->profile['email'];
-                $escaped_identifier = pg_escape_string($identifier);
-                
-                $query = "SELECT * from usermanagement.jobs WHERE email='{$escaped_identifier}'";
-                $jobs = pg_query($this->dbh, $query);
-                
-                $results = array ();
-                while ($row = pg_fetch_assoc($jobs)) {
-                    $row['outputs'] = json_decode($row['outputs'], true);
-                    $results[] = $row;
-                }
-                // Updates status's jobs.
-                $results = $this->updateStatusOfJobs($results);
-                return $this->filterJobOutputs($results);
-            }
-        } else {
+        // Checks user id pattern.
+        if (is_numeric($userid)) {         
+            
+            $results = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, array('userid' => $userid));
+            // Updates status's jobs.
+//             $results = $this->updateStatusOfJobs($results);
+//             $results =  $this->filterJobOutputs($results);
+            
+            return $results;
+        } 
+        // Bad Request
+        else {
             RestoLogUtil::httpError(400);
         }
     }

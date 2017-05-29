@@ -21,6 +21,7 @@
 require 'PostgreSQL/Functions_general.php';
 require 'PostgreSQL/Functions_cart.php';
 require 'PostgreSQL/Functions_processingcart.php';
+require 'PostgreSQL/Functions_jobs.php';
 require 'PostgreSQL/Functions_collections.php';
 require 'PostgreSQL/Functions_facets.php';
 require 'PostgreSQL/Functions_features.php';
@@ -91,6 +92,16 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $processingCartFunctions = new Functions_processingcart($this);
                 return $processingCartFunctions->getProcessingCartItems($params['context'], $params['user']);
             
+            /*
+             * Get processing items
+             */
+            case parent::PROCESSING_JOBS_ITEM:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->get($params['userid'], $params['jobid']);
+            case parent::PROCESSING_JOBS_ITEMS:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->get($params['userid']);
+                
             /*
              * Get collections descriptions
              */
@@ -443,8 +454,22 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::PROCESSING_CART_ITEMS:
                 $cartFunctions = new Functions_processingcart($this);
                 return $cartFunctions->clearProcessingCart($params['userid']);
-            
-                /*
+
+            /*
+             * Remove processing item
+             */
+            case parent::PROCESSING_JOBS_ITEM:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->remove($params['userid'], $params['jobid']);
+
+            /*
+             * Remove all processing items
+             */
+            case parent::PROCESSING_JOBS_ITEMS:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->clear($params['userid']);
+                
+            /*
              * Remove collection/feature rights for user
              */
             case parent::RIGHTS:
@@ -487,6 +512,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $cartFunctions = new Functions_processingcart($this);
                 return $cartFunctions->addToProcessingCart($params['userid'], $params['item']);
             
+            /*
+             * Store processing item
+             */
+            case parent::PROCESSING_JOBS_ITEM:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->add($params['userid'], $params['data']);
+                
              /*
              * Store collection
              */
@@ -580,6 +612,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $cartFunctions = new Functions_processingcart($this);
                 return $cartFunctions->updateProcessingCart($params['userid'], $params['itemId'], $params['item']);
             
+            /*
+             * Update processing item
+             */
+            case parent::PROCESSING_JOBS_ITEM:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->update($params['userid'], $params['data']);
+                
              /*
              * Update rights
              */
@@ -731,5 +770,5 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
 
         return $dbh;
     }
-    
+
 }

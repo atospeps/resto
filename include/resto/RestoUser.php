@@ -15,7 +15,7 @@
  * under the License.
  */
 
-class RestoUser{
+class RestoUser {
     
     /*
      * User profile

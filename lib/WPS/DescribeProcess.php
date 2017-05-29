@@ -69,7 +69,7 @@ class DescribeProcess {
                         $response = $dom->saveXML();
                     }
                     return $response;
-                }                
+                }
             }
         } 
         // ? Is missing 'identifier' parameter

@@ -84,7 +84,8 @@ class WPS extends RestoModule {
     public function run($segments, $data = array()) {
 
         // Only GET method on 'search' route with json outputformat is accepted
-        if ($this->context->method !== 'GET' && $this->context->method !== 'POST') {
+        if ($this->context->method !== HttpRequestMethod::GET 
+                && $this->context->method !== HttpRequestMethod::POST) {
             RestoLogUtil::httpError(404);
         }
 
@@ -92,7 +93,7 @@ class WPS extends RestoModule {
         if ($this->user->profile['userid'] === -1) {
             RestoLogUtil::httpError(401);
         }
-        
+
         // Checks if user can execute WPS services
         if ($this->user->canExecuteWPS() === 1) {
             
@@ -102,20 +103,20 @@ class WPS extends RestoModule {
 
             // Switch on HTTP methods
             switch ($method) {
-                case 'GET' :
+                case HttpRequestMethod::GET :
                     return $this->processGET();
-                case 'POST' :
+                case HttpRequestMethod::POST :
                     return $this->processPOST($data);
                 default :
                     RestoLogUtil::httpError(404);
             }
-        } 
+        }
         // Rights denied
-        else {           
+        else {
             RestoLogUtil::httpError(403);
         }
     }
-    
+
     /**
      * Process on HTTP method GET on /jobs
      * HTTP/GET
@@ -123,37 +124,23 @@ class WPS extends RestoModule {
     private function processGET() {
         /*
          * HTTP/GET WPS 1.0 OGC services
-         * - GetCapabilities
-         * - DescribeProcess
-         * - Execute
+         * wps?request=xxx&version=1.0.0&
+         *      - GetCapabilities
+         *      - DescribeProcess
+         *      - Execute
          */
         if (!isset($this->segments[0])) {
-            $this->context->outputFormat =  'xml';
-
-            // Checks if WPS server url is configured
-            if (empty($this->wpsServerUrl)){
-                throw new Exception('WPS Configuration problem', 500);
-            }
-
-            $wps = WPSRequest::getInstance($this->wpsServerUrl, $this->curl_options);
-
-            /* 
-             * ###################################################
-             * TODO : Getting WPS rights - manage processes enabled
-             * ###################################################
-             */
-            $processes_enabled = array(/*'all',*/ 'echotiff', 'QL_S2');
-            $response =  $wps->Get($this->context->query, $processes_enabled);
-            return new WPSResponse($response); 
-        } else {
+            // HTTP/GET wps?
+            return $this->GET_wps($this->segments);
+        } 
+        else {
             switch ($this->segments[0]) {
                 /*
                  * HTTP/GET wps/users/{userid}/jobs
                  * HTTP/GET wps/users/{userid}/jobs/{jobid}
                  */
-                case 'users' :
-                    return $this->GET_users($segments);
-                    break;
+                case 'users':
+                    return $this->GET_users($this->segments);
                 /*
                  * Unknown route
                  */
@@ -183,6 +170,53 @@ class WPS extends RestoModule {
     }
 
     /**
+     * HTTP/GET wps?
+     * @param unknown $segments
+     * @throws Exception
+     * @return WPS_Response
+     */
+    private function GET_wps($segments) {
+
+        $this->context->outputFormat =  'xml';
+
+        // Checks if WPS server url is configured
+        if (empty($this->wpsServerUrl)) {
+            throw new Exception('WPS Configuration problem', 500);
+        }
+        
+        $wps = WPSRequest::getInstance($this->wpsServerUrl, $this->curl_options);
+        
+        /*
+         * ###################################################
+         * 
+         * TODO : Getting WPS rights - manage processes enabled
+         * 
+         * ###################################################
+        */
+        $processes_enabled = array(/*'all',*/ 'echotiff', 'noinputsprocess', 'QL_S2');
+        $response  = $wps->Get($this->context->query, $processes_enabled);
+
+        // save job status into database
+        if ($response->isExecuteResponse()) {
+            $execute_response = new WPS_ExecuteResponse($response->toXML());
+
+            $data = array_merge(
+                    $execute_response->toArray(),
+                    array(
+                            'querytime' => date("Y-m-d H:i:s"),
+                            'method'    => HttpRequestMethod::GET,
+                            'data'      => $this->context->query
+                    ));
+            $this->context->dbDriver->store(RestoDatabaseDriver::PROCESSING_JOBS_ITEM, 
+                    array(
+                            'userid' => $this->user->profile['userid'],
+                            'data' => $data
+                    ));
+        }
+        return $response;
+    }
+    
+    /**
      *
      * Process HTTP GET request on users
      *
@@ -193,11 +227,14 @@ class WPS extends RestoModule {
         /*
          * users/{userid}/jobs
          */
-        if (isset($segments[1]) && isset($segments[2]) && $segments[2] === 'jobs') {
+        if (isset($segments[1]) 
+                && isset($segments[2]) 
+                && $segments[2] === 'jobs') {
+
             $jobs = $this->GET_userWPSJobs($segments[1]);
-            return RestoLogUtil::success("WPS jobs instance for user {$this->user->profile['userid']}", array (
-                    data => $jobs
-            ));
+            return RestoLogUtil::success(   
+                    'WPS jobs instance for user ' . $this->user->profile['userid'], 
+                    array ( data => $jobs ));
         }
         return RestoLogUtil::httpError(404);
     }
@@ -212,7 +249,7 @@ class WPS extends RestoModule {
         if (!isset($this->segments[0])) {
             
             $query = http_build_query($this->context->query);
-            return $this->callWPSServer($this->wpsServerUrl . $query, $data);
+            // TODO return $this->callWPSServer($this->wpsServerUrl . $query, $data);
         }
         // else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
         
@@ -248,45 +285,25 @@ class WPS extends RestoModule {
      */
     private function GET_userWPSJobs($userid) {
 
-        /*
-         * Only user admin can see WPS jobs of all users.
-         */
+        // Only user admin can see WPS jobs of all users.
         if ($this->user->profile['userid'] !== $userid) {
             if ($this->user->profile['groupname'] !== 'admin') {
                 RestoLogUtil::httpError(403);
             }
         }
 
-        /*
-         * Checks user id pattern.
-         */
+        // Checks user id pattern.
         if (is_numeric($userid)) {
-            /*
-             * Gets user. 
-             */
-            $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array (
-                    'userid' => $userid 
-            )), $this->context);
+            
+            $results = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, array('userid' => $userid));
+            // Updates status's jobs.
+//             $results = $this->updateStatusOfJobs($results);
+//             $results =  $this->filterJobOutputs($results);
 
-            if ($user->profile['userid'] === -1) {
-                RestoLogUtil::httpError(400);
-            } else {
-                $identifier = $user->profile['email'];
-                $escaped_identifier = pg_escape_string($identifier);
-                
-                $query = "SELECT * from usermanagement.jobs WHERE email='{$escaped_identifier}'";
-                $jobs = pg_query($this->dbh, $query);
-                
-                $results = array ();
-                while ($row = pg_fetch_assoc($jobs)) {
-                    $row['outputs'] = json_decode($row['outputs'], true);
-                    $results[] = $row;
-                }
-                // Updates status's jobs.
-                $results = $this->updateStatusOfJobs($results);
-                return $this->filterJobOutputs($results);
-            }
-        } else {
+            return $results;
+        } 
+        // Bad Request
+        else {
             RestoLogUtil::httpError(400);
         }
     }
@@ -345,14 +362,15 @@ class WPS extends RestoModule {
          */
         if (!empty($statusLocation)) {
             try {
-                $response = $this->callWPSServer($statusLocation, null, false);
+                /* TODO */
+//                 $response = $this->callWPSServer($statusLocation, null, false);
 
-                // Parses response in order to refresh status.            
-                $wpsExecuteResponse = new ExecuteResponse($response->toXML());
-                $status = $wpsExecuteResponse->getStatus();
-                $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
-                $outputs = $wpsExecuteResponse->getOutputs();
-                $statusMessage = $wpsExecuteResponse->getStatusMessage();
+//                 // Parses response in order to refresh status.            
+//                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
+//                 $status = $wpsExecuteResponse->getStatus();
+//                 $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
+//                 $outputs = $wpsExecuteResponse->getOutputs();
+//                 $statusMessage = $wpsExecuteResponse->getStatusMessage();
             } catch (ExecuteResponseException $e) {
             } catch (Exception $e){
                 error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
@@ -474,98 +492,6 @@ class WPS extends RestoModule {
 
         return ($wps_host . ':' . $wps_port);
     }
-    
-    
-    /**
-     * We call the WPS server
-     */
-    private function callWPSServer($url, $data = null, $saveExecuteResponse = true) {
-        $this->context->outputFormat =  'xml';
-        
-        // Call the WPS Server
-        $ch = curl_init($url);
-        
-        $options = array(
-                CURLOPT_RETURNTRANSFER 	=> true,
-                CURLOPT_VERBOSE			=> RestoLogUtil::$debug ? 1 : 0,
-                CURLOPT_TIMEOUT         => 60,
-                CURLOPT_RETURNTRANSFER  => 1,
-                CURLOPT_FOLLOWLOCATION  => 1,
-                CURLOPT_FAILONERROR     => 1
-        );
-
-        if ($this->context->method === 'POST'){
-            /* Form data string */
-            $options[CURLOPT_POST] = 1;
-            $options[CURLOPT_POSTFIELDS] = $data[0];
-        }
-        
-        /*
-         * Sets request options.
-         */
-        curl_setopt_array($ch, $options);
-
-        /*
-         * Get the response
-         */
-        $response = curl_exec($ch);
-        
-        $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
-        if (!empty($wps_host)){
-           $response = str_replace('localhost', $wps_host, $response); 
-        }
-        
-        /*
-         * Checks errors.
-         */
-        if(curl_errno($ch))
-        {
-            $error = curl_error($ch);
-            /*
-             * logs error.
-            */
-            error_log(__METHOD__ . ' ' . $error, 0);
-            /*
-             * Close cURL session
-            */
-            curl_close($ch);
-            /*
-             * Throw cURL exception
-            */
-            throw new Exception($error, 500);
-        }
-
-        curl_close($ch);
-
-        //return $response;
-        $xml = new WPSResponse($this->updateWPSURLs($response));
-
-        /*
-         * Saves user's job into database (Only valid WPS processes).
-         * Parses responses in order to check WPS processing service=WPS&request=execute.
-         */
-        if ($saveExecuteResponse == true){
-            try {
-                $wpsExecuteResponse = new ExecuteResponse($response);
-                $data = array(
-                        'query_time' => date("Y-m-d H:i:s"),
-                        'identifier' => $wpsExecuteResponse->getIdentifier(),
-                        'status' => $wpsExecuteResponse->getStatus(),
-                        'statusLocation' => $wpsExecuteResponse->getStatusLocation(),
-                        'statusMessage' => $wpsExecuteResponse->getStatusMessage(),
-                        'percentcompleted' => $wpsExecuteResponse->getPercentCompleted(),
-                        'outputs' => $wpsExecuteResponse->getOutputs()
-                );                
-                $this->createJob($data);
-            } catch (ExecuteResponseException $e) {
-            }
-        }       
-
-        /*
-         * Returns WPS response.
-         */
-        return $xml;        
-    }
 
     /**
      * 
@@ -587,280 +513,19 @@ class WPS extends RestoModule {
     }
 }
 
-/**
- * 
- * WPS Response
- */
-class WPSResponse {
-
-    // xml as string
-    protected $xml;
-
-    /**
-     * 
-     * @param unknown $pXml
-     */
-    public function __construct($pXml){
-        $this->xml = $pXml;
-    }
-
-    /**
-     * 
-     */
-    public function toXML(){
-        return $this->xml;
-    }
-}
-/**
- * 
- * WPS:ExecuteResponse
- *
- */
-class ExecuteResponse extends WPSResponse {
-
-    /*
-     * Process identifier.
-     */
-    private $identifier;
-    
-    /*
-     * WPS Service instance. 
-     */
-    private $serviceInstance;
-
-    /*
-     * Status.
-     */
-    private $status;
-    private $statusMessage;
-    private $statusTime;
-    private $percentCompleted = 0;
-
-    /*
-     * To improve this WPS parser, create WPSStatus, WPSProcess, .. class...
-     * class WPSStatus {
-     *     private $status;
-     *     private $statusMessage;
-     *     private $statusTime;
-     *     private $percentCompleted;
-     * }
-     */
-    
-    /*
-     * Status location.
-     */
-    private $statusLocation;
-    
-    /*
-     * Output definitions.
-     */
-    private $outputDefinitions;
-    
-    /*
-     * Process outputs.
-     */
-    private $processOutputs;
-    
-    /*
-     * WPS status events.
-     */
-    public static $statusEvents = array (
-            'ProcessAccepted',
-            'ProcessSucceeded',
-            'ProcessFailed',
-            'ProcessStarted',
-            'ProcessPaused' 
-    );
-
-    /**
-     * 
-     * @param unknown $pXml
-     */
-    function __construct($pXml){
-        parent::__construct($pXml);
-        libxml_use_internal_errors(true);
-        $sxe = new SimpleXMLElement($this->xml);
-        libxml_clear_errors();
-        
-        $sxe->registerXPathNamespace('ows', 'http://www.opengis.net/ows/1.1');
-        $sxe->registerXPathNamespace('xlink', 'http://www.w3.org/1999/xlink');
-        $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/');
-        $sxe->registerXPathNamespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance');
-        
-        $result = $sxe->xpath('//wps:ExecuteResponse');
-        if (!$result && count($result) == 0) {
-            throw new ExecuteResponseException('wps:ExecuteResponse::__contruct : Invalid xml');
-        }
-        $this->parseExecuteResponse($result[0]);
-    }
-    /**
-     * 
-     * @param SimpleXMLElement $wps_ExecuteResponse
-     */
-    private function parseExecuteResponse(SimpleXMLElement $wps_ExecuteResponse){
-        $attributes = $wps_ExecuteResponse->attributes();
-        $this->statusLocation = isset($attributes['statusLocation']) ? $attributes['statusLocation']->__toString() : null;
-        $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
-        
-        $status = $wps_ExecuteResponse->xpath('.//wps:Status');
-        if ($status && count($status) > 0){
-            $this->parseStatus($status[0]);
-        }
-        
-        $process = $wps_ExecuteResponse->xpath('.//wps:Process');
-        if ($process && count($process) > 0){
-            $this->parseProcess($process[0]);
-        }
-
-        $outputs = $wps_ExecuteResponse->xpath('.//wps:ProcessOutputs');
-        if ($outputs && count($outputs) > 0){
-            $this->parseOutputs($outputs[0]);
-        }
-    }
-
-    /**
-     * Parse WPS ProcessFailed.
-     * @param SimpleXMLElement $wps_processFailed
-     */
-    private function parseProcessFailed(SimpleXMLElement $wps_processFailed){
-        $report = $wps_processFailed->xpath('.//wps:ExceptionReport');
-        if ($report && count($report)>0){
-            $exception = $report[0]->xpath('.//ows:Exception');
-            if ($exception && count($exception)>0){
-                $exceptionText = $exception[0]->xpath('.//ows:ExceptionText');
-                if ($exceptionText && count($exceptionText)>0){
-                    $this->statusMessage = $exceptionText[0]->__toString();
-                }
-            }
-        }
-    }
-
-    /**
-     * Parses WPS process.
-     * @param SimpleXMLElement $wps_process
-     */
-    private function parseProcess(SimpleXMLElement $wps_process){
-        
-        $identifier = $wps_process->xpath('.//ows:Identifier');
-        if ($identifier && count($identifier)>0){
-            $this->identifier = $identifier[0]->__toString();
-        }
-    }
-
-    /**
-     * Parses status.
-     * @param SimpleXMLElement $wps_Status
-     */
-    private function parseStatus(SimpleXMLElement $wps_Status) {
-
-        foreach (self::$statusEvents as $statusEvent) {
-            $status = $wps_Status->xpath(".//wps:$statusEvent");
-            if ($status && count($status) > 0){
-                $this->status = $statusEvent;
-                
-                $attributes = $status[0]->attributes();
-                $this->percentCompleted =  isset($attributes['percentCompleted']) ? intval($attributes['percentCompleted']->__toString(), 0) : 0;
-                break;
-            }
-        }
-        // Gets status message.
-        if ($this->status === 'ProcessFailed'){
-            $this->parseProcessFailed($status[0]);
-        } else {
-            $this->statusMessage = $status[0]->__toString();
-        }
-
-        if ($this->status === 'ProcessSucceeded'){
-            $this->percentCompleted = 100;
-        }
-    }
-
-    /**
-     * Parses outputs.
-     * @param SimpleXMLElement $wps_Outputs
-     */
-    private function parseOutputs(SimpleXMLElement $wps_Outputs){
-        $this->processOutputs = array();
-        
-        $outputs = $wps_Outputs->xpath('.//wps:Output');
-        if ($outputs && count($outputs)>0){
-            foreach ($outputs as $key => $output){
-                $this->processOutputs[] = $this->parseOutput($output);
-            }
-        }
-    }
-
-    /**
-     * Parses Output.
-     * @param SimpleXMLElement $wps_Output
-     */
-    private function parseOutput(SimpleXMLElement $wps_Output){
-        $output = array();        
-
-        $identifier = $wps_Output->xpath('.//ows:Identifier');        
-        if ($identifier && count($identifier)>0){
-            $output['identifier'] = $identifier[0]->__toString();
-        }
-
-        $title = $wps_Output->xpath('.//ows:Title');
-        if ($title && count($title)>0){
-            $output['title'] = $title[0]->__toString();
-        }
-        
-        $data = $wps_Output->xpath('.//wps:Data');
-        if ($data && count($data)>0){
-            $literal = $data[0]->xpath('.//wps:LiteralData');
-            if ($literal && count($literal)>0){
-                $attributes = $literal[0]->attributes();
-                $output['type'] = $attributes['dataType']->__toString();
-                $output['value'] = $literal[0]->__toString();
-            }
-        }
-        return $output;
-    }
-
-    /**
-     * Returns WPS outputs.
-     */
-    public function getOutputs(){
-        return $this->processOutputs;
-    }
-
-    /**
-     * Returns WPS process identifier.
-     */
-    public function getIdentifier(){
-        return $this->identifier;
-    }
-
-    /**
-     * If ExecuteResponse, returns status if present, otherwise null.
-     */
-    public function getStatus(){    
-        return $this->status;
-    }
-
-    /**
-     * Returns status message.
-     */
-    public function getStatusMessage(){
-        return $this->statusMessage;
-    }
-
-    /**
-     * Returns percent completed (ProcessSucceded)
-     * @return number percent completed
-     */
-    public function getPercentCompleted(){
-        return $this->percentCompleted;
-    }
-
-    /**
-     * If ExecuteResponse, returns status if present, otherwise null.
-     */
-    public function getStatusLocation(){
-        return $this->statusLocation;
-    }
-}
 
 class ExecuteResponseException extends Exception { }
+
+/*
+ * HTTP request method type
+ */
+abstract class HttpRequestMethod {
+    const GET       = 'GET';
+    const POST      = 'POST';
+    const PUT       = 'PUT';
+    const DELETE    = 'DELETE';
+    const OPTIONS   = 'OPTIONS';
+    const HEAD      = 'HEAD';
+    const TRACE     = 'TRACE';
+    const CONNECT   = 'CONNECT';
+}

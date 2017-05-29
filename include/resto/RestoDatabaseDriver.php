@@ -68,6 +68,8 @@ abstract class RestoDatabaseDriver {
     const SIMPLIFY_GEOMETRY = 43;
     const PROCESSING_CART_ITEM = 44;
     const PROCESSING_CART_ITEMS = 45;
+    const PROCESSING_JOBS_ITEM = 46;
+    const PROCESSING_JOBS_ITEMS = 47;
     
     /*
      * Results per page
@@ -161,4 +163,14 @@ abstract class RestoDatabaseDriver {
      * Close database handler
      */
     abstract public function closeDbh();
+
+    /**
+     * Quotes a string for use in a query.
+     * Places quotes around the input string (if required) and escapes special characters
+     *
+     * @param string $string
+     */
+    public function quote($input, $default=null){
+        return isset($input) ? '\'' . pg_escape_string($input) . '\'' : $default;
+    }
 }

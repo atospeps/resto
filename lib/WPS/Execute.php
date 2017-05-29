@@ -2,6 +2,13 @@
 
 class Execute {
 
+    /**
+     * 
+     * @param unknown $url
+     * @param unknown $data
+     * @param unknown $processes_enabled
+     * @param unknown $options
+     */
     public static function Get($url, $data, $processes_enabled, $options){
         /*
          * Filter
@@ -34,6 +41,13 @@ class Execute {
         return Curl::Get($url, $data, $options);
     }
     
+    /**
+     * 
+     * @param unknown $url
+     * @param unknown $data
+     * @param unknown $processes_enabled
+     * @param unknown $options
+     */
     public static function Post($url, $data, $processes_enabled, $options){
         return Curl::Post($url, $data, $options);
     }

@@ -251,4 +251,19 @@ class WPS_ExecuteResponse extends WPS_Response {
     public function getStatusLocation(){
         return $this->statusLocation;
     }
+    
+    /**
+     * 
+     * @return multitype:string NULL
+     */
+    public function toArray(){
+        return array(
+                'identifier' => $this->identifier,
+                'status' => $this->status,
+                'statusLocation' => $this->statusLocation,
+                'statusMessage' => $this->statusMessage,
+                'percentcompleted' => $this->percentCompleted,
+                'outputs' => $this->processOutputs
+        );
+    }
 }

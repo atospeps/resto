@@ -4,6 +4,7 @@ require 'Utils/Curl.php';
 require 'GetCapabilities.php';
 require 'DescribeProcess.php';
 require 'Execute.php';
+require 'ExceptionReport.php';
 
 /**
  *
@@ -14,11 +15,12 @@ require 'Execute.php';
 class WPSRequest {
     
     /*
-     * WPS Services constants
+     * WPS Requests constant
      */
     const GET_CAPABILITIES = 'getcapabilities';
     const DESCRIBE_PROCESS = 'describeprocess';
     const EXECUTE = 'execute';
+    const WSDL = 'wsdl';
 
     public $url = null;
     public $options = array();
@@ -50,21 +52,44 @@ class WPSRequest {
      * @param unknown $processes_enabled
      */
     public function Get($data, $processes_enabled = array()) {
-        $request = isset($data['request']) ? $data['request'] : null;
 
+        $request = isset($data['request']) ? $data['request'] : null;
+        $response = null;
         /*
          * Perfom request
          */
         switch (strtolower($request)) {
+            /*
+             * WPS GetCapabilities
+             * wps?request=GetCapabilities&xxx
+             */ 
             case self::GET_CAPABILITIES :
-                return GetCapabilities::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = GetCapabilities::Get($this->url, $data, $processes_enabled, $this->options);
+                break;
+            /*
+             * WPS DescribeProcess
+             * wps?request=DescribeProcess&xxx
+             */
             case self::DESCRIBE_PROCESS :
-                return DescribeProcess::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = DescribeProcess::Get($this->url, $data, $processes_enabled, $this->options);
+                break;
+            /*
+             * WPS Execute
+             * wps?request=Execute&xxx
+             */
             case self::EXECUTE :
-                return Execute::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = Execute::Get($this->url, $data, $processes_enabled, $this->options);
+                break;
+            // ? Is WSDL, missing or invalid parameter 'request'
             default :
-                return Curl::Get($this->url, $data, $this->options);
+                if ((count($data) > 0) && self::WSDL == strtolower(key($data))) {
+                    $response = WSDL::Get($this->url, $data, $processes_enabled, $this->options);
+                    break;
+                }
+                $response = Curl::Get($this->url, $data, $this->options);
+                break;
         }
+        return new WPS_Response($response);
     }
     
     /**

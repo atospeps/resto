@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	statusmessage text,
   	percentcompleted integer DEFAULT 0,
   	outputs text,
+    acknowledge boolean DEFAULT false,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
 );
 

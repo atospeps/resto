@@ -125,8 +125,10 @@ class RestoModel_sentinel2 extends RestoModel {
     private function parse($xml){
     	
         $dom = new DOMDocument();
-        $dom->loadXML(rawurldecode($xml));
-
+        if (!@$dom->loadXML(rawurldecode($xml))) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
+        }
+        
     	/*
     	 * Retreives orbit direction
     	 */

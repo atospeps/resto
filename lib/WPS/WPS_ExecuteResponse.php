@@ -48,7 +48,7 @@ class WPS_ExecuteResponse extends WPS_Response {
     /*
      * Process outputs.
      */
-    private $processOutputs;
+    private $processOutputs = array();
 
     /*
      * WPS status events.
@@ -89,7 +89,7 @@ class WPS_ExecuteResponse extends WPS_Response {
      */
     private function parseExecuteResponse(SimpleXMLElement $wps_ExecuteResponse){
         $attributes = $wps_ExecuteResponse->attributes();
-        $this->statusLocation = isset($attributes['statusLocation']) ? $attributes['statusLocation']->__toString() : null;
+        $this->statusLocation = isset($attributes['statusLocation']) ? basename($attributes['statusLocation']->__toString()) : null;
         $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
 
         $status = $wps_ExecuteResponse->xpath('.//wps:Status');

@@ -70,6 +70,7 @@ abstract class RestoDatabaseDriver {
     const PROCESSING_CART_ITEMS = 45;
     const PROCESSING_JOBS_ITEM = 46;
     const PROCESSING_JOBS_ITEMS = 47;
+    const PROCESSING_ENABLED_PROCESSES = 48;
     
     /*
      * Results per page

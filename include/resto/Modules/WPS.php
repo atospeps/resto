@@ -103,10 +103,19 @@ class WPS extends RestoModule {
 
             // Switch on HTTP methods
             switch ($method) {
+                /*
+                 * HTTP/GET
+                 */
                 case HttpRequestMethod::GET :
                     return $this->processGET();
+                /*
+                 * HTTP/POST 
+                 */
                 case HttpRequestMethod::POST :
                     return $this->processPOST($data);
+                /*
+                 * 
+                 */
                 default :
                     RestoLogUtil::httpError(404);
             }
@@ -130,10 +139,10 @@ class WPS extends RestoModule {
          *      - Execute
          */
         if (!isset($this->segments[0])) {
-            // HTTP/GET wps?
             return $this->GET_wps($this->segments);
         } 
-        else {
+        else 
+        {
             switch ($this->segments[0]) {
                 /*
                  * HTTP/GET wps/users/{userid}/jobs
@@ -142,29 +151,15 @@ class WPS extends RestoModule {
                 case 'users':
                     return $this->GET_users($this->segments);
                 /*
+                 * 
+                 */
+                case 'outputs':
+                    return $this->GET_wps_outputs($this->segments);
+                /*
                  * Unknown route
                  */
-                default :
-                    /*
-                     * Transform the proxy request received to WPS server request.
-                     */
-//                     $query = http_build_query($this->context->query);
-//                     $path = implode('/', $this->segments) . (isset($this->context->outputFormat) ? ('.' . $this->context->outputFormat) : '');
-//                     $url = $this->getWPSServerAddress() . '/' . $path . $query;
-
-//                     /*
-//                      * Returns response.
-//                      */
-//                     $response = Request::execute($url);
-
-                    $processes_enabled = array('all');
-                    $response =  $wps->Get($this->context->query, $processes_enabled);
-                    return new WPSResponse($response);
-                    if (!ob_start("ob_gzhandler")) ob_start();
-                    echo  $response;
-                    flush();
-
-                    return null;
+                default:
+                    return RestoLogUtil::httpError(404);
             }
         }
     }
@@ -185,18 +180,13 @@ class WPS extends RestoModule {
         }
         
         $wps = WPSRequest::getInstance($this->wpsServerUrl, $this->curl_options);
-        
-        /*
-         * ###################################################
-         * 
-         * TODO : Getting WPS rights - manage processes enabled
-         * 
-         * ###################################################
-        */
-        $processes_enabled = array(/*'all',*/ 'echotiff', 'noinputsprocess', 'QL_S2');
-        $response  = $wps->Get($this->context->query, $processes_enabled);
 
-        // save job status into database
+        // Gets wps rights
+        $processes_enabled = $this->getEnabledProcesses($this->user->profile['groupname']);
+        $response  = $wps->Get($this->context->query, $processes_enabled);
+        $this->updateWpsResponseUrls($response);
+        
+        // saves job status into database
         if ($response->isExecuteResponse()) {
             $execute_response = new WPS_ExecuteResponse($response->toXML());
 
@@ -207,13 +197,105 @@ class WPS extends RestoModule {
                             'method'    => HttpRequestMethod::GET,
                             'data'      => $this->context->query
                     ));
-            $this->context->dbDriver->store(RestoDatabaseDriver::PROCESSING_JOBS_ITEM, 
-                    array(
-                            'userid' => $this->user->profile['userid'],
-                            'data' => $data
-                    ));
+            
+            // Store job into database
+            $this->storeJob($this->user->profile['userid'], $data);
         }
         return $response;
+    }
+    
+    private function GET_wps_outputs($segments) {
+    
+        if (!isset($segments[1]) || isset($segments[3])){
+            return RestoLogUtil::httpError(404);
+        }
+        
+        // ? Is statusLocation
+        $job = $this->context->dbDriver->get(
+                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
+                array(
+                        'userid' => $this->user->profile['userid'],
+                        'filters' => array(
+                                'statuslocation=' . $this->context->dbDriver->quote($segments[1] . (isset($this->context->outputFormat) ? '.' . $this->context->outputFormat : ''))
+                                )
+                        )
+                );
+
+        // ? statusLocation exists 
+        if (count($job) > 0) {
+            $this->context->outputFormat =  'xml';
+            $response = new WPS_Response(Curl::Get('http://localhost:4444/wps/outputs/' . $job[0]['statuslocation']));
+            $this->updateWpsResponseUrls($response);
+            return $response;
+        }
+        
+        error_log(print_r($job, true), 0);
+
+        
+
+        //if output result
+        // TODO : wpsfiles table
+        /*
+         * - identifier
+         * - type
+         * - value
+         * - userid
+         * 
+         */ 
+        
+
+        
+        // HTTP 404
+        
+        
+        
+        
+    
+//         // Checks if WPS server url is configured
+//         if (empty($this->wpsServerUrl)) {
+//             throw new Exception('WPS Configuration problem', 500);
+//         }
+//            $this->streamExternalUrl('http://localhost:4444/wps/outputs/' . $segments[1] . '.' . $this->context->outputFormat);
+           return RestoLogUtil::httpError(404);
+//         $response = Curl::Get('http://localhost:4444/wps/outputs/' . $segments[1], $this->curl_options);
+//            return new WPS_Response($response);
+    
+//         // Gets wps rights
+//         $processes_enabled = $this->getEnabledProcesses($this->user->profile['groupname']);
+//         $response  = $wps->Get($this->context->query, $processes_enabled);
+//         $this->updateWpsResponseUrls($response);
+    
+//         // saves job status into database
+//         if ($response->isExecuteResponse()) {
+//             $execute_response = new WPS_ExecuteResponse($response->toXML());
+    
+//             $data = array_merge(
+//                     $execute_response->toArray(),
+//                     array(
+//                             'querytime' => date("Y-m-d H:i:s"),
+//                             'method'    => HttpRequestMethod::GET,
+//                             'data'      => $this->context->query
+//                     ));
+    
+//             // Store job into database
+//             $this->storeJob($this->user->profile['userid'], $data);
+//         }
+//         return $response;
+    }
+
+    private function streamExternalUrl($url, $type=null) {
+        $handle = fopen($url, "rb");
+        if ($handle === false) {
+            RestoLogUtil::httpError(500, 'Resource cannot be downloaded');
+        }
+        header('HTTP/1.1 200 OK');
+        header('Content-Disposition: attachment; filename="' . basename($url) . '"');
+        header('Content-Type: ' . isset($type) ? $type : 'application/unknown');
+        while (!feof($handle) && (connection_status() === CONNECTION_NORMAL)) {
+            echo fread($handle, 10 * 1024 * 1024);
+            flush();
+        }
+        return fclose($handle);
     }
     
     /**
@@ -232,9 +314,9 @@ class WPS extends RestoModule {
                 && $segments[2] === 'jobs') {
 
             $jobs = $this->GET_userWPSJobs($segments[1]);
-            return RestoLogUtil::success(   
+            return RestoLogUtil::success(
                     'WPS jobs instance for user ' . $this->user->profile['userid'], 
-                    array ( data => $jobs ));
+                    array ( 'data' => $jobs ));
         }
         return RestoLogUtil::httpError(404);
     }
@@ -292,17 +374,20 @@ class WPS extends RestoModule {
             }
         }
 
-        // Checks user id pattern.
+        // User identifier pattern is valid ?
         if (is_numeric($userid)) {
-            
-            $results = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, array('userid' => $userid));
-            // Updates status's jobs.
+
+            $results = $this->context->dbDriver->get(
+                    RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
+                    array('userid' => $userid));
+
+            // TODO Updates status's jobs.
 //             $results = $this->updateStatusOfJobs($results);
 //             $results =  $this->filterJobOutputs($results);
 
             return $results;
         } 
-        // Bad Request
+        // ? Is Bad Request
         else {
             RestoLogUtil::httpError(400);
         }
@@ -314,7 +399,7 @@ class WPS extends RestoModule {
      * @param unknown $jobs
      * @return unknown
      */
-    private function filterJobOutputs($jobs){
+    private function filterJobOutputs($jobs) {
         
         foreach ($jobs as &$job){
             if (!empty($job['outputs'])){
@@ -347,37 +432,122 @@ class WPS extends RestoModule {
      */
     private function getStatusOfJob($job){
 
-        $statusLocation = isset($job['statuslocation']) ? $job['statuslocation'] : null;
-        $status = isset($job['status']) ? $job['status'] : null;
-        $percentCompleted = isset($job['percentcompleted']) ? $job['percentcompleted'] : 0;
-        $outputs = isset($job['outputs']) ? $job['outputs'] : null;
-        $statusMessage = isset($job['statusmessage']) ? $job['statusmessage'] : null;
+        $statusLocation     = ArrayUtil.get($job, 'statuslocation', null);
+        $status             = ArrayUtil.get($job, 'status', null);
+        $percentCompleted   = ArrayUtil.get($job, 'percentcompleted', 0);
+        $outputs            = ArrayUtil.get($job, 'outputs', array());
+        $statusMessage      = ArrayUtil.get($job, 'statusmessage',null);
 
         if ($status === 'ProcessSucceeded' || $status === 'ProcessFailed'){
-            return array($status, 100, $outputs, $statusMessage);
-        }
-
-        /*
-         * Gets current WPS process status.
-         */
-        if (!empty($statusLocation)) {
-            try {
-                /* TODO */
-//                 $response = $this->callWPSServer($statusLocation, null, false);
-
-//                 // Parses response in order to refresh status.            
-//                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
-//                 $status = $wpsExecuteResponse->getStatus();
-//                 $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
-//                 $outputs = $wpsExecuteResponse->getOutputs();
-//                 $statusMessage = $wpsExecuteResponse->getStatusMessage();
-            } catch (ExecuteResponseException $e) {
-            } catch (Exception $e){
-                error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
+            $percentCompleted = 100;
+        } 
+        // gets status from pywps server
+        else {
+            if (!empty($statusLocation)) {
+                    try {
+                        /* TODO */
+                        //                 $response = $this->callWPSServer($statusLocation, null, false);
+                
+                        //                 // Parses response in order to refresh status.
+                        //                 $wpsExecuteResponse = new ExecuteResponse($response->toXML());
+                        //                 $status = $wpsExecuteResponse->getStatus();
+                        //                 $percentCompleted = $wpsExecuteResponse->getPercentCompleted();
+                        //                 $outputs = $wpsExecuteResponse->getOutputs();
+                        //                 $statusMessage = $wpsExecuteResponse->getStatusMessage();
+                    } catch (ExecuteResponseException $e) {
+                    } catch (Exception $e){
+                        error_log("WPS:getStatusOfJob:{$job['gid']} :" . $e->getMessage(), 0);
+                    }
             }
         }
-        return array($status, $percentCompleted, $outputs, $statusMessage);
+        return array(
+                'status' => $status, 
+                'percentCompleted' => $percentCompleted,
+                'outputs' => $outputs,
+                'statusMessage' => $statusMessage);
     }
+    
+    private function updateWpsResponseUrls(WPS_Response $response){
+        // replace pywps outputs url
+        $response->replace(
+                'http://localhost:4444/wps/outputs/',
+                'http://192.168.56.102:4444/resto/wps/outputs/');
+        // replace pywps server address
+        $response->replace(
+                'http://localhost:4444/cgi-bin/pywps.cgi',
+                'http://192.168.56.102:4444/resto/wps');
+        
+    }
+
+    /**
+     * ************************************************************************
+     * PROCESSING - RIGHTS
+     * ************************************************************************
+     */
+    
+    /**
+     * Returns wps rights
+     * @param unknown $groupname
+     * @return multitype:string
+     */
+    private function getEnabledProcesses($groupname) {
+        return array(/*'all',*/ 'echotiff', 'noinputsprocess', 'assyncprocess', 'QL_S2');
+    }
+    
+    /**
+     * 
+     * @param unknown $groupname
+     */
+    private function getProactiveAccount($groupname){
+        return null;
+    }
+    
+    /** 
+     * ************************************************************************
+     * PROCESSING - JOBS FUNCTIONS
+     * ************************************************************************
+     */
+    
+    /**
+     * 
+     * @param unknown $userid
+     * @param unknown $data
+     */
+    private function storeJob($userid, $data){
+        return $this->context->dbDriver->store(RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
+                array(
+                        'userid' => $userid,
+                        'data' => $data
+                ));
+    }
+    
+    /**
+     * We remove a job
+     *
+     * @throws Exception
+     */
+    private function removeJob($userid, $data) {
+        return $this->context->dbDriver->remove(RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
+                array(
+                        'userid' => $userid,
+                        'data' => $data
+                ));
+    }
+    
+    /**
+     * We edit a job
+     *
+     * @throws Exception
+     */
+    private function updateJob($userid, $data) {
+        return $this->context->dbDriver->put(RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
+                array(
+                        'userid' => $userid,
+                        'data' => $data
+                ));
+    }
+    
+    
     
     /**
      * Updates status of jobs.
@@ -393,111 +563,14 @@ class WPS extends RestoModule {
         }
         return $jobs;
     }
+
+    
    
-    /**
-     * We create a job
-     *
-     * @throws Exception
-     */
-    private function createJob($data) {
-        try {
-            // Inserting the job into database
-            $querytime = !empty($data['query_time']) ? '\'' . pg_escape_string($data['query_time']) . '\'' : date("Y-m-d H:i:s");
-            $email = '\'' . pg_escape_string($this->user->profile['email']) . '\'';
-            $identifier = isset($data['identifier']) ? '\'' . pg_escape_string($data['identifier']) . '\'' : 'NULL';
-            $status = isset($data['status']) ? '\'' . pg_escape_string($data['status']) . '\'' : 'NULL';
-            $statusMessage = isset($data['statusMessage']) ? '\'' . pg_escape_string($data['statusMessage']) . '\'' : 'NULL';
-            $statusLocation = isset($data['statusLocation']) ? '\'' . $data['statusLocation'] . '\'' : 'NULL';
-            $percentCompleted = isset($data['percentcompleted']) ? '\'' . $data['percentcompleted'] . '\'' : 0;
-            $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
-            
-            $values = array (
-                    $email,
-                    $identifier,
-                    $querytime,
-                    $status,
-                    $statusMessage,
-                    $statusLocation,
-                    $percentCompleted,
-                    $outputs
-            );
-            /*
-             * Stores alert.
-             */
-            $query = 'INSERT INTO usermanagement.jobs (email, identifier, querytime, status, statusmessage, statusLocation, percentCompleted, outputs) ' 
-                        . 'VALUES (' . join(',', $values) . ')';
-            $jobs = pg_query($this->dbh, $query);
-
-        } catch (Exception $e) {
-            RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-        }
-    }
-    
-    /**
-     * We edit a job
-     *
-     * @throws Exception
-     */
-    private function updateJob($data) {
-        try {
-
-            $status = isset($data['status']) ? pg_escape_string($data['status']) : 'NULL';
-            $statusMessage = isset($data['statusmessage']) ? '\'' . pg_escape_string($data['statusmessage']) . '\'' : 'NULL';
-            $percentCompleted = isset($data['percentcompleted']) ? pg_escape_string($data['percentcompleted']) : 0;
-            $outputs = isset($data['outputs']) ? '\'' . pg_escape_string(json_encode($data['outputs'])) . '\'' : 'NULL';
-            $gid = pg_escape_string($data['gid']);
-
-            /*
-             * Stores alert.
-             */
-            $query = "UPDATE usermanagement.jobs "
-                    . "SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs}, statusmessage={$statusMessage} "
-                    . "WHERE gid='{$gid}'";
-            $jobs = pg_query($this->dbh, $query);
-
-        } catch (Exception $e) {
-            RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-        }
-    }
-    
-    /**
-     * We create a job
-     *
-     * @throws Exception
-     */
-    private function deleteJob($data) {
-        // Delete a job using the job id
-        if (isset($data['gid'])) {
-            try {
-                $jobid = pg_escape_string($data['gid']);
-                $jobs = pg_query($this->dbh, 'DELETE FROM usermanagement.jobs WHERE gid = \'' . $jobid . '\'');
-                return array (
-                        'status' => 'success',
-                        'message' => 'success' 
-                );
-            } catch (Exception $e) {
-                RestoLogUtil::httpError($e->getCode(), $e->getMessage());
-            }
-        } else {
-            RestoLogUtil::httpError(404);
-        }
-    }
-    
-    /**
-     * Returns IP address of wps server.
-     */
-    private function getWPSServerAddress(){
-        $wps_host = parse_url($this->wpsServerUrl, PHP_URL_HOST);
-        $wps_port = parse_url($this->wpsServerUrl, PHP_URL_PORT);
-
-        return ($wps_host . ':' . $wps_port);
-    }
-
     /**
      * 
      * @param unknown $xml_string
      */
-    private function updateWPSURLs($text){
+    private function updateWPSURLs($text) {
         
         $server_endpoint = parse_url($this->context->baseUrl);
         $server_host = $server_endpoint['host'];
@@ -513,10 +586,22 @@ class WPS extends RestoModule {
     }
 }
 
-
+/**
+ * 
+ * @author root
+ *
+ */
 class ExecuteResponseException extends Exception { }
+/**
+ * 
+ */
+abstract class ArrayUtil {
+    public static function get($array, $key, $default=null){
+        return isset($array[$key]) ? $array[$key] : $default;
+    }
+}
 
-/*
+/**
  * HTTP request method type
  */
 abstract class HttpRequestMethod {

@@ -93,14 +93,18 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $processingCartFunctions->getProcessingCartItems($params['context'], $params['user']);
             
             /*
-             * Get processing items
+             * Get processing item
              */
             case parent::PROCESSING_JOBS_ITEM:
                 $jobsFunctions = new Functions_jobs($this);
                 return $jobsFunctions->get($params['userid'], $params['jobid']);
+
+            /*
+             * Get processing items
+             */
             case parent::PROCESSING_JOBS_ITEMS:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->get($params['userid']);
+                return $jobsFunctions->get($params['userid'], null, isset($params['filters']) ? $params['filters'] : null);
                 
             /*
              * Get collections descriptions
@@ -710,7 +714,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @throws Exception
      */
     public function query($query, $errorCode = 500, $errorMessage = null) {
-        
+        error_log($query);
         try {
             $results = pg_query($this->dbh, $query);
             if (!$results) {

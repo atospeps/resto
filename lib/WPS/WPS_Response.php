@@ -23,7 +23,7 @@ class WPS_Response {
     private $request = null;
 
     // xml as string
-    protected $xml;
+    private $xml = null;
     
     /**
      *
@@ -60,5 +60,9 @@ class WPS_Response {
             return false;
         }
         return false;
+    }
+    
+    public function replace($search, $replace) {
+        $this->xml = str_replace($search, $replace, $this->xml);
     }
 }

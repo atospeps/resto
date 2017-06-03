@@ -33,7 +33,7 @@ class Functions_jobs {
      * @param string $jobid
      * @return array : user's jobs
      */
-    public function get($userid, $jobid = null) {
+    public function get($userid, $jobid = null, $filters= array()) {
 
         $items = array();
 
@@ -42,10 +42,14 @@ class Functions_jobs {
             return $items;
         }
 
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid); 
+        $oFilter = implode(' AND ', $filters);
+
         // Query
-        $query = 'SELECT * FROM usermanagement.jobs ' 
-                . 'WHERE userid=' . $this->dbDriver->quote($userid)
-                . (isset($jobid) ? 'AND gid=' . $this->dbDriver->quote($jobid) : '');
+        $query = 'SELECT * FROM usermanagement.jobs' 
+                . ' WHERE ' . $oFilter
+                . (isset($jobid) ? 'AND gid=' . $this->dbDriver->quote($jobid) : '')
+                . ' ORDER BY querytime DESC';
 
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }

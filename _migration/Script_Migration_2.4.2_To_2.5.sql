@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	statusmessage text,
   	percentcompleted integer DEFAULT 0,
   	outputs text,
+    acknowledge boolean DEFAULT false,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
 );
 
@@ -87,9 +88,7 @@ CREATE TABLE usermanagement.processingcart
   title text,
   querytime timestamp without time zone,
   CONSTRAINT processingcart_pkey PRIMARY KEY (gid),
-  CONSTRAINT userid_fkey FOREIGN KEY (userid)
-      REFERENCES usermanagement.users (userid) MATCH SIMPLE
-      ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT userid_fkey FOREIGN KEY (userid) REFERENCES usermanagement.users (userid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 )
 WITH (
   OIDS=FALSE
@@ -100,10 +99,28 @@ GRANT ALL ON TABLE usermanagement.processingcart TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.processingcart TO resto;
 
 /*-- INDEX SUR LA CLE ETRANGERE USERID --*/
-CREATE INDEX fki_userid_fkey
-  ON usermanagement.processingcart
-  USING btree
-  (userid);
+CREATE INDEX fki_userid_fkey ON usermanagement.processingcart USING btree (userid);
+
+
+-- Table: usermanagement.wps_results
+
+-- DROP TABLE usermanagement.wps_results;
+
+CREATE TABLE usermanagement.wps_results
+(
+  uid serial NOT NULL,
+  userid serial NOT NULL,
+  identifier text,
+  type text,
+  value text,
+  jobid serial NOT NULL,
+  CONSTRAINT wps_results_pkey PRIMARY KEY (uid),
+  CONSTRAINT wps_results_jobid_fkey FOREIGN KEY (jobid) REFERENCES usermanagement.jobs (gid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE usermanagement.wps_results OWNER TO resto;
 
 -- ----------------------------------------------------------------------------------------
 -- Jeu de données de test

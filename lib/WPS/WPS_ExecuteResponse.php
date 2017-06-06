@@ -197,15 +197,15 @@ class WPS_ExecuteResponse extends WPS_Response {
             $output['title'] = $title[0]->__toString();
         }
 
-        $data = $wps_Output->xpath('.//wps:Data');
-        if ($data && count($data)>0){
-            $literal = $data[0]->xpath('.//wps:LiteralData');
-            if ($literal && count($literal)>0){
+        // Ignores Outputs 'wps:Data'
+        // $data = $wps_Output->xpath('.//wps:LiteralData');
+
+        $data = $wps_Output->xpath('.//wps:Reference');
+            if ($data && count($data)>0){
                 $attributes = $literal[0]->attributes();
-                $output['type'] = $attributes['dataType']->__toString();
-                $output['value'] = $literal[0]->__toString();
+                $output['type'] = isset($attributes['mimeType']) ? $attributes['mimeType']->__toString() : 'application/octet-stream';
+                $output['value'] = isset($attributes['href']) ? basename($attributes['href']->__toString()) : null;
             }
-        }
         return $output;
     }
 

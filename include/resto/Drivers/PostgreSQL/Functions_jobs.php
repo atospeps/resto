@@ -67,6 +67,11 @@ class Functions_jobs {
             return false;
         }
         try {
+            /*
+             * Start transaction
+             */
+            pg_query($this->dbh, 'BEGIN');
+            
             // Inserting the job into database
             $userid             = $this->dbDriver->quote($userid);
             $querytime          = $this->dbDriver->quote($data['querytime'], date("Y-m-d H:i:s"));
@@ -76,7 +81,7 @@ class Functions_jobs {
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
-            $outputs            = $this->dbDriver->quote(json_encode($data['outputs']), 'NULL');
+            $outputs            = isset($data['outputs']) ? $data['outputs'] :  'NULL';
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
     
@@ -85,17 +90,29 @@ class Functions_jobs {
                     $querytime,
                     $method,
                     $data,
-                    $identifier, $status, $statusMessage, $statusLocation, $percentCompleted, $outputs
+                    $identifier, $status, $statusMessage, $statusLocation, $percentCompleted, $this->dbDriver->quote(json_encode($outputs), 'NULL')
             );
 
             // Save job.
             $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, data, identifier, status, statusmessage, statusLocation, percentCompleted, outputs) '
-                    . 'VALUES (' . join(',', $values) . ')';
-            $jobs = $this->dbDriver->query($query);
+                    . 'VALUES (' . join(',', $values) . ') RETURNING gid';
+            $jobid = $this->dbDriver->query($query);
+
+            // Save results
+            foreach ($outputs as $output){
+                if (isset($output['value']) && isset($output['type']) && isset($output['identifier'])) {
+                    
+                    $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, type, value)'
+                            . " VALUES ($jobid, $userid, '${output['identifier']}', '${output['type']}', '${output['value']}')";
+                    $this->dbDriver->query($query);
+                }
+            }
+            pg_query($this->dbh, 'COMMIT');
             return true;
         } 
-        catch (Exception $e) {
-           return false;
+        catch (Exception $e) { 
+            pg_query($this->dbh, 'ROLLBACK');
+            return false;
         }
     }
 

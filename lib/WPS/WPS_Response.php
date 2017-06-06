@@ -23,7 +23,7 @@ class WPS_Response {
     private $request = null;
 
     // xml as string
-    private $xml = null;
+    protected $xml = null;
     
     /**
      *

@@ -8,6 +8,8 @@
  *    | Resource                                                        | Description
  *    |_________________________________________________________________|______________________________________
  *    | HTTP/GET        wps/users/{userid}/jobs                         | List of all user's jobs
+ *    | HTTP/GET        wps/users/{userid}/jobs/stats                   | User's completed jobs stats
+ *    | HTTP/PUT        wps/users/{userid}/jobs/acknowledges            | Update user's jobs acknowledges
  *    | HTTP/DELETE     wps/users/{userid}/jobs/{jobid}                 | Delete job
  *    |
  *    | HTTP/GET        wps?                                            | HTTP/GET wps services (OGC)
@@ -116,6 +118,8 @@ class WPS extends RestoModule {
                 /*
                  * 
                  */
+                case 'PUT' :
+                    return $this->processPUT($data);
                 default :
                     RestoLogUtil::httpError(404);
             }
@@ -139,6 +143,7 @@ class WPS extends RestoModule {
          *      - Execute
          */
         if (!isset($this->segments[0])) {
+            // HTTP/GET wps?
             return $this->GET_wps($this->segments);
         } 
         else 
@@ -303,19 +308,23 @@ class WPS extends RestoModule {
      *
      * @param array $segments
      */
-    private function GET_users($segments) {
+    private function GET_users($segments)
+    {
         $segments = $this->segments;
-        /*
-         * users/{userid}/jobs
-         */
-        if (isset($segments[1]) 
-                && isset($segments[2]) 
-                && $segments[2] === 'jobs') {
-
-            $jobs = $this->GET_userWPSJobs($segments[1]);
-            return RestoLogUtil::success(
-                    'WPS jobs instance for user ' . $this->user->profile['userid'], 
-                    array ( 'data' => $jobs ));
+        if (isset($segments[1]) && isset($segments[2]) && $segments[2] === 'jobs') {
+            if (isset($segments[3]) && $segments[3] === 'stats') {
+                // users/{userid}/jobs/stats
+                $count = $this->getCompletedJobsStats($segments[1]);
+                return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
+                    data => $count
+                ));
+            } else {
+                // users/{userid}/jobs
+                $jobs = $this->GET_userWPSJobs($segments[1]);
+                return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
+                    data => $jobs
+                ));
+            }
         }
         return RestoLogUtil::httpError(404);
     }
@@ -323,7 +332,8 @@ class WPS extends RestoModule {
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
      */
-    private function processPOST($data) {
+    private function processPOST($data)
+    {
         /*
          * HTTP/GET WPS 1.0 OGC services - not implemented
          */
@@ -358,6 +368,77 @@ class WPS extends RestoModule {
         // RestoLogUtil::httpError(404);
         // }
         RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * Process on HTTP method PUT
+     */
+    private function processPUT($data)
+    {
+        if (isset($this->segments[0]) && $this->segments[0] === 'users') {
+            // HTTP/PUT wps/users/{userid}/jobs/acknowledges
+            return $this->PUT_users();
+        }
+        RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     *
+     * Process HTTP PUT request on users
+     *
+     * @param array $segments
+     */
+    private function PUT_users($segments)
+    {
+        if (isset($this->segments[1]) && 
+            isset($this->segments[2]) && $this->segments[2] === 'jobs' &&
+            isset($this->segments[3]) && $this->segments[3] === 'acknowledges'
+        ) {
+            // users/{userid}/jobs/acknowledges
+            $this->setJobsAcknowledges($this->segments[1]);
+            return RestoLogUtil::success("WPS jobs acknowledges for user {$this->user->profile['userid']}", array ());
+        }
+        return RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * Set user's jobs acknowledges to TRUE
+     */
+    private function setJobsAcknowledges($userid)
+    {
+        if ($this->user->profile['userid'] !== $userid) {
+            RestoLogUtil::httpError(403);
+        }
+        
+        $query = "UPDATE usermanagement.jobs "
+               . "SET acknowledge = TRUE "
+               . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
+               . "AND email = '" . pg_escape_string($this->user->profile['email']) . "' ";
+        
+        $result = pg_query($this->dbh, $query);
+    }
+    
+    /**
+     * Returns the completed jobs (succeeded + failed) to be notified
+     * 
+     * @param {string} userid
+     * @return {int} count
+     */
+    private function getCompletedJobsStats($userid)
+    {
+        if ($this->user->profile['userid'] !== $userid) {
+            RestoLogUtil::httpError(403);
+        }
+        
+        $query = "SELECT count(status) "
+               . "FROM usermanagement.jobs "
+               . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
+               . "AND email = '" . pg_escape_string($this->user->profile['email']) . "' "
+               . "AND acknowledge = FALSE";
+        $result = pg_query($this->dbh, $query);
+        $row = pg_fetch_assoc($result);
+        
+        return (int)$row['count'];
     }
     
     /**

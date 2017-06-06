@@ -209,7 +209,7 @@ class WPS extends RestoModule {
         if (!isset($segments[1]) || isset($segments[3])){
             return RestoLogUtil::httpError(404);
         }
-        
+
         // ? Is statusLocation
         $job = $this->context->dbDriver->get(
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
@@ -223,7 +223,6 @@ class WPS extends RestoModule {
 
         // ? statusLocation exists 
         if (count($job) > 0) {
-            $this->context->outputFormat =  'xml';
             $response = new WPS_Response(Curl::Get('http://localhost:4444/wps/outputs/' . $job[0]['statuslocation']));
             $this->updateWpsResponseUrls($response);
             return $response;

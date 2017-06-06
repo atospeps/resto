@@ -42,14 +42,16 @@ class Functions_jobs {
             return $items;
         }
 
+        // ? Job id is setted
+        if (isset($jobid)) {
+            $filters[] = 'gid=' . $this->dbDriver->quote($jobid);
+        }
+
         $filters[] = 'userid=' . $this->dbDriver->quote($userid); 
         $oFilter = implode(' AND ', $filters);
 
         // Query
-        $query = 'SELECT * FROM usermanagement.jobs' 
-                . ' WHERE ' . $oFilter
-                . (isset($jobid) ? 'AND gid=' . $this->dbDriver->quote($jobid) : '')
-                . ' ORDER BY querytime DESC';
+        $query = 'SELECT * FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
 
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
@@ -75,7 +77,7 @@ class Functions_jobs {
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
             $outputs            = $this->dbDriver->quote(json_encode($data['outputs']), 'NULL');
-            $method             = $this->dbDriver->quote(json_encode($data['method']), 'NULL');
+            $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
     
             $values = array (
@@ -136,15 +138,15 @@ class Functions_jobs {
         }
 
         try {        
-            $status = $this->dbDriver->quote($data['status'], 'NULL');
-            $statusMessage = $this->dbDriver->quote($data['statusmessage'], 'NULL');
-            $percentCompleted = $this->dbDriver->quote($data['percentcompleted'], 0);
-            $outputs = $this->dbDriver->quote((json_encode($data['outputs'])), 'NULL');
-            $gid = $this->dbDriver->quote($data['gid']);
+            $status             = $this->dbDriver->quote($data['status'], 'NULL');
+            $statusMessage      = $this->dbDriver->quote($data['statusmessage'], 'NULL');
+            $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
+            $outputs            = $this->dbDriver->quote((json_encode($data['outputs'])), 'NULL');
+            $gid                = $this->dbDriver->quote($data['gid']);
         
-            $query = "UPDATE usermanagement.jobs "
-                    . "SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs}, statusmessage={$statusMessage} "
-                    . "WHERE gid={$gid}";
+            $query = 'UPDATE usermanagement.jobs'
+                    . " SET status='{$status}', percentcompleted={$percentCompleted}, outputs={$outputs}, statusmessage={$statusMessage}"
+                    . " WHERE gid={$gid}";
             $jobs = pg_query($this->dbh, $query);        
         } 
         catch (Exception $e) {

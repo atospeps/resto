@@ -78,7 +78,6 @@ class Curl {
      * @return unknown
      */
     private function exec($url, $curl_options) {
-        error_log($url);
         $ch = curl_init($url);
         /*
          * Sets request options.

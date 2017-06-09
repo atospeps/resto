@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	statuslocation text,
   	statusmessage text,
   	percentcompleted integer DEFAULT 0,
-  	outputs text,
+  	nbresults integer,
     acknowledge boolean DEFAULT false,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
 );
@@ -104,10 +104,28 @@ GRANT ALL ON TABLE usermanagement.processingcart TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.processingcart TO resto;
 
 /*-- INDEX SUR LA CLE ETRANGERE USERID --*/
-CREATE INDEX fki_userid_fkey
-  ON usermanagement.processingcart
-  USING btree
-  (userid);
+CREATE INDEX fki_userid_fkey ON usermanagement.processingcart USING btree (userid);
+
+
+-- Table: usermanagement.wps_results
+
+-- DROP TABLE usermanagement.wps_results;
+
+CREATE TABLE usermanagement.wps_results
+(
+  uid serial NOT NULL,
+  userid serial NOT NULL,
+  identifier text,
+  type text,
+  value text,
+  jobid serial NOT NULL,
+  CONSTRAINT wps_results_pkey PRIMARY KEY (uid),
+  CONSTRAINT wps_results_jobid_fkey FOREIGN KEY (jobid) REFERENCES usermanagement.jobs (gid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE usermanagement.wps_results OWNER TO resto;
 
 
 -- ----------------------------------------------------------------------------------------

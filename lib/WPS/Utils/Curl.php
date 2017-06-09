@@ -12,7 +12,7 @@ class Curl {
      * @param unknown $data
      * @param unknown $options
      */
-    public static function Get($url, $data, $options=array()){    
+    public static function Get($url, $data=array(), $options=array()){    
         $opts = array (
                 CURLOPT_RETURNTRANSFER => 1,
                 CURLOPT_VERBOSE => 0,
@@ -54,11 +54,20 @@ class Curl {
                 CURLOPT_POSTFIELDS => $data
         );
 
-        foreach ($options as $key => $value){
+        foreach ($options as $key => $value) {
             $opts[$key] = $value;
         }
 
         return self::exec($url, $curl_options);
+    }
+    
+    /**
+     * 
+     * @param unknown $url
+     * @param unknown $curl_options
+     */
+    public static function Download($url, $curl_options){
+        
     }
 
     /**
@@ -69,7 +78,6 @@ class Curl {
      * @return unknown
      */
     private function exec($url, $curl_options) {
-        
         $ch = curl_init($url);
         /*
          * Sets request options.
@@ -77,7 +85,7 @@ class Curl {
         foreach ($curl_options as $option => $value){
             @curl_setopt($ch, $option, $value);
         }
-    
+
         /*
          * Get the response
         */
@@ -87,6 +95,12 @@ class Curl {
          * Checks errors.
         */
         if (curl_errno($ch)) {
+            
+            /*
+             * HTTP Code
+             */
+            $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
             $error = curl_error($ch);
             /*
              * logs error.
@@ -99,7 +113,7 @@ class Curl {
             /*
              * Throw cURL exception
             */
-            throw new Exception($error, 500);
+            throw new Exception($error, $httpcode);
         }
         curl_close($ch);
         return $response;

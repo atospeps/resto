@@ -48,7 +48,7 @@ class WPS_ExecuteResponse extends WPS_Response {
     /*
      * Process outputs.
      */
-    private $processOutputs;
+    private $processOutputs = array();
 
     /*
      * WPS status events.
@@ -89,7 +89,7 @@ class WPS_ExecuteResponse extends WPS_Response {
      */
     private function parseExecuteResponse(SimpleXMLElement $wps_ExecuteResponse){
         $attributes = $wps_ExecuteResponse->attributes();
-        $this->statusLocation = isset($attributes['statusLocation']) ? $attributes['statusLocation']->__toString() : null;
+        $this->statusLocation = isset($attributes['statusLocation']) ? basename($attributes['statusLocation']->__toString()) : null;
         $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
 
         $status = $wps_ExecuteResponse->xpath('.//wps:Status');
@@ -118,8 +118,12 @@ class WPS_ExecuteResponse extends WPS_Response {
             $exception = $report[0]->xpath('.//ows:Exception');
             if ($exception && count($exception)>0){
                 $exceptionText = $exception[0]->xpath('.//ows:ExceptionText');
-                if ($exceptionText && count($exceptionText)>0){
+                if ($exceptionText && count($exceptionText)>0) {
                     $this->statusMessage = $exceptionText[0]->__toString();
+                }
+                else {
+                    $attributes = $exception[0]->attributes();
+                    $this->statusMessage =  isset($attributes['exceptionCode']) ? $attributes['exceptionCode']->__toString() : '';
                 }
             }
         }
@@ -154,8 +158,9 @@ class WPS_ExecuteResponse extends WPS_Response {
             }
         }
         // Gets status message.
-        if ($this->status === 'ProcessFailed'){
+        if ($this->status === 'ProcessFailed') {
             $this->parseProcessFailed($status[0]);
+            $this->percentCompleted = 100;
         } else {
             $this->statusMessage = $status[0]->__toString();
         }
@@ -175,7 +180,10 @@ class WPS_ExecuteResponse extends WPS_Response {
         $outputs = $wps_Outputs->xpath('.//wps:Output');
         if ($outputs && count($outputs)>0){
             foreach ($outputs as $key => $output){
-                $this->processOutputs[] = $this->parseOutput($output);
+                $output = $this->parseOutput($output);
+                if (!empty($output)){
+                    $this->processOutputs[] = $output;
+                }
             }
         }
     }
@@ -187,23 +195,23 @@ class WPS_ExecuteResponse extends WPS_Response {
     private function parseOutput(SimpleXMLElement $wps_Output){
         $output = array();
 
-        $identifier = $wps_Output->xpath('.//ows:Identifier');
-        if ($identifier && count($identifier)>0){
-            $output['identifier'] = $identifier[0]->__toString();
-        }
+        // Ignores Outputs 'wps:Data'
+        // $data = $wps_Output->xpath('.//wps:LiteralData');
 
-        $title = $wps_Output->xpath('.//ows:Title');
-        if ($title && count($title)>0){
-            $output['title'] = $title[0]->__toString();
-        }
+        $data = $wps_Output->xpath('.//wps:Reference');
+        if ($data && count($data)>0) {
+            $attributes = $data[0]->attributes();
+            $output['type'] = isset($attributes['mimeType']) ? $attributes['mimeType']->__toString() : 'application/octet-stream';
+            $output['value'] = isset($attributes['href']) ? basename($attributes['href']->__toString()) : null;
+            
+            $identifier = $wps_Output->xpath('.//ows:Identifier');
+            if ($identifier && count($identifier)>0){
+                $output['identifier'] = $identifier[0]->__toString();
+            }
 
-        $data = $wps_Output->xpath('.//wps:Data');
-        if ($data && count($data)>0){
-            $literal = $data[0]->xpath('.//wps:LiteralData');
-            if ($literal && count($literal)>0){
-                $attributes = $literal[0]->attributes();
-                $output['type'] = $attributes['dataType']->__toString();
-                $output['value'] = $literal[0]->__toString();
+            $title = $wps_Output->xpath('.//ows:Title');
+            if ($title && count($title)>0) {
+                $output['title'] = $title[0]->__toString();
             }
         }
         return $output;

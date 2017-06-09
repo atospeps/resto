@@ -37,6 +37,8 @@ class RestoRouteDELETE extends RestoRoute {
      *    
      *    groups/{group}                                |  Delete {group}
      *    
+     *    proactive/{id}                                |  Delete Proactive account {id}
+     *    
      *    users/{userid}/cart                           |  Remove all cart items
      *    users/{userid}/cart/{itemid}                  |  Remove {itemid} from {userid} cart
      *    
@@ -51,7 +53,9 @@ class RestoRouteDELETE extends RestoRoute {
                 return $this->DELETE_collections($segments);
             case 'groups':
                 return $this->DELETE_groups($segments);
-            case 'users':
+            case 'proactive':
+                return $this->DELETE_proactiveAccount($segments);
+                case 'users':
                 return $this->DELETE_users($segments);
             default:
                 return $this->processModuleRoute($segments);
@@ -126,8 +130,8 @@ class RestoRouteDELETE extends RestoRoute {
      * 
      * @param array $segments
      */
-    private function DELETE_groups($segments) {
-        
+    private function DELETE_groups($segments)
+    {
         if (isset($segments[1])) {
             /*
              * Groups can only be delete by admin
@@ -146,6 +150,31 @@ class RestoRouteDELETE extends RestoRoute {
             RestoLogUtil::httpError(404);
         }
         
+    }
+    
+    /**
+     * Process HTTP DELETE request on Proactive account
+     * 
+     *    proactive/{id}                              |  Delete Proactive account {id}
+     * 
+     * @param array $segments
+     */
+    private function DELETE_proactiveAccount($segments)
+    {
+        if (isset($segments[1])) {
+            if ($this->user->profile['groupname'] !== 'admin') {
+                RestoLogUtil::httpError(403);
+            }
+        
+            if($this->context->dbDriver->remove(RestoDatabaseDriver::PROACTIVE_ACCOUNT, array("accountId" => $segments[1]))) {
+                return RestoLogUtil::success('Proactive account ' . $segments[1] . ' deleted');
+            } else {
+	            RestoLogUtil::httpError(404, "Cannot delete Proactive account. The account does not exist.");
+            }
+        }
+        else {
+            RestoLogUtil::httpError(404);
+        }
     }
     
     /**

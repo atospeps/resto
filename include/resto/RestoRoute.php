@@ -53,6 +53,16 @@
  *    |  DELETE  groups/{group}                                |  Delete {group}
  *    |  PUT     groups/{group}                                |  Update {group}
  *
+ * ** Proactive accounts **
+ *  
+ *    |          Resource                                      |      Description
+ *    |________________________________________________________|________________________________________________
+ *    |  GET     proactive                                     |  List all proactive accounts           
+ *    |  POST    proactive                                     |  Create a new proactive account   
+ *    |  GET     proactive/{gid}                               |  Show proactive account {gid}                
+ *    |  DELETE  proactive/{gid}                               |  Delete proactive account {gid}
+ *    |  PUT     proactive/{gid}                               |  Update proactive account {gid}
+ *
  * ** Users **
  * 
  *      Users have rights on collections and/or products

@@ -95,7 +95,7 @@ class WPS extends RestoModule {
         }
 
         // Checks if user can execute WPS services
-        if ($this->user->canExecuteWPS() === 1) {
+        if ($this->user->canExecuteWPS()) {
             
             // We get URL segments and the http method
             $this->segments = $segments;
@@ -232,13 +232,13 @@ class WPS extends RestoModule {
                 // users/{userid}/jobs/stats
                 $count = $this->getCompletedJobsStats($segments[1]);
                 return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
-                    data => $count
+                    'data' => $count
                 ));
             } else {
                 // users/{userid}/jobs
                 $jobs = $this->GET_userWPSJobs($segments[1]);
                 return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
-                    data => $jobs
+                    'data' => $jobs
                 ));
             }
         }
@@ -293,7 +293,7 @@ class WPS extends RestoModule {
     {
         if (isset($this->segments[0]) && $this->segments[0] === 'users') {
             // HTTP/PUT wps/users/{userid}/jobs/acknowledges
-            return $this->PUT_users();
+            return $this->PUT_users($this->segments);
         }
         RestoLogUtil::httpError(404);
     }

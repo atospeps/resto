@@ -308,8 +308,9 @@ CREATE TRIGGER old_tokens_gc AFTER INSERT ON usermanagement.revokedtokens EXECUT
 CREATE TABLE usermanagement.groups
 (
   gid serial NOT NULL,
-  groupname text NOT NULL,
-  description text,
+  groupname TEXT NOT NULL,
+  description TEXT,
+  canwps BOOLEAN DEFAULT FALSE,
   CONSTRAINT groups_pkey PRIMARY KEY (gid),
   CONSTRAINT groups_groupname_key UNIQUE (groupname)
 );

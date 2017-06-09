@@ -36,6 +36,8 @@ class RestoRoutePUT extends RestoRoute {
      *    
      *    groups/{groupid}                              |  Update {groupid}
      *    
+     *    proactive/{id}                                |  Update Proactive account {id}
+     *    
      *    users/{userid}                                |  Update {userid} information
      *    users/{userid}/cart/{itemid}                  |  Modify item in {userid} cart
      *    
@@ -56,7 +58,9 @@ class RestoRoutePUT extends RestoRoute {
                 return $this->PUT_collections($segments, $data);
             case 'groups':
                 return $this->PUT_groups($segments, $data);
-            case 'users':
+            case 'proactive':
+                return $this->PUT_proactive($segments, $data);
+                case 'users':
                 return $this->PUT_users($segments, $data);
             default:
                 return $this->processModuleRoute($segments, $data);
@@ -159,11 +163,46 @@ class RestoRoutePUT extends RestoRoute {
             if($this->context->dbDriver->update(RestoDatabaseDriver::GROUPS, array(
                     "groupId" => $segments[1],
                     "groupName" => $data["groupName"],
-                    "groupDescription" => $data["groupDescription"]
+                    "groupDescription" => $data["groupDescription"],
+                    "groupCanWps" => $data["groupCanWps"],
+                    'groupProactiveId' => $data['groupProactiveId']
             ))) {
                 return RestoLogUtil::success('Group ' . $data['groupName'] . ' updated');
             } else {
             RestoLogUtil::httpError(5000, 'Cannot update group, it does not exist');
+            }
+        }
+        else {
+            RestoLogUtil::httpError(404);
+        }
+    }
+    
+    /**
+     * 
+     * Process HTTP PUT request on Proactive accounts
+     * 
+     *    proactive/{id}                              |  Update Proactive account {id}
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function PUT_proactive($segments, $data)
+    {
+        if (isset($segments[1])) {
+            if ($this->user->profile['groupname'] !== 'admin') {
+                RestoLogUtil::httpError(403);
+            }
+        
+            $params = array(
+                "accountId" => $segments[1],
+                "accountLogin" => $data["accountLogin"],
+                "accountPassword" => (!empty($data["accountPassword"]) ? $data["accountPassword"] : null)
+            );
+            
+            if($this->context->dbDriver->update(RestoDatabaseDriver::PROACTIVE_ACCOUNT, $params)) {
+                return RestoLogUtil::success('Proactive account ' . $data['accountLogin'] . ' updated');
+            } else {
+                RestoLogUtil::httpError(7001, 'Cannot update Proactive account, it does not exist');
             }
         }
         else {

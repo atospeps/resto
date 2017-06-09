@@ -156,12 +156,13 @@ class RestoUser {
     }
     
     /**
-     * Can User execute WPS service ?
-     * @return Ambigous <multitype:number >
+     * Can User execute WPS service?
+     * 
+     * @return boolean
      */
     public function canExecuteWPS(){
-        $rights = $this->rights->getRights();
-        return $rights['wps'];
+        $group = $this->context->dbDriver->get(RestoDatabaseDriver::GROUP, array('gidOrGroupName' => $this->profile['groupname']));
+        return ($group['canwps'] === 't');
     }
 
     /**

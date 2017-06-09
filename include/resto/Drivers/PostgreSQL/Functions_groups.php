@@ -16,7 +16,7 @@
  */
 
 /**
- * RESTo PostgreSQL cart functions
+ * RESTo PostgreSQL group functions
  */
 class Functions_groups {
     
@@ -41,16 +41,24 @@ class Functions_groups {
      * @return array
      * @throws exception
      */
-    public function getGroups() {        
+    public function getGroups()
+    {
         $items = array();
         
-        $query = 'SELECT gid, groupname, description FROM usermanagement.groups ORDER BY gid';
+        $query = "SELECT * "
+               . "FROM usermanagement.groups AS g "
+               . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
+               . "ORDER BY g.gid";
+
         $results = $this->dbDriver->query($query);
+        
         while ($result = pg_fetch_assoc($results)) {
             $items[] = array(
                 'id' => $result['gid'],
                 'groupname' => $result['groupname'],
-                'description' => $result['description']
+                'description' => $result['description'],
+                'canwps' => $result['canwps'],
+                'proactive' => $result['proactiveid'] ? array('id' => $result['proactiveid'], 'login' => $result['login']) : null  
             );
         }
         
@@ -63,25 +71,38 @@ class Functions_groups {
      * @return array
      * @throws exception
      */
-    public function getGroup($groupId) {        
-        $items = array();
-        $query = 'SELECT * FROM usermanagement.groups WHERE gid = \'' . $groupId . '\' ORDER BY gid';
+    public function getGroup($gidOrGroupname)
+    {
+        if (is_numeric($gidOrGroupname)) {
+            $query = "SELECT * "
+                   . "FROM usermanagement.groups AS g "
+                   . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
+                   . "WHERE gid = '" . $gidOrGroupname . "'";
+        } else {
+            $query = "SELECT * "
+                   . "FROM usermanagement.groups AS g "
+                   . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
+                   . "WHERE groupname = '" . $gidOrGroupname . "'";
+        }
+        
         $results = $this->dbDriver->query($query);
         
+        $group = null;
         while ($result = pg_fetch_assoc($results)) {
-            $items[] = array(
+            $group = array(
                 'id' => $result['gid'],
                 'groupname' => $result['groupname'],
-                'description' => $result['description']
+                'description' => $result['description'],
+                'canwps' => $result['canwps'],
+                'proactive' => $result['proactiveid'] ? array('id' => $result['proactiveid'], 'login' => $result['login']) : null
             );
         }
 
-        // If group not found
-        if ($items[0] === null) {
+        if ($group === null) {
             RestoLogUtil::httpError(404);
         }
         
-        return $items[0];
+        return $group;
     }
     
     /**
@@ -91,7 +112,8 @@ class Functions_groups {
      * @return boolean
      * @throws exception
      */
-    public function isGroupExists($groupname, $identifier = null) {
+    public function isGroupExists($groupname, $identifier = null)
+    {
         if (!isset($groupname)) {
             return false;
         }
@@ -114,21 +136,26 @@ class Functions_groups {
      * @return boolean
      * @throws exception
      */
-    public function createGroup($groupname, $description) {
+    public function createGroup($groupname, $description, $canwps, $proactiveid)
+    {
         if (!isset($groupname)) {
             return false;
         }
 
-        // Check if group already exists in the database
         if($this->isGroupExists($groupname)) {
             RestoLogUtil::httpError(5000, 'Cannot create group : ' . $groupname . ', it already exists');
         }
         
         $values = array(
             '\'' . pg_escape_string($groupname) . '\'',
-            '\'' . pg_escape_string($description) . '\''
+            '\'' . pg_escape_string($description) . '\'',
+            '\'' . pg_escape_string($canwps) . '\'',
+            ((int)$proactiveid > 0 ? (int)$proactiveid : "NULL")
         );
-        $this->dbDriver->query('INSERT INTO usermanagement.groups (groupname, description) VALUES (' . join(',', $values) . ')');
+        
+        $query = 'INSERT INTO usermanagement.groups (groupname, description, canwps, proactiveid) VALUES (' . join(',', $values) . ')';
+        
+        $this->dbDriver->query($query);
         return true;
     }
     
@@ -142,7 +169,8 @@ class Functions_groups {
      * @return boolean
      * @throws exception
      */
-    public function updateGroup($identifier, $groupname, $description) {
+    public function updateGroup($identifier, $groupname, $description, $canwps, $proactiveid)
+    {
         if (!isset($identifier)) {
             return false;
         }
@@ -152,7 +180,14 @@ class Functions_groups {
             RestoLogUtil::httpError(5000, 'Cannot update groupname to : ' . $groupname . ', it already exists');
         }
         
-        $results = $this->dbDriver->query('UPDATE usermanagement.groups SET groupname = \''. pg_escape_string($groupname) . '\', description= \''. pg_escape_string($description) . '\' FROM (SELECT groupname FROM usermanagement.groups WHERE gid=\'' . pg_escape_string($identifier) . '\' FOR UPDATE) oldGroup WHERE gid=\'' . pg_escape_string($identifier) . '\' RETURNING oldGroup.groupname');
+        $query = "UPDATE usermanagement.groups "
+               . "SET groupname = '" . pg_escape_string($groupname) . "', "
+               .     "description = '" . pg_escape_string($description) . "', "
+               .     "canwps = '" . pg_escape_string($canwps) . "', "
+               .     "proactiveid = " . (!empty($proactiveid) ? pg_escape_string($proactiveid) : 'NULL') . " "
+               . "FROM (SELECT groupname FROM usermanagement.groups WHERE gid='" . pg_escape_string($identifier) . "' FOR UPDATE) oldGroup WHERE gid='" . pg_escape_string($identifier) . "' RETURNING oldGroup.groupname";
+        
+        $results = $this->dbDriver->query($query);
 
         if ($group = pg_fetch_assoc($results)) {
             // Update all rights associated to the group

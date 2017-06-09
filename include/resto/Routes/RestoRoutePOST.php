@@ -40,6 +40,8 @@ class RestoRoutePOST extends RestoRoute {
      *    
      *    groups                                        |  Create a new group      
      *    
+     *    proactive                                     |  Create a new proactive account
+     *          
      *    users                                         |  Add a user
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/processingcart                 |  Add new item in {userid} processing cart
@@ -64,7 +66,9 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->POST_collections($segments, $data);
             case 'groups':
                 return $this->POST_groups($data);
-            case 'users':
+            case 'proactive':
+                return $this->POST_proactive($data);
+                case 'users':
                 return $this->POST_users($segments, $data);
             default:
                 return $this->processModuleRoute($segments, $data);
@@ -322,10 +326,44 @@ class RestoRoutePOST extends RestoRoute {
             RestoLogUtil::httpError(400);
         }
         
-        if($this->context->dbDriver->store(RestoDatabaseDriver::GROUPS, array('groupName' => $data['groupName'], 'groupDescription' => $data['groupDescription']))) {
+        if($this->context->dbDriver->store(RestoDatabaseDriver::GROUPS, array(
+                'groupName' => $data['groupName'],
+                'groupDescription' => $data['groupDescription'],
+                'groupCanWps' => $data['groupCanWps'],
+                'groupProactiveId' => $data['groupProactiveId']
+        ))) {
             return RestoLogUtil::success('Group ' . $data['groupName'] . ' created');
         } else {
             return RestoLogUtil::error('Cannot create group');
+        }
+    }
+    
+    /**
+     * 
+     * Process HTTP POST request on proactive accounts
+     * 
+     *    proactive                                        |  Add a proactive account
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function POST_proactive($data)
+    {
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
+        if(!isset($data['accountLogin']) || !isset($data['accountPassword'])) {
+            RestoLogUtil::httpError(400);
+        }
+        
+        if($this->context->dbDriver->store(RestoDatabaseDriver::PROACTIVE, array(
+            'accountLogin' => $data['accountLogin'],
+            'accountPassword' => $data['accountPassword']
+        ))) {
+            return RestoLogUtil::success('Proactive account ' . $data['accountLogin'] . ' created');
+        } else {
+            return RestoLogUtil::error('Cannot create Proactive account');
         }
     }
     
@@ -556,9 +594,11 @@ class RestoRoutePOST extends RestoRoute {
      */
     private function POST_userProcessingCart($userid, $data)
     {
+        $availableFeatures = array();
         $response = array(
             "added" => 0,
-            "alreadyExists" => 0
+            "alreadyExists" => 0,
+            "unavailable" => 0
         );
     
         $user = $this->getAuthorizedUser($userid);
@@ -575,7 +615,7 @@ class RestoRoutePOST extends RestoRoute {
         }
         
         /*
-         *  Get all features descriptions
+         * Get all features descriptions
          */
         $features = array();
         for ($i = count($data); $i--;) {
@@ -591,12 +631,35 @@ class RestoRoutePOST extends RestoRoute {
         }
         
         /*
+         * Check if features are available to download
+         */
+        foreach($features as $feature) {
+            $downloadState = $this->checkFeatureAvailability($feature);
+            
+            if ($downloadState !== "OK") {
+                $response["unavailable"]++;
+            } else {
+                $availableFeatures[] = $feature;
+            }
+        }
+        
+        /*
          * Add all features to processing cart (ignores those that already exist) 
          */
-        $addedFeatures = $user->addToProcessingCart($features);
+        $addedFeatures = $user->addToProcessingCart($availableFeatures);
+        foreach ($addedFeatures as $feature) {
+            $response["added"]++;
+        }
         
-        $response["added"] = count($addedFeatures);
-        $response['alreadyExists'] = count($features) - count($addedFeatures);
+        /*
+         * Fait un diff entre $availableFeatures et $addedFeatures pour obtenir
+         * la liste des produits qui étaient déjà présent dans le panier
+         */
+        foreach ($availableFeatures as $availableFeature) {
+            if (array_key_exists($availableFeature['id'], $addedFeatures) !== true) {
+                $response['alreadyExists']++;
+            }
+        }
         
         /*
          * Returns the execution status

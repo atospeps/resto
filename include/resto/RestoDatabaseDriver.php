@@ -70,6 +70,12 @@ abstract class RestoDatabaseDriver {
     const PROCESSING_CART_ITEMS = 45;
     const PROCESSING_JOBS_ITEM = 46;
     const PROCESSING_JOBS_ITEMS = 47;
+    const GROUP = 48;
+    const PROACTIVE = 49;
+    const PROACTIVE_ACCOUNTS = 50;
+    const PROACTIVE_ACCOUNT = 51;
+    const WPS_RIGHTS = 52;
+    const WPS_GROUP_RIGHTS = 53;
     
     /*
      * Results per page

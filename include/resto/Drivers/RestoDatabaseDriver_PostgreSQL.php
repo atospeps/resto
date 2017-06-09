@@ -29,6 +29,8 @@ require 'PostgreSQL/Functions_filters.php';
 require 'PostgreSQL/Functions_rights.php';
 require 'PostgreSQL/Functions_users.php';
 require 'PostgreSQL/Functions_groups.php';
+require 'PostgreSQL/Functions_proactive.php';
+require 'PostgreSQL/Functions_wpsrights.php';
 require 'PostgreSQL/Functions_geometry.php';
 
 /**
@@ -69,7 +71,8 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @param array $params
      * @return type
      */
-    public function get($typeName, $params = array()) {
+    public function get($typeName, $params = array())
+    {
         switch ($typeName) {
             
             /*
@@ -213,11 +216,39 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $groupsFunctions->getGroups();
                 
             /*
+             * Get group
+             */
+            case parent::GROUP:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->getGroup($params['gidOrGroupName']);
+                
+            /*
              * Get group description
              */
             case parent::GROUP_DESCRIPTIONS:
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->getGroup($params['id']);
+                
+            /*
+             * Get Proactive accounts
+             */
+            case parent::PROACTIVE_ACCOUNTS:
+                $proactiveFunctions = new Functions_proactive($this);
+                return $proactiveFunctions->getAccounts();
+                
+            /*
+             * Get Proactive account
+             */
+            case parent::PROACTIVE_ACCOUNT:
+                $proactiveFunctions = new Functions_proactive($this);
+                return $proactiveFunctions->getAccount($params['id']);
+                
+            /*
+             * Get WPS rights
+             */
+            case parent::WPS_GROUP_RIGHTS:
+                $wpsRightsFunctions = new Functions_wpsrights($this);
+                return $wpsRightsFunctions->getWpsGroupRights($params['groupid']);
                 
             /*
              * Get user downloaded volume the last 7 days 
@@ -396,7 +427,8 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @param array $params
      * @return type
      */
-    public function remove($typeName, $params = array()) {
+    public function remove($typeName, $params = array())
+    {
         switch ($typeName) {
             
             /*
@@ -483,7 +515,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->removeGroup($params['groupId']);
                 
-            default:
+            /*
+             * Remove group
+             */
+            case parent::PROACTIVE_ACCOUNT:
+                $proactiveFunctions = new Functions_proactive($this);
+                return $proactiveFunctions->removeAccount($params['accountId']);
+                
+                default:
                 return null;
         }
     }
@@ -495,7 +534,8 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      * @param array $params
      * @return type
      */
-    public function store($typeName, $params = array()) {
+    public function store($typeName, $params = array())
+    {
         switch ($typeName) {
             
             /*
@@ -581,8 +621,16 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
-                return $groupsFunctions->createGroup($params['groupName'], $params['groupDescription']);
+                return $groupsFunctions->createGroup($params['groupName'], $params['groupDescription'], $params['groupCanWps'], $params['groupProactiveId']);
             
+            /*
+             * Store Proactive account
+             */
+            case parent::PROACTIVE:
+                $proactiveFunctions = new Functions_proactive($this);
+                return $proactiveFunctions->createAccount($params['accountLogin'], $params['accountPassword']);
+            
+                
             default:
                 return null;
         }
@@ -638,7 +686,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
-                return $groupsFunctions->updateGroup($params['groupId'], $params['groupName'], $params['groupDescription']);
+                return $groupsFunctions->updateGroup($params['groupId'], $params['groupName'], $params['groupDescription'], $params['groupCanWps'], $params['groupProactiveId']);
+                
+            /*
+             * Update group
+             */
+            case parent::PROACTIVE_ACCOUNT:
+                $proactiveFunctions = new Functions_proactive($this);
+                return $proactiveFunctions->updateAccount($params['accountId'], $params['accountLogin'], $params['accountPassword']);
                 
             /*
              * Store feature

@@ -4,6 +4,11 @@
 
 /* Script de migration beta*/
 
+-- ----------------------------------------------------------------------------------------
+--
+-- Updates TABLE usermanagement.groups: add 'canwps' column
+--
+------------------------------------------------------------------------------------------- 
 CREATE OR REPLACE function f_add_col(
    _tbl regclass, _col  text, _type regtype, OUT success bool)
     LANGUAGE plpgsql AS
@@ -26,9 +31,10 @@ END IF;
 END
 $func$;
 
-SELECT f_add_col('usermanagement.rights', 'wps', 'integer');
-ALTER TABLE usermanagement.rights ALTER COLUMN wps SET DEFAULT 0;
-
+SELECT f_add_col('usermanagement.groups', 'canwps', 'boolean');
+ALTER TABLE usermanagement.groups ALTER COLUMN canwps SET DEFAULT FALSE;
+UPDATE usermanagement.groups SET canwps = FALSE;
+UPDATE usermanagement.groups SET canwps = TRUE WHERE groupname = 'admin';
 
 -- ----------------------------------------------------------------------------------------
 --
@@ -61,6 +67,7 @@ GRANT ALL ON TABLE usermanagement.jobs TO resto;
 GRANT ALL ON SEQUENCE usermanagement.jobs_gid_seq TO postgres;
 GRANT SELECT, UPDATE ON SEQUENCE usermanagement.jobs_gid_seq TO resto;
 
+
 -- ----------------------------------------------------------------------------------------
 --
 -- Creates TABLE usermanagement.processingcart
@@ -91,12 +98,8 @@ CREATE TABLE usermanagement.processingcart
   CONSTRAINT userid_fkey FOREIGN KEY (userid)
       REFERENCES usermanagement.users (userid) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
-)
-WITH (
-  OIDS=FALSE
 );
-ALTER TABLE usermanagement.processingcart
-  OWNER TO postgres;
+ALTER TABLE usermanagement.processingcart OWNER TO postgres;
 GRANT ALL ON TABLE usermanagement.processingcart TO postgres;
 GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE usermanagement.processingcart TO resto;
 
@@ -105,6 +108,70 @@ CREATE INDEX fki_userid_fkey
   ON usermanagement.processingcart
   USING btree
   (userid);
+
+
+-- ----------------------------------------------------------------------------------------
+--
+-- Creates TABLE usermanagement.proactive
+--
+------------------------------------------------------------------------------------------- 
+
+CREATE SEQUENCE usermanagement.proactiveid_seq
+  INCREMENT 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  START 1
+  CACHE 1;
+ALTER TABLE usermanagement.proactiveid_seq OWNER TO postgres;
+GRANT ALL ON SEQUENCE usermanagement.proactiveid_seq TO postgres;
+GRANT SELECT, UPDATE ON SEQUENCE usermanagement.proactiveid_seq TO resto;
+
+CREATE TABLE IF NOT EXISTS usermanagement.proactive
+(
+  proactiveid integer NOT NULL DEFAULT nextval('usermanagement.proactiveid_seq'::regclass),
+  login text NOT NULL,
+  password text NOT NULL,
+  CONSTRAINT proactive_pkey PRIMARY KEY (proactiveid)
+);
+ALTER TABLE usermanagement.proactive OWNER TO resto;
+GRANT ALL ON TABLE usermanagement.proactive TO resto;
+GRANT ALL ON TABLE usermanagement.proactive TO postgres;
+
+CREATE INDEX idx_loginpwd_proactive
+  ON usermanagement.proactive
+  USING btree
+  (login COLLATE pg_catalog."default", password COLLATE pg_catalog."default");
+
+-- ----------------------------------------------------------------------------------------
+--
+-- Creates TABLE usermanagement.wpsrights
+--
+------------------------------------------------------------------------------------------- 
+
+CREATE SEQUENCE usermanagement.wpsrights_gid_seq
+  INCREMENT 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  START 1
+  CACHE 1;
+ALTER TABLE usermanagement.wpsrights_gid_seq OWNER TO postgres;
+GRANT ALL ON SEQUENCE usermanagement.wpsrights_gid_seq TO postgres;
+GRANT SELECT, UPDATE ON SEQUENCE usermanagement.wpsrights_gid_seq TO resto;
+
+CREATE TABLE IF NOT EXISTS usermanagement.wpsrights
+(
+  gid integer NOT NULL DEFAULT nextval('usermanagement.wpsrights_gid_seq'::regclass),
+  identifier text NOT NULL,
+  CONSTRAINT wpsrights_pkey PRIMARY KEY (gid)
+);
+ALTER TABLE usermanagement.wpsrights OWNER TO resto;
+GRANT ALL ON TABLE usermanagement.wpsrights TO resto;
+GRANT ALL ON TABLE usermanagement.wpsrights TO postgres;
+
+CREATE INDEX idx_identifier_wpsrights
+  ON usermanagement.wpsrights
+  USING btree
+  (identifier COLLATE pg_catalog."default");
 
 -- ----------------------------------------------------------------------------------------
 -- Jeu de données de test

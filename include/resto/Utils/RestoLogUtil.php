@@ -99,7 +99,9 @@ class RestoLogUtil {
         5000 => 'Cannot create group - group already exists',
         6000 => 'Cannot add item to processing cart because item already exist',
         6001 => 'Cannot update item in processing cart because item does not exist in cart',
-        6002 => 'Cannot add item(s) in processing cart because the maximum of products is exceeded'
+        6002 => 'Cannot add item(s) in processing cart because the maximum of products is exceeded',
+        7000 => 'Cannot create Proactive account - account already exists',
+        7001 => 'Cannot update Proactive account - it does not exists'
     );
     
     /*

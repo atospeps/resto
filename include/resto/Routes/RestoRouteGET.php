@@ -50,6 +50,11 @@ class RestoRouteGET extends RestoRoute {
      *    groups                                            |  List all groups    
      *    groups/{groupid}                                  |  Show group {groupid}         
      *    
+     *    proactive                                         |  List all Proactive accounts    
+     *    proactive/{gid}                                   |  Show Proactive account {gid}         
+     *    
+     *    wpsrights/{groupid}                               |  List all WPS rights for the group {groupid}
+     *        
      *    users                                             |  List all users
      *    users/{userid}                                    |  Show {userid} information
      *    users/{userid}/downloadinfo                       |  Show {userid} download informations
@@ -74,6 +79,10 @@ class RestoRouteGET extends RestoRoute {
                 return $this->GET_collections($segments);
             case 'groups':
                 return $this->GET_groups($segments);
+            case 'proactive':
+                return $this->GET_proactive($segments);
+            case 'wpsrights':
+                return $this->GET_wpsRights($segments);
             case 'users':
                 return $this->GET_users($segments);
             default:
@@ -533,7 +542,44 @@ class RestoRouteGET extends RestoRoute {
         }
     }
     
-
+    /**
+     *
+     * Process HTTP GET request on Proactive accounts
+     *
+     * @param array $segments
+     */
+    private function GET_proactive($segments)
+    {
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+    
+        // proactive/{gid}
+        if(isset($segments[1])) {
+            return $this->context->dbDriver->get(RestoDatabaseDriver::PROACTIVE_ACCOUNT, array("id" => $segments[1]));
+        } else {
+            return $this->context->dbDriver->get(RestoDatabaseDriver::PROACTIVE_ACCOUNTS);
+        }
+    }
+    
+    /**
+     *
+     * Process HTTP GET request on WPS rights
+     *
+     * @param array $segments
+     */
+    private function GET_wpsRights($segments)
+    {
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+    
+        if (isset($segments[1]) && $segments[1] === 'group' && isset($segments[2])) {
+            // wpsrights/group/{id}
+            return $this->context->dbDriver->get(RestoDatabaseDriver::WPS_GROUP_RIGHTS, array("groupid" => $segments[2]));
+        }
+    }
+    
     /**
      * 
      * Process HTTP GET request on users

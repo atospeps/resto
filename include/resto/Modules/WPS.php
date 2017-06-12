@@ -83,11 +83,12 @@ class WPS extends RestoModule {
      *       
      * @return string : result from run process in the $context->outputFormat
      */
-    public function run($segments, $data = array()) {
-
-        // Only GET method on 'search' route with json outputformat is accepted
+    public function run($segments, $data = array())
+    {
+        // Allowed HTTP method
         if ($this->context->method !== HttpRequestMethod::GET 
-                && $this->context->method !== HttpRequestMethod::POST) {
+                && $this->context->method !== HttpRequestMethod::POST
+                && $this->context->method !== HttpRequestMethod::PUT) {
             RestoLogUtil::httpError(404);
         }
 
@@ -97,36 +98,33 @@ class WPS extends RestoModule {
         }
 
         // Checks if user can execute WPS services
-        if ($this->user->canExecuteWPS()) {
-            
-            // We get URL segments and the http method
-            $this->segments = $segments;
-            $method = $this->context->method;
-
-            // Switch on HTTP methods
-            switch ($method) {
-                /*
-                 * HTTP/GET
-                 */
-                case HttpRequestMethod::GET:
-                    return $this->processGET();
-                /*
-                 * HTTP/POST 
-                 */
-                case HttpRequestMethod::POST:
-                    return $this->processPOST($data);
-                /*
-                 * 
-                 */
-                case 'PUT' :
-                    return $this->processPUT($data);
-                default :
-                    RestoLogUtil::httpError(404);
-            }
-        }
-        // Rights denied
-        else {
+        if ($this->user->canExecuteWPS() === false) {
             RestoLogUtil::httpError(403);
+        }
+            
+        // We get URL segments and the http method
+        $this->segments = $segments;
+        $method = $this->context->method;
+
+        // Switch on HTTP methods
+        switch ($method) {
+            /*
+             * HTTP/GET
+             */
+            case HttpRequestMethod::GET:
+                return $this->processGET();
+            /*
+             * HTTP/POST 
+             */
+            case HttpRequestMethod::POST:
+                return $this->processPOST($data);
+            /*
+             * 
+             */
+            case 'PUT' :
+                return $this->processPUT($data);
+            default :
+                RestoLogUtil::httpError(404);
         }
     }
 

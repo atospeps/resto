@@ -47,7 +47,7 @@ class WPS_RequestManager {
         
         $this->serverAddress = $serverAddress;
         $this->outputsUrl = $outputsUrl;
-        $this->curlOptions = $curlOpts;
+        $this->curlOpts = $curlOpts;
     }
     
     /**

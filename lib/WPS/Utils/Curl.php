@@ -12,7 +12,7 @@ class Curl {
      * @param unknown $data
      * @param unknown $options
      */
-    public static function Get($url, $data=array(), $options=array()){    
+    public static function Get($url, $data=array(), $options=array()) {
         $opts = array (
                 CURLOPT_RETURNTRANSFER => 1,
                 CURLOPT_VERBOSE => 0,
@@ -58,7 +58,7 @@ class Curl {
             $opts[$key] = $value;
         }
 
-        return self::exec($url, $curl_options);
+        return self::exec($url, $opts);
     }
     
     /**
@@ -66,7 +66,7 @@ class Curl {
      * @param unknown $url
      * @param unknown $curl_options
      */
-    public static function Download($url, $curl_options){
+    public static function Download($url, $options){
         
     }
 

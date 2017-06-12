@@ -13,7 +13,7 @@ class WSDL {
     public static function Get($url, $data, $processes_enabled, $options) {
 
         $data = array();
-        $url = $url . (substr($url, -1) == '?' ? '' : '?') . WPSRequest::WSDL;
+        $url = $url . (substr($url, -1) == '?' ? '' : '?') . WPS_RequestManager::WSDL;
         
         
         /*

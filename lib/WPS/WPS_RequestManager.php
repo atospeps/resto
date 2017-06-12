@@ -12,7 +12,7 @@ require 'ExceptionReport.php';
  * @author Driss El maalem
  *
  */
-class WPSRequest {
+class WPS_RequestManager {
     
     /*
      * WPS Requests constant
@@ -22,8 +22,9 @@ class WPSRequest {
     const EXECUTE = 'execute';
     const WSDL = 'wsdl';
 
-    public $url = null;
-    public $options = array();
+    private $serverAddress = null;
+    private $outputsUrl = null;
+    private $curlOpts = array();
     
     /*
      *
@@ -32,17 +33,36 @@ class WPSRequest {
     
     /**
      */
-    private function __construct($url, $options) {
-        $this->url = $url;
-        $this->options = $options;
-    }
-
-    public static function getInstance($url, $options) {
+    public function __construct($serverAddress, $outputsUrl, $curlOpts) {
         
-        if (is_null(self::$_instance)) {
-            self::$_instance = new WPSRequest($url, $options);
+        // ? WPS server address url is setted
+        if (empty($serverAddress)) {
+            throw new Exception('WPS Configuration problem - ServerAddress', 500);
         }
-        return self::$_instance;
+        
+        // ? WPS outputs url is setted
+        if (empty($outputsUrl)) {
+            throw new Exception('WPS Configuration problem - outputsUrl', 500);
+        }
+        
+        $this->serverAddress = $serverAddress;
+        $this->outputsUrl = $outputsUrl;
+        $this->curlOptions = $curlOpts;
+    }
+    
+    /**
+     * Getters
+     */
+    public function getServerAddress(){
+        return $this->serverAddress;
+    }
+        
+    public function getCurlOptions(){
+        return $this->curlOpts;
+    }
+    
+    public function getOutputsUrl() {
+        return $this->outputsUrl . (substr($this->outputsUrl, -1) == '/' ? '' : '/');
     }
     
     /**
@@ -64,29 +84,29 @@ class WPSRequest {
              * wps?request=GetCapabilities&xxx
              */ 
             case self::GET_CAPABILITIES :
-                $response = GetCapabilities::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = GetCapabilities::Get($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
                 break;
             /*
              * WPS DescribeProcess
              * wps?request=DescribeProcess&xxx
              */
             case self::DESCRIBE_PROCESS :
-                $response = DescribeProcess::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = DescribeProcess::Get($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
                 break;
             /*
              * WPS Execute
              * wps?request=Execute&xxx
              */
             case self::EXECUTE :
-                $response = Execute::Get($this->url, $data, $processes_enabled, $this->options);
+                $response = Execute::Get($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
                 break;
             // ? Is WSDL, missing or invalid parameter 'request'
             default :
                 if ((count($data) > 0) && self::WSDL == strtolower(key($data))) {
-                    $response = WSDL::Get($this->url, $data, $processes_enabled, $this->options);
+                    $response = WSDL::Get($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
                     break;
                 }
-                $response = Curl::Get($this->url, $data, $this->options);
+                $response = Curl::Get($this->serverAddress, $data, $this->curlOpts);
                 break;
         }
         return new WPS_Response($response);
@@ -106,17 +126,39 @@ class WPSRequest {
          */
         switch (strtolower($request)) {
             case self::GET_CAPABILITIES :
-                return GetCapabilities::Post($this->url, $data, $processes_enabled, $this->options);
+                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->options);
             case self::DESCRIBE_PROCESS :
-                return DescribeProcess::Post($this->url, $data, $processes_enabled, $this->options);
+                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->options);
             case self::EXECUTE :
-                return Execute::Post($this->url, $data, $processes_enabled, $this->options);
+                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->options);
             default :
-                return Curl::Post($this->url, $data, $this->options);
+                return Curl::Post($this->serverAddress, $data, $this->options);
         }
+    }
+
+    public function download($resource) {
         
     }
     
+    /**
+     * 
+     * @param unknown $statusLocation
+     * @return WPS_ExecuteResponse|boolean
+     */
+    public function getExecuteResponse($statusLocation) {
+        try {
+            $url = $this->getOutputsUrl() . $statusLocation;
+            $response = new WPS_Response(Curl::Get($url));
+            
+            if ($response->isExecuteResponse()) {
+                $response = new WPS_ExecuteResponse($response->toXML());
+                return $response;
+            }
+        } catch (Exception $e) {}
+
+        return false;
+    }
+
     // private function perform($url, $data, $options) {
     
     // //return $response;

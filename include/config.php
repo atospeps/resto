@@ -257,8 +257,23 @@ return array(
                 'activate' => true,
                 'route' => 'wps',
                 'options' => array(
-                        'wpsServerUrl' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi?'
-        
+                        'wpsServerUrl' => 'http://192.168.56.102:4444/cgi-bin/pywps.cgi', // Docker VM
+//                         'wpsServerUrl' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi', // VIZO ATOS
+                        'outputsUrl' => 'http://172.24.218.59:8081/wps/outputs/',
+                        'replace' => array(
+                                'pywpsResponse' => array(
+                                        'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi',
+                                        'outputUrl' => 'http://localhost:4444/wps/outputs/'
+                                ),
+                                'by' => array(
+                                        'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi',
+                                        'outputUrl' => 'http://localhost:4444/wps/outputs/'
+                                ),
+                        ),
+                        'curlOpts' => array(
+                                CURLOPT_PROXY => '',
+                                CURLOPT_TIMEOUT => 1
+                        ),
                 )
         ),
         /*

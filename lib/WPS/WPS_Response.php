@@ -65,4 +65,17 @@ class WPS_Response {
     public function replace($search, $replace) {
         $this->xml = str_replace($search, $replace, $this->xml);
     }
+    
+    /*
+     * 
+     * 
+     */
+    public function replaceTerms($replacements){
+        if (isset($replacements) && is_array($replacements)){
+            foreach ($replacements as $key => $value){
+                $this->replace($key, $value);
+            }            
+        }
+        
+    }
 }

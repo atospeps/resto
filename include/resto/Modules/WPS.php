@@ -41,10 +41,8 @@ class WPS extends RestoModule {
     /*
      * WPS Server url.
      */
-    private $wpsServerUrl;
-    
-    private $curl_options = array();
-    
+    private $wpsRequestManager;
+
     /**
      * WPS module route.
      */
@@ -68,9 +66,11 @@ class WPS extends RestoModule {
         $this->dbh = $this->getDatabaseHandler();
 
         // WPS server url
-        $this->wpsServerUrl = isset($this->context->modules[get_class($this)]['wpsServerUrl']) ? $this->context->modules[get_class($this)]['wpsServerUrl'] : null ;
-        $this->curl_options = isset($this->context->modules[get_class($this)]['http']) ? $this->context->modules[get_class($this)]['http'] : array() ;
-        
+        $wpsServerUrl = isset($this->context->modules[get_class($this)]['wpsServerUrl']) ? $this->context->modules[get_class($this)]['wpsServerUrl'] : null ;
+        $outputsUrl = isset($this->context->modules[get_class($this)]['outputsUrl']) ? $this->context->modules[get_class($this)]['outputsUrl'] : null ;
+        $curlOpts = isset($this->context->modules[get_class($this)]['curlOpts']) ? $this->context->modules[get_class($this)]['curlOpts'] : array() ;
+        $this->wpsRequestManager = new WPS_RequestManager($wpsServerUrl, $outputsUrl, $curlOpts);
+
         // WPS module route
         $this->route = isset($this->context->modules[get_class($this)]['route']) ? $this->context->modules[get_class($this)]['route'] : '' ;
     }
@@ -179,16 +179,9 @@ class WPS extends RestoModule {
 
         $this->context->outputFormat =  'xml';
 
-        // Checks if WPS server url is configured
-        if (empty($this->wpsServerUrl)) {
-            throw new Exception('WPS Configuration problem', 500);
-        }
-        
-        $wps = WPSRequest::getInstance($this->wpsServerUrl, $this->curl_options);
-
         // Gets wps rights
         $processes_enabled = $this->getEnabledProcesses($this->user->profile['groupname']);
-        $response  = $wps->Get($this->context->query, $processes_enabled);
+        $response  = $this->wpsRequestManager->Get($this->context->query, $processes_enabled);
         $this->updateWpsResponseUrls($response);
         
         // saves job status into database
@@ -220,25 +213,30 @@ class WPS extends RestoModule {
         }
 
         // ? Is statusLocation
+        $statusLocation = $segments[1] . (isset($this->context->outputFormat) ? '.' . $this->context->outputFormat : '');
         $job = $this->context->dbDriver->get(
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
                 array(
                         'userid' => $this->user->profile['userid'],
                         'filters' => array(
-                                'statuslocation=' . $this->context->dbDriver->quote($segments[1] . (isset($this->context->outputFormat) ? '.' . $this->context->outputFormat : ''))
+                                'statuslocation=' . $this->context->dbDriver->quote($statusLocation)
                                 )
                         )
                 );
 
         // ? statusLocation exists 
         if (count($job) > 0) {
-            $response = new WPS_Response(Curl::Get('http://localhost:4444/wps/outputs/' . $job[0]['statuslocation']));
+            $response = new WPS_Response(Curl::Get($this->wpsRequestManager->getOutputsUrl() . $job[0]['statuslocation']));
             $this->updateWpsResponseUrls($response);
             return $response;
         }
 
         //if output result
-        // TODO : wpsfiles table
+        /*
+         * ======================================================
+         * TODO : wpsfiles table
+         * ======================================================
+         */ 
         /*
          * - identifier
          * - type
@@ -443,23 +441,6 @@ class WPS extends RestoModule {
     
     /**
      * 
-     * @param unknown $statusLocation
-     */
-    private function getExecuteResponse($statusLocation){
-        try {
-            $url = 'http://172.24.218.59:8081/wps/outputs/' . $statusLocation; 
-            $response = new WPS_Response(Curl::Get($url));
-            
-            if ($response->isExecuteResponse()) {
-                $response = new WPS_ExecuteResponse($response->toXML());
-                return $response;
-            }
-        } catch (Exception $e) {}
-
-        return false;
-    }
-    /**
-     * 
      * @param WPS_Response $response
      */
     private function updateWpsResponseUrls(WPS_Response $response){
@@ -552,7 +533,7 @@ class WPS extends RestoModule {
         foreach ($jobs as &$job) {
             if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') {
 
-                if (($executeResponse = $this->getExecuteResponse($job['statuslocation'])) != false) {
+                if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) {
 
                     if ($job['status'] != $executeResponse->getStatus() 
                             || $job['statusmessage'] != $executeResponse->getStatusMessage()

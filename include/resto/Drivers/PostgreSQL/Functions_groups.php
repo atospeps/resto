@@ -38,18 +38,20 @@ class Functions_groups {
     /**
      * Return all groups
      * 
+     * @param {bool} $canWps  (optional) can WPS?
      * @return array
      * @throws exception
      */
-    public function getGroups()
+    public function getGroups($canWps = null)
     {
         $items = array();
         
         $query = "SELECT * "
                . "FROM usermanagement.groups AS g "
                . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
+               . ($canWps !== null ? "WHERE canwps = '" . ($canWps ? "t" : "f") . "' " : "")
                . "ORDER BY g.gid";
-
+        
         $results = $this->dbDriver->query($query);
         
         while ($result = pg_fetch_assoc($results)) {
@@ -68,21 +70,20 @@ class Functions_groups {
     /**
      * Return single group
      * 
+     * @param {string}  $gidOrGroupname group id or name
      * @return array
      * @throws exception
      */
     public function getGroup($gidOrGroupname)
     {
+        $query = "SELECT * "
+               . "FROM usermanagement.groups AS g "
+               . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid ";
+        
         if (is_numeric($gidOrGroupname)) {
-            $query = "SELECT * "
-                   . "FROM usermanagement.groups AS g "
-                   . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
-                   . "WHERE gid = '" . $gidOrGroupname . "'";
+            $query .= "WHERE gid = '" . $gidOrGroupname . "' ";
         } else {
-            $query = "SELECT * "
-                   . "FROM usermanagement.groups AS g "
-                   . "LEFT JOIN usermanagement.proactive AS p ON p.proactiveid = g.proactiveid "
-                   . "WHERE groupname = '" . $gidOrGroupname . "'";
+            $query .= "WHERE groupname = '" . $gidOrGroupname . "' ";
         }
         
         $results = $this->dbDriver->query($query);
@@ -162,30 +163,30 @@ class Functions_groups {
     /**
      * Update group
      * 
-     * @param string $identifier
-     * @param string $groupname
-     * @param string $description
+     * @param {array} $params
      *   
      * @return boolean
      * @throws exception
      */
-    public function updateGroup($identifier, $groupname, $description, $canwps, $proactiveid)
+    public function updateGroup($params)
     {
-        if (!isset($identifier)) {
+        extract($params);
+        if (!isset($gid)) {
             return false;
         }
-
-        // Check if group already exists in the database
-        if($this->isGroupExists($groupname, $identifier)) {
-            RestoLogUtil::httpError(5000, 'Cannot update groupname to : ' . $groupname . ', it already exists');
+        
+        if (isset($groupname)) {
+            if($this->isGroupExists($groupname, $gid)) {
+                RestoLogUtil::httpError(5000, 'Cannot update groupname to: ' . $groupname . ', it already exists');
+            }
         }
         
-        $query = "UPDATE usermanagement.groups "
-               . "SET groupname = '" . pg_escape_string($groupname) . "', "
-               .     "description = '" . pg_escape_string($description) . "', "
-               .     "canwps = '" . pg_escape_string($canwps) . "', "
-               .     "proactiveid = " . (!empty($proactiveid) ? pg_escape_string($proactiveid) : 'NULL') . " "
-               . "FROM (SELECT groupname FROM usermanagement.groups WHERE gid='" . pg_escape_string($identifier) . "' FOR UPDATE) oldGroup WHERE gid='" . pg_escape_string($identifier) . "' RETURNING oldGroup.groupname";
+        $query = "UPDATE usermanagement.groups SET "
+               .    (isset($groupname) ? "groupname = '" . pg_escape_string($groupname) . "', " : "")
+               .    (isset($description) ? "description = '" . pg_escape_string($description) . "', " : "")
+               .    (isset($canwps) ? "canwps = '" . pg_escape_string($canwps) . "', " : "")
+               .    (isset($proactiveid) ? ("proactiveid = " . (!empty($proactiveid) ? pg_escape_string($proactiveid) : 'NULL')) : "")
+               . " FROM (SELECT groupname FROM usermanagement.groups WHERE gid = '" . pg_escape_string($gid) . "' FOR UPDATE) oldGroup WHERE gid = '" . pg_escape_string($gid) . "' RETURNING oldGroup.groupname";
         
         $results = $this->dbDriver->query($query);
 

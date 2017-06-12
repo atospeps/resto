@@ -101,7 +101,8 @@ class RestoLogUtil {
         6001 => 'Cannot update item in processing cart because item does not exist in cart',
         6002 => 'Cannot add item(s) in processing cart because the maximum of products is exceeded',
         7000 => 'Cannot create Proactive account - account already exists',
-        7001 => 'Cannot update Proactive account - it does not exists'
+        7001 => 'Cannot update Proactive account - it does not exists',
+        8000 => 'Cannot update WPS rights'
     );
     
     /*

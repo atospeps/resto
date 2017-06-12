@@ -234,6 +234,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $groupsFunctions->getGroup($params['id']);
                 
             /*
+             * Get groups with WPS enable
+             */
+            case parent::WPS_GROUPS:
+                $groupsFunctions = new Functions_groups($this);
+                return $groupsFunctions->getGroups(true);
+                
+                /*
              * Get Proactive accounts
              */
             case parent::PROACTIVE_ACCOUNTS:
@@ -526,7 +533,16 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $proactiveFunctions = new Functions_proactive($this);
                 return $proactiveFunctions->removeAccount($params['accountId']);
                 
-                default:
+            /*
+             * Remove group
+             */
+            case parent::WPS_GROUP_RIGHTS:
+                $wpsRightsFunctions = new Functions_wpsrights($this);
+                return $wpsRightsFunctions->removeWpsRights($params['groupId']);
+            
+                
+                
+            default:
                 return null;
         }
     }
@@ -628,6 +644,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $groupsFunctions->createGroup($params['groupName'], $params['groupDescription'], $params['groupCanWps'], $params['groupProactiveId']);
             
             /*
+             * Store WPS rights for the specified group
+             */
+            case parent::WPS_GROUP_RIGHTS:
+                $wpsrightsFunctions = new Functions_wpsrights($this);
+                return $wpsrightsFunctions->storeWpsRights($params['groupId'], $params['wpsRights']);
+                
+            /*
              * Store Proactive account
              */
             case parent::PROACTIVE:
@@ -690,10 +713,10 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::GROUPS:
                 $groupsFunctions = new Functions_groups($this);
-                return $groupsFunctions->updateGroup($params['groupId'], $params['groupName'], $params['groupDescription'], $params['groupCanWps'], $params['groupProactiveId']);
+                return $groupsFunctions->updateGroup($params);
                 
             /*
-             * Update group
+             * Update proactive account
              */
             case parent::PROACTIVE_ACCOUNT:
                 $proactiveFunctions = new Functions_proactive($this);

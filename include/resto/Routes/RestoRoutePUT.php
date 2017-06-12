@@ -36,6 +36,8 @@ class RestoRoutePUT extends RestoRoute {
      *    
      *    groups/{groupid}                              |  Update {groupid}
      *    
+     *    wpsrights/group/{id}                          |  Update WPS rights for group {id}
+     *    
      *    proactive/{id}                                |  Update Proactive account {id}
      *    
      *    users/{userid}                                |  Update {userid} information
@@ -58,7 +60,9 @@ class RestoRoutePUT extends RestoRoute {
                 return $this->PUT_collections($segments, $data);
             case 'groups':
                 return $this->PUT_groups($segments, $data);
-            case 'proactive':
+            case 'wpsrights':
+                return $this->PUT_wpsRights($segments, $data);
+                case 'proactive':
                 return $this->PUT_proactive($segments, $data);
                 case 'users':
                 return $this->PUT_users($segments, $data);
@@ -150,26 +154,67 @@ class RestoRoutePUT extends RestoRoute {
      * @param array $segments
      * @param array $data
      */
-    private function PUT_groups($segments, $data) {
-
+    private function PUT_groups($segments, $data)
+    {
         if (isset($segments[1])) {
-            /*
-             * Groups can only be update by admin
-             */
             if ($this->user->profile['groupname'] !== 'admin') {
                 RestoLogUtil::httpError(403);
             }
         
-            if($this->context->dbDriver->update(RestoDatabaseDriver::GROUPS, array(
-                    "groupId" => $segments[1],
-                    "groupName" => $data["groupName"],
-                    "groupDescription" => $data["groupDescription"],
-                    "groupCanWps" => $data["groupCanWps"],
-                    'groupProactiveId' => $data['groupProactiveId']
-            ))) {
-                return RestoLogUtil::success('Group ' . $data['groupName'] . ' updated');
+            $params = array("gid" => $segments[1]);
+            if (isset($data["groupName"])) {
+                $params["groupname"] = $data["groupName"];
+            }
+            if (isset($data["groupDescription"])) {
+                $params["description"] = $data["groupDescription"];
+            }
+            if (isset($data["groupCanWps"])) {
+                $params["canwps"] = $data["groupCanWps"];
+            }
+            if (isset($data["groupProactiveId"])) {
+                $params["proactiveid"] = $data["groupProactiveId"];
+            }
+                    
+            if($this->context->dbDriver->update(RestoDatabaseDriver::GROUPS, $params)) {
+                return RestoLogUtil::success('Group ' . $segments[1] . ' successfully updated');
             } else {
-            RestoLogUtil::httpError(5000, 'Cannot update group, it does not exist');
+                RestoLogUtil::httpError(5000, 'Cannot update group, it does not exist');
+            }
+        }
+        else {
+            RestoLogUtil::httpError(404);
+        }
+    }
+    
+    /**
+     * 
+     * Process HTTP PUT request on WPS rights
+     * 
+     *    wpsrights/group/{id}                              |  Update WPS rights for group {id}
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function PUT_wpsRights($segments, $data) {
+
+        if (isset($segments[1])) {
+            if ($this->user->profile['groupname'] !== 'admin') {
+                RestoLogUtil::httpError(403);
+            }
+        
+            // delete old wps rights associated with group id
+            if ($this->context->dbDriver->remove(RestoDatabaseDriver::WPS_GROUP_RIGHTS, array("groupId" => $segments[2]))) {
+                // save the new wps rights for group id
+                if ($this->context->dbDriver->store(RestoDatabaseDriver::WPS_GROUP_RIGHTS, array(
+                    "groupId" => $segments[2],
+                    "wpsRights" => $data["rights"]
+                ))) {
+                    return RestoLogUtil::success("WPS rights for group id " . $segments[2] . " successfully updated");
+                } else {
+                    RestoLogUtil::httpError(8000, "Cannot update WPS rights for group id " . $segments[2]);
+                }
+            } else {
+                RestoLogUtil::httpError(8000, "Cannot update WPS rights for group id " . $segments[2]);
             }
         }
         else {

@@ -49,6 +49,7 @@ class RestoRouteGET extends RestoRoute {
      * 
      *    groups                                            |  List all groups    
      *    groups/{groupid}                                  |  Show group {groupid}         
+     *    groups/canwps                                     |  List all groups with WPS enable         
      *    
      *    proactive                                         |  List all Proactive accounts    
      *    proactive/{gid}                                   |  Show Proactive account {gid}         
@@ -536,7 +537,11 @@ class RestoRouteGET extends RestoRoute {
         
         // groups/{groupid}
         if(isset($segments[1])) {
-            return $this->context->dbDriver->get(RestoDatabaseDriver::GROUP_DESCRIPTIONS, array("id" => $segments[1]));
+            if (is_numeric($segments[1])) {
+                return $this->context->dbDriver->get(RestoDatabaseDriver::GROUP_DESCRIPTIONS, array("id" => $segments[1]));
+            } else {
+                return $this->context->dbDriver->get(RestoDatabaseDriver::WPS_GROUPS);
+            }
         } else {
             return $this->context->dbDriver->get(RestoDatabaseDriver::GROUPS);
         }

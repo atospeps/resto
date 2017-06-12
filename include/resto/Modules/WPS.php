@@ -159,6 +159,11 @@ class WPS extends RestoModule {
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
                 /*
+                 *
+                 */
+                case 'processings':
+                    return $this->GET_wps_processings($this->segments);
+                /*
                  * Unknown route
                  */
                 default:
@@ -439,6 +444,8 @@ class WPS extends RestoModule {
     
     /**
      * 
+     * TODO
+     * 
      * @param WPS_Response $response
      */
     private function updateWpsResponseUrls(WPS_Response $response){
@@ -460,6 +467,8 @@ class WPS extends RestoModule {
      */
     
     /**
+     * TODO
+     * 
      * Returns wps rights
      * @param unknown $groupname
      * @return multitype:string
@@ -469,6 +478,7 @@ class WPS extends RestoModule {
     }
     
     /**
+     * TODO
      * 
      * @param unknown $groupname
      */
@@ -548,6 +558,56 @@ class WPS extends RestoModule {
             }
         }
         return $jobs;
+    }
+    
+    /**
+     * 
+     */
+    private function GET_wps_processings() {
+        
+        // Only user admin can see WPS jobs of all users.
+        if ($this->user->profile['groupname'] !== 'admin') {
+            RestoLogUtil::httpError(403);
+        }
+
+        $response = $this->wpsRequestManager->Get(
+                array(
+                        'request' => 'getCapabilities',
+                        'service' => 'WPS',
+                        'version' => '1.0.0'
+                ), 
+                array('all'));
+
+        $dom = new DOMDocument;        
+        $dom->loadXML($response->toXML());
+        
+        $results = array();
+        $processes = $dom->getElementsByTagNameNS('http://www.opengis.net/wps/1.0.0', 'Process');
+
+        if ($processes && $processes->length > 0) {
+            // on parcours les process de la reponse et on supprime les process non autorisés
+            foreach ($processes as $process) {
+                $identifier = null;
+                $title = null;
+
+                $node = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier');                    
+                if ($node && $node->length > 0) {
+                   $identifier = $node->item(0)->nodeValue;
+                }
+                
+                $node = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Title');
+                if ($node && $node->length > 0) {
+                    $title = $node->item(0)->nodeValue;
+                }
+                $results[] = array(
+                        'identifier' => $identifier,
+                        'title' => $title
+                );
+            }
+        }
+        return RestoLogUtil::success("WPS Processings list", array (
+                'items' => $results
+        ));
     }
 
 }

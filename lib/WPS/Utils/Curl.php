@@ -66,8 +66,42 @@ class Curl {
      * @param unknown $url
      * @param unknown $curl_options
      */
-    public static function Download($url, $options){
-        
+    public static function Download($url, $type=null, $options=array()) {
+
+        set_time_limit(0);
+        $context_options = array (
+                'http' => array ('method' => 'GET'),
+                'ssl' => array(),
+        );
+
+        foreach ($options as $key => $value) {
+            switch ($key) {
+                case CURLOPT_PROXY:
+                    $context_options['http']['proxy'] = $value;
+                    break;
+                case CURLOPT_SSL_VERIFYPEER:
+                    $context_options['ssl'] = $value;
+                    break;
+                case CURLOPT_TIMEOUT:
+                    $context_options['http']['timeout'] = $value;
+                    break;
+                default:
+                    break;
+            }
+        }
+        $context = stream_context_create($context_options);
+        $handle = fopen($url, "rb", false, $context);
+        if ($handle === false) {
+            RestoLogUtil::httpError(500, 'Resource cannot be downloaded');
+        }
+        header('HTTP/1.1 200 OK');
+        header('Content-Disposition: attachment; filename="' . basename($url) . '"');
+        header('Content-Type: ' . isset($type) ? $type : 'application/unknown');
+        while (!feof($handle) && (connection_status() === CONNECTION_NORMAL)) {
+            echo fread($handle, 10 * 1024 * 1024);
+            flush();
+        }
+        return fclose($handle);
     }
 
     /**
@@ -105,7 +139,7 @@ class Curl {
             /*
              * logs error.
             */
-            error_log(__METHOD__ . ' ' . $error, 0);
+            error_log('[' . __METHOD__ . '] ' . $error . ', ' . $url, 0);
             /*
              * Close cURL session
             */

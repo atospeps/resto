@@ -105,7 +105,7 @@ class Curl {
             /*
              * logs error.
             */
-            error_log(__METHOD__ . ' ' . $error, 0);
+            error_log(__METHOD__ . ' ' . $error . ' ' . $url, 0);
             /*
              * Close cURL session
             */

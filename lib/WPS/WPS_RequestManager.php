@@ -126,13 +126,13 @@ class WPS_RequestManager {
          */
         switch (strtolower($request)) {
             case self::GET_CAPABILITIES :
-                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             case self::DESCRIBE_PROCESS :
-                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             case self::EXECUTE :
-                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             default :
-                return Curl::Post($this->serverAddress, $data, $this->options);
+                return Curl::Post($this->serverAddress, $data, $this->curlOpts);
         }
     }
 
@@ -148,7 +148,7 @@ class WPS_RequestManager {
     public function getExecuteResponse($statusLocation) {
         try {
             $url = $this->getOutputsUrl() . $statusLocation;
-            $response = new WPS_Response(Curl::Get($url));
+            $response = new WPS_Response(Curl::Get($url, array(), $this->curlOpts));
             
             if ($response->isExecuteResponse()) {
                 $response = new WPS_ExecuteResponse($response->toXML());

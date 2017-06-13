@@ -244,7 +244,10 @@ class WPS extends RestoModule {
 
         // ? statusLocation exists 
         if (count($job) > 0) {
-            $response = new WPS_Response(Curl::Get($this->wpsRequestManager->getOutputsUrl() . $job[0]['statuslocation']));
+            $response = $this->wpsRequestManager->getExecuteResponse($job[0]['statuslocation']);
+            if ($response == false){
+                return RestoLogUtil::httpError(404);
+            }
             $response->replaceTerms($this->replacements);
             return $response;
         }
@@ -471,7 +474,7 @@ class WPS extends RestoModule {
         // Query
         $query = 'SELECT usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
                 . $this->context->dbDriver->quote($this->wpsRequestManager->getOutputsUrl()) .' || value as value FROM usermanagement.wps_results' 
-                . ' INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid WHERE ' . $oFilter;
+                . ' INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
         
 
         return $this->context->dbDriver->fetch($this->context->dbDriver->query($query));

@@ -171,6 +171,7 @@ class Functions_groups {
     public function updateGroup($params)
     {
         extract($params);
+        
         if (!isset($gid)) {
             return false;
         }
@@ -187,18 +188,20 @@ class Functions_groups {
                .    (isset($canwps) ? "canwps = '" . pg_escape_string($canwps) . "', " : "")
                .    (isset($proactiveid) ? ("proactiveid = " . (!empty($proactiveid) ? pg_escape_string($proactiveid) : 'NULL')) : "")
                . " FROM (SELECT groupname FROM usermanagement.groups WHERE gid = '" . pg_escape_string($gid) . "' FOR UPDATE) oldGroup WHERE gid = '" . pg_escape_string($gid) . "' RETURNING oldGroup.groupname";
-        
+
         $results = $this->dbDriver->query($query);
 
         if ($group = pg_fetch_assoc($results)) {
-            // Update all rights associated to the group
-            $this->dbDriver->query('UPDATE usermanagement.rights SET emailorgroup = \''. pg_escape_string($groupname) . '\' WHERE emailorgroup=\'' . pg_escape_string($group['groupname']) . '\'');
-            // Update all users which have the updated group
-            $this->dbDriver->query('UPDATE usermanagement.users SET groupname = \''. pg_escape_string($groupname) . '\' WHERE groupname=\'' . pg_escape_string($group['groupname']) . '\'');
+            if (!empty($groupname)) {
+                // Update all rights associated to the group
+                $this->dbDriver->query('UPDATE usermanagement.rights SET emailorgroup = \''. pg_escape_string($groupname) . '\' WHERE emailorgroup=\'' . pg_escape_string($group['groupname']) . '\'');
+                // Update all users which have the updated group
+                $this->dbDriver->query('UPDATE usermanagement.users SET groupname = \''. pg_escape_string($groupname) . '\' WHERE groupname=\'' . pg_escape_string($group['groupname']) . '\'');
+            }
             return true;
-        } else {
-            return false;
         }
+        
+        return false;
     }
     
     /**

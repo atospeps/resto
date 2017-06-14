@@ -110,6 +110,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $jobsFunctions->get($params['userid'], null, isset($params['filters']) ? $params['filters'] : null);
                 
             /*
+             * Get processing items
+             */
+            case parent::PROCESSING_JOBS_STATS:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->getStats($params['email']);
+            
+            
+            /*
              * Get collections descriptions
              */
             case parent::COLLECTIONS_DESCRIPTIONS:
@@ -240,7 +248,14 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $groupsFunctions = new Functions_groups($this);
                 return $groupsFunctions->getGroups(true);
                 
-                /*
+            /*
+             * Get WPS rights
+             */
+            case parent::WPS_GROUP_RIGHTS:
+                $wpsRightsFunctions = new Functions_wpsrights($this);
+                return $wpsRightsFunctions->getWpsGroupRights($params['groupid']);
+                
+            /*
              * Get Proactive accounts
              */
             case parent::PROACTIVE_ACCOUNTS:
@@ -253,13 +268,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::PROACTIVE_ACCOUNT:
                 $proactiveFunctions = new Functions_proactive($this);
                 return $proactiveFunctions->getAccount($params['id']);
-                
-            /*
-             * Get WPS rights
-             */
-            case parent::WPS_GROUP_RIGHTS:
-                $wpsRightsFunctions = new Functions_wpsrights($this);
-                return $wpsRightsFunctions->getWpsGroupRights($params['groupid']);
                 
             /*
              * Get user downloaded volume the last 7 days 
@@ -812,6 +820,17 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
      */
     public function fetch($results) {
         $output = pg_fetch_all($results);
+        return $output === false ? array() : $output;
+    }
+    
+    /**
+     * Convert database query result into associative array
+     * 
+     * @param DatabaseResult $results
+     * @return array
+     */
+    public function fetch_assoc($results) {
+        $output = pg_fetch_assoc($results);
         return $output === false ? array() : $output;
     }
     

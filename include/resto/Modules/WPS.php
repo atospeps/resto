@@ -11,9 +11,13 @@
  *    | HTTP/GET        wps/users/{userid}/jobs/stats                   | User's completed jobs stats
  *    | HTTP/PUT        wps/users/{userid}/jobs/acknowledges            | Update user's jobs acknowledges
  *    | HTTP/DELETE     wps/users/{userid}/jobs/{jobid}                 | Delete job
+ *    | HTTP/GET        wps/users/{userid}/processings                  | List of all processings enabled for the user
  *    |
  *    | HTTP/GET        wps?                                            | HTTP/GET wps services (OGC)
- *    | HTTP/POST       wps                                             | HTTP/POST wps services (OGC) - Not implemented   
+ *    | HTTP/POST       wps                                             | HTTP/POST wps services (OGC) - Not implemented
+ *    |   
+ *    | HTTP/GET        wps/processings                                 | List of all processings (admin only)
+ *    | HTTP/GET        wps/processings/{identifier}/describe           | Get the description of processing {identifier}
  *    
  */
 class WPS extends RestoModule {
@@ -119,10 +123,13 @@ class WPS extends RestoModule {
             case HttpRequestMethod::POST:
                 return $this->processPOST($data);
             /*
-             * 
+             * HTTP/PUT
              */
             case 'PUT' :
                 return $this->processPUT($data);
+            /*
+             * Error
+             */
             default :
                 RestoLogUtil::httpError(404);
         }
@@ -159,7 +166,8 @@ class WPS extends RestoModule {
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
                 /*
-                 *
+                 * HTTP/GET wps/processings (admin only)
+                 * HTTP/GET wps/processings/{identifier}/describe
                  */
                 case 'processings':
                     return $this->GET_wps_processings($this->segments);
@@ -178,12 +186,12 @@ class WPS extends RestoModule {
      * @throws Exception
      * @return WPS_Response
      */
-    private function GET_wps($segments) {
-
+    private function GET_wps($segments) 
+    {
         $this->context->outputFormat =  'xml';
 
         // Gets wps rights
-        $processes_enabled = $this->getEnabledProcesses($this->user->profile['groupname']);
+        $processes_enabled = $this->getEnabledProcessings($this->user->profile['groupname']);
         $response  = $this->wpsRequestManager->Get($this->context->query, $processes_enabled);
         $this->updateWpsResponseUrls($response);
         
@@ -281,22 +289,35 @@ class WPS extends RestoModule {
      */
     private function GET_users($segments)
     {
-        $segments = $this->segments;
-        if (isset($segments[1]) && isset($segments[2]) && $segments[2] === 'jobs') {
-            if (isset($segments[3]) && $segments[3] === 'stats') {
-                // users/{userid}/jobs/stats
-                $count = $this->getCompletedJobsStats($segments[1]);
-                return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
-                    'data' => $count
-                ));
-            } else {
-                // users/{userid}/jobs
-                $jobs = $this->GET_userWPSJobs($segments[1]);
-                return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
-                    'data' => $jobs
-                ));
+        $userid = $segments[1];
+        if ($this->user->profile['userid'] !== $userid) {
+            RestoLogUtil::httpError(403);
+        }
+        
+        if (isset($segments[2])) {
+            // jobs
+            if ($segments[2] === 'jobs') {
+                if (isset($segments[3]) && $segments[3] === 'stats') {
+                    // users/{userid}/jobs/stats
+                    $count = $this->getCompletedJobsStats($userid);
+                    return RestoLogUtil::success("WPS jobs stats for user {$userid}", array (
+                        'data' => $count
+                    ));
+                } else {
+                    // users/{userid}/jobs
+                    $jobs = $this->GET_userWPSJobs($userid);
+                    return RestoLogUtil::success("WPS jobs stats for user {$userid}", array (
+                        'data' => $jobs
+                    ));
+                }
+            }
+            // processings
+            elseif ($segments[2] === 'processings') {
+                // users/{userid}/processings
+                return $this->GET_wps_processings();
             }
         }
+        
         return RestoLogUtil::httpError(404);
     }
 
@@ -390,7 +411,7 @@ class WPS extends RestoModule {
     }
     
     /**
-     * Returns the completed jobs (succeeded + failed) to be notified
+     * Returns the completed jobs (succeeded + failed)
      * 
      * @param {string} userid
      * @return {int} count
@@ -401,15 +422,10 @@ class WPS extends RestoModule {
             RestoLogUtil::httpError(403);
         }
         
-        $query = "SELECT count(status) "
-               . "FROM usermanagement.jobs "
-               . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
-               . "AND email = '" . pg_escape_string($this->user->profile['email']) . "' "
-               . "AND acknowledge = FALSE";
-        $result = pg_query($this->dbh, $query);
-        $row = pg_fetch_assoc($result);
-        
-        return (int)$row['count'];
+        return $this->context->dbDriver->get(
+            RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
+            array('email' => $this->user->profile['email'])
+        );
     }
     
     /**
@@ -467,14 +483,30 @@ class WPS extends RestoModule {
      */
     
     /**
-     * TODO
+     * Returns WPS rights for the group
      * 
-     * Returns wps rights
-     * @param unknown $groupname
-     * @return multitype:string
+     * @param string $groupname
+     * @return array
      */
-    private function getEnabledProcesses($groupname) {
-        return array('all', /*'all',*/ 'echotiff', 'noinputsprocess', 'assyncprocess', 'QL_S2');
+    private function getEnabledProcessings($groupname)
+    {
+        if (empty($groupname)) {
+            return array();
+        }
+        
+        // get group id
+        $group = $this->context->dbDriver->get(
+            RestoDatabaseDriver::GROUP, 
+            array('gidOrGroupName' => $groupname)
+        );
+        
+        // get WPS rights
+        $wpsRights = $this->context->dbDriver->get(
+            RestoDatabaseDriver::WPS_GROUP_RIGHTS, 
+            array('groupid' => $group['id'])
+        );
+        
+        return $wpsRights;
     }
     
     /**
@@ -561,22 +593,75 @@ class WPS extends RestoModule {
     }
     
     /**
+     * Get WPS processings
      * 
      */
-    private function GET_wps_processings() {
-        
-        // Only user admin can see WPS jobs of all users.
-        if ($this->user->profile['groupname'] !== 'admin') {
-            RestoLogUtil::httpError(403);
+    private function GET_wps_processings($segments = null)
+    {
+        if (isset($segments) && isset($segments[1]) && isset($segments[2]) && $segments[2] === 'describe') {
+            // processings/{identifier}/describe
+            $description = $this->getProcessingDescription($segments[1]);
+            return RestoLogUtil::success("WPS processing description for identifier {$segments[1]}", array (
+                'data' => $description
+            ));
+        } else {
+            // processings
+            return $this->getProcessingsList();
         }
-
+        
+        return RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * Get processing description
+     */
+    function getProcessingDescription($identifier)
+    {
+        if ($this->user->profile['groupname'] === 'admin') {
+            $wpsRights = array('all');
+        } else {
+            $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
+        }
+        
         $response = $this->wpsRequestManager->Get(
                 array(
-                        'request' => 'getCapabilities',
+                        'request' => 'describeProcess',
                         'service' => 'WPS',
-                        'version' => '1.0.0'
-                ), 
-                array('all'));
+                        'version' => '1.0.0',
+                        'identifier' => $identifier
+                ),
+                $wpsRights
+        );
+        
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        
+        $dom->loadXML($response->toXML());
+        
+        return $dom->getElementsByTagName('ProcessDescription')->item(0)->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Abstract')->item(0)->nodeValue;
+    }
+    
+    /**
+     * Get WPS processings
+     */
+    function getProcessingsList()
+    {
+        // get WPS rights
+        if ($this->user->profile['groupname'] === 'admin') {
+            $wpsRights = array('all');
+        } else {
+            $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
+        }
+        
+        $response = $this->wpsRequestManager->Get(
+            array(
+                'request' => 'getCapabilities',
+                'service' => 'WPS',
+                'version' => '1.0.0'
+            ), 
+            $wpsRights
+        );
 
         $dom = new DOMDocument;        
         $dom->loadXML($response->toXML());
@@ -600,8 +685,8 @@ class WPS extends RestoModule {
                     $title = $node->item(0)->nodeValue;
                 }
                 $results[] = array(
-                        'identifier' => $identifier,
-                        'title' => $title
+                    'identifier' => $identifier,
+                    'title' => $title
                 );
             }
         }

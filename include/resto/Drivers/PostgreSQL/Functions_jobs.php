@@ -57,6 +57,30 @@ class Functions_jobs {
     }
 
     /**
+     * Returns the total of the completed jobs (succeeded + failed)
+     * 
+     * @param string $email
+     * @return number
+     */
+    public function getStats($email)
+    {
+        if (!isset($email)) {
+            return 0;
+        }
+        
+        $query = "SELECT count(status)"
+               . " FROM usermanagement.jobs"
+               . " WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed')"
+               . " AND email = " . $this->dbDriver->quote($email)
+               . " AND acknowledge = FALSE";
+        
+        $result = $this->dbDriver->query($query);
+        $row = $this->dbDriver->fetch_assoc($result);
+        
+        return (int)$row['count'];
+    }
+    
+    /**
      * 
      * @param integer $userid
      * @param array $data

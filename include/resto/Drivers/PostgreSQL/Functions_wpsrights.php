@@ -30,7 +30,7 @@ class Functions_wpsrights {
     {
         $items = array();
         
-        $query = "SELECT wpsrightsid, identifier FROM usermanagement.wpsrights WHERE groupid = " . pg_escape_string($groupid) . " ORDER BY wpsrightsid";
+        $query = "SELECT identifier FROM usermanagement.wpsrights WHERE groupid = " . pg_escape_string($groupid) . " ORDER BY wpsrightsid";
         
         $results = $this->dbDriver->query($query);
         while ($result = pg_fetch_assoc($results)) {

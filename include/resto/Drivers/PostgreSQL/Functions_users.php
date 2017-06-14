@@ -57,16 +57,16 @@ class Functions_users {
      *                 if user is not found in database
      * @throws exception
      */
-    public function getUserProfile($identifier, $password = null) {
-        
-        /*
-         * Unregistered users
-         */
+    public function getUserProfile($identifier, $password = null)
+    {
         if (!isset($identifier) || !$identifier || $identifier === 'unregistered') {
             RestoLogUtil::httpError(404);
         }
 
-        $query = 'SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\'), activated FROM usermanagement.users WHERE ' . $this->useridOrEmailFilter ( $identifier ) . (isset ( $password ) ? ' AND password=\'' . pg_escape_string ( RestoUtil::encrypt ( $password ) ) . '\'' : '');
+        $query = "SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), activated"
+               . " FROM usermanagement.users"
+               . " WHERE " . $this->useridOrEmailFilter($identifier)
+               . (isset ( $password ) ? " AND password='" . pg_escape_string(RestoUtil::encrypt($password)) . "'" : "");
 
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
@@ -79,7 +79,6 @@ class Functions_users {
         $results[0]['activated'] = (integer) $results[0]['activated'];
         
         return $results[0];
-        
     }
 
     /**

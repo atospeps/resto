@@ -770,7 +770,8 @@ class RestoRouteGET extends RestoRoute {
     /**
      * Validate that a user can download a certain product
      */
-    private function validateDownload($collection, $feature) {
+    private function validateDownload($collection, $feature)
+    {
         // We get a correct array format
         $featureProp = $feature->toArray();
     
@@ -814,19 +815,20 @@ class RestoRouteGET extends RestoRoute {
         }
     
         // Secondly we verify all the rights
+        
         /*
         * User do not have right to download product
         */
         if (!$this->user->canDownload($collection->name, $feature->identifier)) {
-        $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-        RestoLogUtil::httpError(403);
+            $this->user->storeQuery('ERROR', 'download', $this->collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
+            RestoLogUtil::httpError(403);
         }
     
         /*
         * Existinf file + rights = OK
         */
-         return "OK";
-        }
+        return "OK";
+    }
 
     /**
      * Validate that a user can download a product by it's limit download size

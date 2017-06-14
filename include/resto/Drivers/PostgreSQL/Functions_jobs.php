@@ -62,16 +62,16 @@ class Functions_jobs {
      * @param string $email
      * @return number
      */
-    public function getStats($email)
+    public function getStats($userid)
     {
-        if (!isset($email)) {
+        if (!isset($userid)) {
             return 0;
         }
         
         $query = "SELECT count(status)"
                . " FROM usermanagement.jobs"
                . " WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed')"
-               . " AND email = " . $this->dbDriver->quote($email)
+               . " AND userid = " . $this->dbDriver->quote($userid)
                . " AND acknowledge = FALSE";
         
         $result = $this->dbDriver->query($query);

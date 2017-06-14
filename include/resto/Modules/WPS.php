@@ -468,7 +468,7 @@ class WPS extends RestoModule {
         $query = "UPDATE usermanagement.jobs "
                . "SET acknowledge = TRUE "
                . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
-               . "AND email = '" . pg_escape_string($this->user->profile['email']) . "' ";
+               . "AND userid = '" . pg_escape_string($userid) . "' ";
         
         $result = pg_query($this->dbh, $query);
     }
@@ -487,7 +487,7 @@ class WPS extends RestoModule {
         
         return $this->context->dbDriver->get(
             RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
-            array('email' => $this->user->profile['email'])
+            array('userid' => $userid)
         );
     }
     

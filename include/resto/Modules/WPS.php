@@ -515,16 +515,15 @@ class WPS extends RestoModule {
         $oFilter = implode(' AND ', $filters);
 
         $rootPathOutputsUrl = isset($rootPath) ? $rootPath : '';
-        
+
         // Query
-        $query = 'SELECT usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
+        $query = 'SELECT usermanagement.wps_results.uid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
                 . $this->context->dbDriver->quote($rootPathOutputsUrl) .' || value as value FROM usermanagement.wps_results' 
                 . ' INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
-        
 
         return $this->context->dbDriver->fetch($this->context->dbDriver->query($query));
     }
-    
+
     /**
      *
      * @return multitype:multitype:
@@ -573,6 +572,9 @@ class WPS extends RestoModule {
             return array();
         }
         
+        if ($groupname === 'admin') {
+            return array('all');
+        }
         // get group id
         $group = $this->context->dbDriver->get(
             RestoDatabaseDriver::GROUP, 

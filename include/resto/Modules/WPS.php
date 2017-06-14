@@ -300,11 +300,16 @@ class WPS extends RestoModule {
      *      TODO    HTTP/GET wps/users/{userid}/jobs/{jobid}/download
      *              HTTP/GET wps/users/{userid}/jobs/stats
      *              HTTP/GET wps/users/{userid}/jobs/results
+	 * 				HTTP/GET wps/users/{userid}/processings
      *
      * @param array $segments
      */
     private function GET_users($segments)
     {
+        if (!isset($segments[1])) {
+            RestoLogUtil::httpError(404);
+        }
+
         $userid = $segments[1];
         if ($this->user->profile['userid'] !== $userid) {
             RestoLogUtil::httpError(403);
@@ -313,6 +318,13 @@ class WPS extends RestoModule {
         if (isset($segments[2])) {
             // jobs
             if ($segments[2] === 'jobs') {
+                if (!isset($segments[3])){
+                    // users/{userid}/jobs
+                    $jobs = $this->GET_userWPSJobs($segments[1]);
+                    return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
+                            'data' => $jobs
+                    ));
+                }
                 if (!isset($segments[4])) {
                     switch ($segments[3]) {
                         case 'stats':

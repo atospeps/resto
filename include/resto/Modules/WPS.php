@@ -296,11 +296,13 @@ class WPS extends RestoModule {
      * 
      *              HTTP/GET wps/users/{userid}/jobs
      *      TODO    HTTP/GET wps/users/{userid}/jobs/{jobid}
-     *      TODO    HTTP/GET wps/users/{userid}/jobs/download
      *      TODO    HTTP/GET wps/users/{userid}/jobs/{jobid}/download
      *              HTTP/GET wps/users/{userid}/jobs/stats
      *              HTTP/GET wps/users/{userid}/jobs/results
 	 * 				HTTP/GET wps/users/{userid}/processings
+	 *              HTTP/GET wps/processings/{identifier}/describe 
+     *              HTTP/GET wps/processings
+     *              HTTP/GET wps/users/{userid}/processings
      *
      * @param array $segments
      */
@@ -381,6 +383,9 @@ class WPS extends RestoModule {
 
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
+     * 
+     *      TODO    HTTP/POST wps/users/{userid}/jobs/download
+     *      
      */
     private function processPOST($data)
     {

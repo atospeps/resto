@@ -487,7 +487,7 @@ class WPS extends RestoModule {
         
         return $this->context->dbDriver->get(
             RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
-            array('email' => $this->user->profile['email'])
+            array('userid' => $userid)
         );
     }
     

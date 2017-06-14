@@ -114,7 +114,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_JOBS_STATS:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->getStats($params['email']);
+                return $jobsFunctions->getStats($params['userid']);
             
             
             /*

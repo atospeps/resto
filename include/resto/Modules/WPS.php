@@ -374,7 +374,7 @@ class WPS extends RestoModule {
             // processings
             elseif ($segments[2] === 'processings') {
                 // users/{userid}/processings
-                return $this->GET_wps_processings();
+                return $this->GET_wps_processings($segments);
             }
         }
         
@@ -676,7 +676,7 @@ class WPS extends RestoModule {
      * Get WPS processings
      * 
      */
-    private function GET_wps_processings($segments = null)
+    private function GET_wps_processings($segments)
     {
         if (isset($segments) && isset($segments[1]) && isset($segments[2]) && $segments[2] === 'describe') {
             // processings/{identifier}/describe
@@ -705,10 +705,10 @@ class WPS extends RestoModule {
         
         $response = $this->wpsRequestManager->Get(
                 array(
-                        'request' => 'describeProcess',
-                        'service' => 'WPS',
-                        'version' => '1.0.0',
-                        'identifier' => $identifier
+                    'request' => 'describeProcess',
+                    'service' => 'WPS',
+                    'version' => '1.0.0',
+                    'identifier' => $identifier
                 ),
                 $wpsRights
         );
@@ -716,10 +716,31 @@ class WPS extends RestoModule {
         $dom = new DOMDocument;
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
-        
         $dom->loadXML($response->toXML());
         
-        return $dom->getElementsByTagName('ProcessDescription')->item(0)->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Abstract')->item(0)->nodeValue;
+        $description = '';
+        $inputs = array();
+        
+        $processDescription = $dom->getElementsByTagName('ProcessDescription')->item(0);
+        if ($processDescription) {
+            $description = $processDescription->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Abstract')->item(0)->textContent;
+            
+            $inputs['storeSupported'] = $processDescription->getAttribute('storeSupported');
+            $inputs['statusSupported'] = $processDescription->getAttribute('statusSupported');
+            
+            $dataInputs = $processDescription->getElementsByTagName('DataInputs')->item(0);
+            if ($dataInputs) {
+                $firstInput = $dataInputs->getElementsByTagName('Input')->item(0);
+                if ($firstInput) {
+                    $inputs['identifierKey'] = $firstInput->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier')->item(0)->textContent;
+                }
+            }
+        }
+        
+        return array(
+            'description' => $description,
+            'inputs' => $inputs
+        );
     }
     
     /**

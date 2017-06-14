@@ -180,7 +180,8 @@ GRANT SELECT, UPDATE ON SEQUENCE usermanagement.wpsrights_gid_seq TO resto;
 
 CREATE TABLE IF NOT EXISTS usermanagement.wpsrights
 (
-  gid integer NOT NULL DEFAULT nextval('usermanagement.wpsrights_gid_seq'::regclass),
+  wpsrightsid serial NOT NULL DEFAULT nextval('usermanagement.wpsrights_gid_seq'::regclass),
+  groupid serial NOT NULL
   identifier text NOT NULL,
   CONSTRAINT wpsrights_pkey PRIMARY KEY (gid)
 );

@@ -25,6 +25,11 @@ class WPS_RequestManager {
     private $serverAddress = null;
     private $outputsUrl = null;
     private $curlOpts = array();
+    /*
+     * 
+     */
+    private $wpsResponseServerAddress = null;
+    private $wpsResponseOutputsUrl = null;
     
     /*
      *
@@ -33,20 +38,31 @@ class WPS_RequestManager {
     
     /**
      */
-    public function __construct($serverAddress, $outputsUrl, $curlOpts) {
+    public function __construct($config, $curlOpts) {
         
+        if (!isset($config) || !is_array($config)){
+            throw new Exception('WPS server configuration is missing', 500);
+        }
+
         // ? WPS server address url is setted
-        if (empty($serverAddress)) {
-            throw new Exception('WPS Configuration problem - ServerAddress', 500);
+        if (empty($config['serverAddress'])) {
+            throw new Exception('WPS server configuration - ServerAddress is missing', 500);
         }
-        
+
         // ? WPS outputs url is setted
-        if (empty($outputsUrl)) {
-            throw new Exception('WPS Configuration problem - outputsUrl', 500);
+        if (empty($config['outputsUrl'])) {
+            throw new Exception('WPS server configuration - outputsUrl is missing', 500);
         }
         
-        $this->serverAddress = $serverAddress;
-        $this->outputsUrl = $outputsUrl;
+        // ? pywps conf is setted
+        if (empty($config['conf']['serverAddress']) || empty($config['conf']['outputsUrl'])) {
+            throw new Exception('WPS server configuration - pywps.conf : missing parameter', 500);
+        }
+
+        $this->serverAddress = $config['serverAddress'];
+        $this->outputsUrl = $config['outputsUrl'];
+        $this->wpsResponseServerAddress = $config['conf']['serverAddress'];
+        $this->wpsResponseOutputsUrl = $config['conf']['outputsUrl'];
         $this->curlOpts = $curlOpts;
     }
     
@@ -63,6 +79,14 @@ class WPS_RequestManager {
     
     public function getOutputsUrl() {
         return $this->outputsUrl . (substr($this->outputsUrl, -1) == '/' ? '' : '/');
+    }
+    
+    public function getResponseServerAddress(){
+        return $this->wpsResponseServerAddress;
+    }
+
+    public function getResponseOutputsUrl(){
+        return $this->wpsResponseOutputsUrl;
     }
     
     /**
@@ -126,13 +150,13 @@ class WPS_RequestManager {
          */
         switch (strtolower($request)) {
             case self::GET_CAPABILITIES :
-                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             case self::DESCRIBE_PROCESS :
-                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             case self::EXECUTE :
-                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->options);
+                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
             default :
-                return Curl::Post($this->serverAddress, $data, $this->options);
+                return Curl::Post($this->serverAddress, $data, $this->curlOpts);
         }
     }
 
@@ -148,7 +172,7 @@ class WPS_RequestManager {
     public function getExecuteResponse($statusLocation) {
         try {
             $url = $this->getOutputsUrl() . $statusLocation;
-            $response = new WPS_Response(Curl::Get($url));
+            $response = new WPS_Response(Curl::Get($url, array(), $this->curlOpts));
             
             if ($response->isExecuteResponse()) {
                 $response = new WPS_ExecuteResponse($response->toXML());

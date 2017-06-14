@@ -99,11 +99,11 @@ class Functions_jobs {
             // Inserting the job into database
             $userid             = $this->dbDriver->quote($userid);
             $querytime          = $this->dbDriver->quote($data['querytime'], date("Y-m-d H:i:s"));
-            // TODO $query
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
+            $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
@@ -114,11 +114,11 @@ class Functions_jobs {
                     $querytime,
                     $method,
                     $data,
-                    $identifier, $status, $statusMessage, $statusLocation, $percentCompleted, count($outputs)
+                    $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, data, identifier, status, statusmessage, statusLocation, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $jobid = $this->dbDriver->query($query);
 
@@ -185,6 +185,7 @@ class Functions_jobs {
 
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
             $statusMessage      = $this->dbDriver->quote($data['statusmessage'], 'NULL');
+            $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $gid                = $this->dbDriver->quote($data['gid']);
@@ -192,7 +193,7 @@ class Functions_jobs {
         
             // update properties
             $query = 'UPDATE usermanagement.jobs'
-                    . " SET status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, nbresults=${nbResults}"
+                    . " SET status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}"
                     . " WHERE gid=${gid}";
             
             $this->dbDriver->query($query);

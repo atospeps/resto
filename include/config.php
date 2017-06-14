@@ -147,7 +147,7 @@ return array(
                          * Returns storage information
                          * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
                          */
-                        //'getStorageInfo' => 'http://pepsvfs:8081/hpss'
+                        'getStorageInfo' => 'http://pepsvfs:8081/hpss'
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
@@ -257,22 +257,23 @@ return array(
                 'activate' => true,
                 'route' => 'wps',
                 'options' => array(
-                        'wpsServerUrl' => 'http://192.168.56.102:4444/cgi-bin/pywps.cgi', // Docker VM
-//                         'wpsServerUrl' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi', // VIZO ATOS
-                        'outputsUrl' => 'http://172.24.218.59:8081/wps/outputs/',
-                        'replace' => array(
-                                'pywpsResponse' => array(
-                                        'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi',
-                                        'outputUrl' => 'http://localhost:4444/wps/outputs/'
-                                ),
-                                'by' => array(
-                                        'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi',
-                                        'outputUrl' => 'http://localhost:4444/wps/outputs/'
-                                ),
+                        // public config
+                        'serverAddress' => 'http://192.168.56.102/resto/wps',
+                        'outputsUrl' => 'http://192.168.56.102/resto/wps/outputs/',
+                        // pywps configuration
+                        'pywps' => array(
+                                'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi', // VIZO ATOS
+//                                 'serverAddress' => 'http://192.168.56.102:4444/cgi-bin/pywps.cgi', // Docker VM
+                                'outputsUrl' => 'http://172.24.218.59:8081/wps/outputs/',
+                                'conf' => array(
+                                        'serverAddress' => 'http://localhost:8081/cgi-bin/pywps.cgi',
+                                        'outputsUrl' => 'http://localhost:8081/wps/outputs/'
+                                )
                         ),
                         'curlOpts' => array(
                                 CURLOPT_PROXY => '',
-                                CURLOPT_TIMEOUT => 1
+                                CURLOPT_TIMEOUT => 2,
+                                CURLOPT_CONNECTTIMEOUT => 2
                         ),
                 )
         ),

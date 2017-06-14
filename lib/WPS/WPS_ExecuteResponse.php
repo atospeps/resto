@@ -93,7 +93,7 @@ class WPS_ExecuteResponse extends WPS_Response {
         $this->serviceInstance = isset($attributes['serviceInstance']) ? $attributes['serviceInstance']->__toString() : null;
 
         $status = $wps_ExecuteResponse->xpath('.//wps:Status');
-        if ($status && count($status) > 0){
+        if ($status && count($status) > 0) {
             $this->parseStatus($status[0]);
         }
 
@@ -146,6 +146,10 @@ class WPS_ExecuteResponse extends WPS_Response {
      * @param SimpleXMLElement $wps_Status
      */
     private function parseStatus(SimpleXMLElement $wps_Status) {
+        
+        $attributes = $wps_Status->attributes();
+        $this->statusTime = isset($attributes['creationTime']) ? $attributes['creationTime']->__toString() : null;
+        
 
         foreach (self::$statusEvents as $statusEvent) {
             $status = $wps_Status->xpath(".//wps:$statusEvent");
@@ -260,6 +264,10 @@ class WPS_ExecuteResponse extends WPS_Response {
         return $this->statusLocation;
     }
     
+    public function getStatusTime(){
+        return $this->statusTime;
+    }
+    
     /**
      * 
      * @return multitype:string NULL
@@ -270,6 +278,7 @@ class WPS_ExecuteResponse extends WPS_Response {
                 'status' => $this->status,
                 'statusLocation' => $this->statusLocation,
                 'statusMessage' => $this->statusMessage,
+                'statusTime' => $this->statusTime,
                 'percentcompleted' => $this->percentCompleted,
                 'outputs' => $this->processOutputs
         );

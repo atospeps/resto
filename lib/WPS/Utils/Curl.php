@@ -78,6 +78,7 @@ class Curl {
             switch ($key) {
                 case CURLOPT_PROXY:
                     $context_options['http']['proxy'] = $value;
+                    $context_options['http']['request_fulluri'] = true;
                     break;
                 case CURLOPT_SSL_VERIFYPEER:
                     $context_options['ssl'] = $value;

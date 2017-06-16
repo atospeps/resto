@@ -17,31 +17,31 @@ class RestoModel_sentinel2_ST extends RestoModel {
                 'name' => 'mgrs',
                 'type' => 'TEXT'
         ),
-        'bareSoilPercentage' => array(
+        'bareSoil' => array(
                 'name' => 'baresoil',
                 'type' => 'NUMERIC'
         ),
-        'highProbaCloudsPercentage' => array(
+        'highProbaClouds' => array(
                 'name' => 'highprobaclouds',
                 'type' => 'NUMERIC'
         ),
-        'mediumProbaCloudsPercentage' => array(
+        'mediumProbaClouds' => array(
                 'name' => 'mediumprobaclouds',
                 'type' => 'NUMERIC'
         ),
-        'lowProbaCloudsPercentage' => array(
+        'lowProbaClouds' => array(
                 'name' => 'lowprobaclouds',
                 'type' => 'NUMERIC'
         ),
-        'snowIcePercentage' => array(
+        'snowIce' => array(
                 'name' => 'snowice',
                 'type' => 'NUMERIC'
         ),
-        'vegetationPercentage' => array(
+        'vegetation' => array(
                 'name' => 'vegetation',
                 'type' => 'NUMERIC'
         ),
-        'waterPercentage' => array(
+        'water' => array(
                 'name' => 'water',
                 'type' => 'NUMERIC'
         )
@@ -148,43 +148,43 @@ class RestoModel_sentinel2_ST extends RestoModel {
          * Initialize feature
          */
         $feature = array(
-                'type' => 'Feature',
-                'geometry' => array(
-                        'type' => 'Polygon',
-                        'coordinates' => array($polygon),
-                ),
-                'properties' => array(
-                    'productIdentifier' => $this->getElementByName($dom, 'title'),
-                    'title' => $this->getElementByName($dom, 'title'),
-                    'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
-                    'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
-                    'authority' => 'ESA',
-                    'startDate' => $this->getElementByName($dom, 'startTime'),
-                    'completionDate' => $this->getElementByName($dom, 'stopTime'),
-                    'productType' => $this->getElementByName($dom, 'productType'),
-                    'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
-                    'platform' =>  $this->getElementByName($dom, 'missionId'),
-                    'sensorMode' => $this->getElementByName($dom, 'mode'),
-                    'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
-                    'orbitDirection' => $orbitDirection,
-                    'instrument'=> $this->getElementByName($dom, 'instrument'),
-                    'quicklook'=> $this->getLocation($dom),
-                    's2TakeId' => $this->getElementByName($dom, 's2takeid'),
-                    'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
-                    'isNrt' => $this->getElementByName($dom, 'isNrt'),
-                    'realtime' => $this->getElementByName($dom, 'realtime'),
-                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
-                    'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title')),
-                    'bareSoilPercentage' => $this->getElementByName($dom, 'bareSoilPercentage'),
-                    'highProbaCloudsPercentage' => $this->getElementByName($dom, 'highProbaCloudsPercentage'),
-                    'mediumProbaCloudsPercentage' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage'),
-                    'lowProbaCloudsPercentage' => $this->getElementByName($dom, 'lowProbaCloudsPercentage'),
-                    'snowIcePercentage' => $this->getElementByName($dom, 'snowIcePercentage'),
-                    'vegetationPercentage' => $this->getElementByName($dom, 'vegetationPercentage'),
-                    'waterPercentage' => $this->getElementByName($dom, 'waterPercentage')
-                )
+            'type' => 'Feature',
+            'geometry' => array(
+                    'type' => 'Polygon',
+                    'coordinates' => array($polygon),
+            ),
+            'properties' => array(
+                'productIdentifier' => $this->getElementByName($dom, 'title'),
+                'title' => $this->getElementByName($dom, 'title'),
+                'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
+                'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
+                'authority' => 'ESA',
+                'startDate' => $this->getElementByName($dom, 'startTime'),
+                'completionDate' => $this->getElementByName($dom, 'stopTime'),
+                'productType' => $this->getElementByName($dom, 'productType'),
+                'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
+                'platform' =>  $this->getElementByName($dom, 'missionId'),
+                'sensorMode' => $this->getElementByName($dom, 'mode'),
+                'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
+                'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
+                'cycleNumber' => $this->getElementByName($dom, 'cycle'),
+                'orbitDirection' => $orbitDirection,
+                'instrument'=> $this->getElementByName($dom, 'instrument'),
+                'quicklook'=> $this->getLocation($dom),
+                's2TakeId' => $this->getElementByName($dom, 's2takeid'),
+                'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
+                'isNrt' => $this->getElementByName($dom, 'isNrt'),
+                'realtime' => $this->getElementByName($dom, 'realtime'),
+                'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
+                'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title')),
+                'bareSoil' => $this->getElementByName($dom, 'bareSoilPercentage'),
+                'highProbaClouds' => $this->getElementByName($dom, 'highProbaCloudsPercentage'),
+                'mediumProbaClouds' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage'),
+                'lowProbaClouds' => $this->getElementByName($dom, 'lowProbaCloudsPercentage'),
+                'snowIce' => $this->getElementByName($dom, 'snowIcePercentage'),
+                'vegetation' => $this->getElementByName($dom, 'vegetationPercentage'),
+                'water' => $this->getElementByName($dom, 'waterPercentage')
+            )
       );
         
       return $feature;

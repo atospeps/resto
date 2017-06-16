@@ -665,6 +665,7 @@ class WPS extends RestoModule {
                         $job['statusmessage'] = $executeResponse->getStatusMessage();
                         $job['percentcompleted'] = $executeResponse->getPercentCompleted();
                         $job['outputs'] = $executeResponse->getOutputs();
+                        $job['nbresults'] = count($job['outputs']);
                         
                         $this->updateJob($job['userid'], $job);
                     }

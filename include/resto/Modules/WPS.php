@@ -139,7 +139,7 @@ class WPS extends RestoModule {
              * HTTP/POST 
              */
             case HttpRequestMethod::POST:
-                return $this->processPOST($data);
+                return $this->processPOST($segments, $data);
             /*
              * HTTP/PUT
              */
@@ -230,6 +230,15 @@ class WPS extends RestoModule {
             $this->storeJob($this->user->profile['userid'], $data);
         }
         return $response;
+    }
+    
+    /**
+     * 
+     * @param unknown $segments
+     */
+    private function POST_wps($segments)
+    {
+        return null;
     }
     
     /**
@@ -384,45 +393,90 @@ class WPS extends RestoModule {
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
      * 
-     *      TODO    HTTP/POST wps/users/{userid}/jobs/download
-     *      
+     *      TODO    HTTP/POST wps
+     *      HTTP/POST wps/users/{userid}/results/download
      */
-    private function processPOST($data)
+    private function processPOST($segments, $data)
     {
-        /*
-         * HTTP/GET WPS 1.0 OGC services - not implemented
-         */
-        if (!isset($this->segments[0])) {
-            
-            $query = http_build_query($this->context->query);
-            // TODO return $this->callWPSServer($this->wpsServerUrl . $query, $data);
-        }
-        // else if (isset($this->segments[0]) && isset($this->segments[1]) && !isset($this->segments[2])) {
         
-        // switch ($this->segments[0]) {
-        // case 'jobs' :
-        // $jobid = $this->segments[1];
-        // if (is_numeric($jobid)) {
-        // /*
-        // * TODO : Remove specified job : used HTTP/POST instead of HTTP/DELETE
-        // */
-        // // return $this->deleteJob($data);
-        // return RestoLogUtil::httpError(501);
-        // } else {
-        // RestoLogUtil::httpError(400);
-        // }
-        // break;
-        // default :
-        // RestoLogUtil::httpError(404);
-        // break;
-        // }
-        // } /*
-        // * Unknown route
-        // */
-        // else {
-        // RestoLogUtil::httpError(404);
-        // }
+        if (!isset($this->segments[0])) {
+            // HTTP/POST wps
+            return $this->POST_wps($this->segments);
+        }
+        else
+        {
+            switch ($this->segments[0]) {
+                /*
+                 * HTTP/GET wps/users/{userid}/results/download
+                 */
+                case 'users':
+                    return $this->POST_users($this->segments, $data);
+                /*
+                 * Unknown route
+                 */
+                default:
+                    break;
+            }
+        }
         RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * HTTP/POST wps/users/{userid}/results
+     * 
+     * 
+     * TODO function DELETE_users($segments):
+     *      ** HTTP/DELETE ** wps/users/{userid}/jobs/{jobid}
+     *      ** HTTP/DELETE ** wps/users/{userid}/jobs/{jobid}/results
+     *      ** HTTP/DELETE ** wps/users/{userid}/jobs/{jobid}/results/{resultid}
+     */
+    private function POST_users($segments, $data)
+    {
+        if (!isset($segments[1])) {
+            RestoLogUtil::httpError(404);
+        }
+    
+        $userid = $segments[1];
+        if ($this->user->profile['userid'] !== $userid) {
+            RestoLogUtil::httpError(403);
+        }
+        if (isset($segments[2])) {
+            // wps/users/{userid}/results
+            if (!isset($segments[3]) && $segments[2] === 'results') {
+                // ? Is Bad Request
+                if (!is_array($data)) {
+                    RestoLogUtil::httpError(400);
+                }
+                $meta4 = new RestoMetalink($this->context);
+
+                for ($i = count($data); $i--;) {
+                    if (!isset($data[$i]['id'])) {
+                        continue;
+                    }
+
+                    $result = $this->getProcessingResults(
+                            $this->user->profile['userid'],
+                            $data[$i]['id'],
+                            array(),
+                            $this->wpsRequestManager->getOutputsUrl());
+
+                    if (count($result) > 0) {                        
+                        $item = array('id' =>  $result[0]['identifier']);
+                        $item['properties']['services']['download']['url'] = $result[0]['value'];
+                    }
+
+                    // Add link to the file
+                    $meta4->addLink($item, $userid);         
+                }                
+                
+                $this->context->outputFormat = 'xml';
+                header('Content-Type: ' . RestoUtil::$contentTypes['meta4']);
+                header('Content-Disposition: attachment; filename="download.meta4"');
+                echo $meta4->toString();
+                return null;
+            }
+        }
+        return RestoLogUtil::httpError(404);
     }
     
     /**

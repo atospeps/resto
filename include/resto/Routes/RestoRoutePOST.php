@@ -603,9 +603,13 @@ class RestoRoutePOST extends RestoRoute {
         $response = array(
             "added" => 0,
             "alreadyExists" => 0,
-            "unavailable" => 0
+            "unavailable" => 0,
+            "norights" => 0
         );
     
+        /*
+         * Cart can only be modified by its owner or by admin
+         */
         $user = $this->getAuthorizedUser($userid);
     
         /*
@@ -642,7 +646,11 @@ class RestoRoutePOST extends RestoRoute {
             $downloadState = $this->checkFeatureAvailability($feature);
             
             if ($downloadState !== "OK") {
-                $response["unavailable"]++;
+                if ($downloadState['error'] === self::ERROR_BADRIGTHS) {
+                    $response["norights"]++;
+                } else {
+                    $response["unavailable"]++;
+                }
             } else {
                 $availableFeatures[] = $feature;
             }

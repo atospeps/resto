@@ -599,10 +599,11 @@ class RestoUtil {
     private static function readStream() {
         
         $content = file_get_contents('php://input');
+        $content = trim($content);
+        
         if (!isset($content)) {
             return null;
         }
-        
         /*
          * Assume that input data format is JSON by default
          */

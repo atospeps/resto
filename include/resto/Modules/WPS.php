@@ -435,45 +435,15 @@ class WPS extends RestoModule {
         if (!isset($segments[1])) {
             RestoLogUtil::httpError(404);
         }
-    
         $userid = $segments[1];
         if ($this->user->profile['userid'] !== $userid) {
             RestoLogUtil::httpError(403);
         }
+        
         if (isset($segments[2])) {
             // wps/users/{userid}/results
             if (!isset($segments[3]) && $segments[2] === 'results') {
-                // ? Is Bad Request
-                if (!is_array($data)) {
-                    RestoLogUtil::httpError(400);
-                }
-                $meta4 = new RestoMetalink($this->context);
-
-                for ($i = count($data); $i--;) {
-                    if (!isset($data[$i]['id'])) {
-                        continue;
-                    }
-
-                    $result = $this->getProcessingResults(
-                            $this->user->profile['userid'],
-                            $data[$i]['id'],
-                            array(),
-                            $this->wpsRequestManager->getOutputsUrl());
-
-                    if (count($result) > 0) {                        
-                        $item = array('id' =>  $result[0]['identifier']);
-                        $item['properties']['services']['download']['url'] = $result[0]['value'];
-                    }
-
-                    // Add link to the file
-                    $meta4->addLink($item, $userid);         
-                }                
-                
-                $this->context->outputFormat = 'xml';
-                header('Content-Type: ' . RestoUtil::$contentTypes['meta4']);
-                header('Content-Disposition: attachment; filename="download.meta4"');
-                echo $meta4->toString();
-                return null;
+                return $this->placeOrder($data);
             }
         }
         return RestoLogUtil::httpError(404);
@@ -747,6 +717,62 @@ class WPS extends RestoModule {
         }
         
         return RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * 
+     * @param unknown $data
+     * @return NULL
+     */
+    private function placeOrder($data) 
+    {
+
+        // ? Is Bad Request
+        if (empty($data) || !is_array($data)) {
+            RestoLogUtil::httpError(400);
+        }
+        
+        parse_str($data[0], $data);
+        if (empty($data['items'])){
+            RestoLogUtil::httpError(400);
+        }
+        
+        // Parse query data
+        $data = json_decode($data['items']);
+        
+        $data = array_unique($data);
+        if (count($data) == 0) {
+            RestoLogUtil::httpError(400);
+        }
+        $meta4 = new RestoMetalink($this->context);
+        
+        for ($i = count($data); $i--;) {
+            // ? Is numeric
+            if (!is_numeric($data[$i])) {
+                RestoLogUtil::httpError(400);
+            }
+            // ? User is allowed to download this result
+            $result = $this->getProcessingResults(
+                    $this->user->profile['userid'],
+                    $data[$i],
+                    array(),
+                    $this->externalOutputsUrl);
+        
+            if (count($result) > 0) {
+                $item = array('id' =>  $result[0]['identifier']);
+                $item['properties']['services']['download']['url'] = $result[0]['value'];
+            }
+        
+            // Add link to the file
+            $meta4->addLink($item, $userid);
+        }
+        
+        $this->context->outputFormat = 'meta4';
+        header('Content-Type: ' . RestoUtil::$contentTypes['meta4']);
+        header('Content-Disposition: attachment; filename="download.meta4"');
+        echo $meta4->toString();
+        return null;
+        
     }
     
     /**

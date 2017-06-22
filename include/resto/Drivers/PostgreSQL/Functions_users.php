@@ -63,8 +63,9 @@ class Functions_users {
             RestoLogUtil::httpError(404);
         }
 
-        $query = "SELECT userid, email, md5(email) as userhash, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), activated"
-               . " FROM usermanagement.users"
+        $query = "SELECT userid, email, md5(email) AS userhash, u.groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), activated, CAST(g.canwps AS INT) AS wps"
+               . " FROM usermanagement.users AS u"
+               . " LEFT JOIN usermanagement.groups AS g ON u.groupname = g.groupname" 
                . " WHERE " . $this->useridOrEmailFilter($identifier)
                . (isset ( $password ) ? " AND password='" . pg_escape_string(RestoUtil::encrypt($password)) . "'" : "");
 
@@ -77,6 +78,7 @@ class Functions_users {
         $results[0]['instantdownloadvolume'] = (integer) $results[0]['instantdownloadvolume'];
         $results[0]['weeklydownloadvolume'] = (integer) $results[0]['weeklydownloadvolume'];
         $results[0]['activated'] = (integer) $results[0]['activated'];
+        $results[0]['wps'] = (integer) $results[0]['wps'];
         
         return $results[0];
     }

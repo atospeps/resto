@@ -708,8 +708,8 @@ abstract class RestoModel {
      * @param RestoCollection $collection
      *
      */
-    public function storeFeature($data, $collection) {
-    
+    public function storeFeature($data, $collection)
+    {
         /*
          * Assume input file or stream is a JSON Feature
          */
@@ -755,9 +755,34 @@ abstract class RestoModel {
         if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array(
                 'featureIdentifier' => $featureIdentifier
         ))) {
-            RestoLogUtil::httpError(500, 'Feature ' . $featureIdentifier . ' already in database');
+            RestoLogUtil::httpError(409, 'Feature ' . $featureIdentifier . ' already in database');
         }
 
+        /*
+         * Default realtime value
+         */
+        if (empty($properties['realtime'])) {
+            $properties['realtime'] = $this->getDefaultRealtime($collection->name, $properties);
+        }
+        
+        /*
+         * For S1 collection and $context->obsolescenceS1useDhusIngestDate == false
+         *    Check if we get multiples products version with the same realtime
+         */
+        if ($collection->name === 'S1' &&
+            $collection->context->obsolescenceS1useDhusIngestDate === false &&
+            !empty($properties['productIdentifier']) &&
+            !empty($properties['realtime'])
+        ) {
+            if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
+                'collectionName' => 'S1',
+                'realtime' => $properties['realtime'],
+                'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], 'S1')
+            ))) {
+                RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['productIdentifier'] . ')');
+            }
+        }
+        
         /*
          * Store feature
          */
@@ -785,64 +810,91 @@ abstract class RestoModel {
         return $feature;
     }
     
+    /**
+     * Returns a default realtime value
+     * 
+     * @param string $collectionName
+     * @param object $properties
+     * @return string realtime value
+     */
+    private function getDefaultRealtime($collectionName, $properties)
+    {
+        $realtime = '';
+        
+        switch($collectionName) {
+            case 'S1':
+                // use property isnrt
+                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT-3h' : 'Reprocessing';  
+                break;
+            case 'S2ST':
+                // use property isnrt
+                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT' : 'Nominal';
+                break;
+            case 'S3':
+                // use title timeliness
+                $realtime = 'NTC';
+                if (isset($properties['productIdentifier'])) {
+                    $timeliness = substr($properties['productIdentifier'], 88, 2);
+                    switch($timeliness) {
+                        case 'NR': $realtime = 'NRT'; break;
+                        case 'ST': $realtime = 'STC'; break;
+                        case 'NT': $realtime = 'NTC'; break;
+                    }
+                }
+                break;
+        }
+        
+        return $realtime;
+    }
     
     /**
      * Updates versions of specified feature
+     * 
      * @param RestoFeature $feature
      */
-    private function updateFeatureVersions(RestoFeature $feature){
-
-        $featureArray = $feature->toArray();   
-        $properties = $featureArray['properties'];    
-        $isnrt = $properties['isNrt'];
+    private function updateFeatureVersions(RestoFeature $feature)
+    {
+        $featureArray = $feature->toArray();
+        $properties = $featureArray['properties'];
         $collection = $feature->collection;
 
-        /**
-         * Updates feature if new version exists
+        /*
+         * Updates product versions visibility
          */
-        if ($isnrt == 1 || $collection->name == 'S2ST') {
-            // Check if there is a new product version
-            $newVersion = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_NEW_VERSION, array(
-                    'context' => $collection->context,
-                    'user' => $collection->user,
-                    'productIdentifier' => $properties['productIdentifier'],
-                    'dhusIngestDate' => $properties['dhusIngestDate'],
-                    'collection' => $feature->collection,
-                    'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
+        
+        // get all the product versions ordered by the newest first
+        $allVersions = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURE_ALL_VERSIONS, array(
+            'context' => $collection->context,
+            'user' => $collection->user,
+            'productIdentifier' => $properties['productIdentifier'],
+            'dhusIngestDate' => $properties['dhusIngestDate'],
+            'collection' => $feature->collection,
+            'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
+        ));
+        
+        // if there is more than one version of the product
+        if (count($allVersions) > 1) {
+            // in all cases, the newest version is set to visible
+            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
+                'collection' => $collection,
+                'featuresArray' => $allVersions[0],
+                'visible' => 1,
+                'newVersion' => ''
             ));
-            // If a new version exists, sets NRT product to not visible
-            if (!empty($newVersion)){
-                                
-                $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
-                        'collection' => $collection,
-                        'identifier' => $feature->identifier,
-                        'visible' => 0,
-                        'newVersion' => $newVersion['id']
-                ));
+            // the other versions (NRT) become invisible
+            $nrtVersions = array();
+            for ($i = 1/*ignore the newest version*/; $i < count($allVersions); $i++) {
+                if ($allVersions[$i]['properties']['isNrt'] == 1) {
+                    $nrtVersions[] = $allVersions[$i]; 
+                }
             }
-        }
-        /**
-         * Updates old versions
-         */
-        if ($isnrt == 0 || $collection->name == 'S2ST') {
-            // Check if there is a NRT version of product
-            $oldVersions = $feature->collection->context->dbDriver->get(RestoDatabaseDriver::FEATURES_OLD_VERSIONS, array(
-                    'context' => $collection->context, 
-                    'user' => $collection->user,
-                    'productIdentifier' => $properties['productIdentifier'],
-                    'dhusIngestDate' => $properties['dhusIngestDate'],
-                    'collection' => $feature->collection,
-                    'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
-            ));
-            // If a NRT product exists, sets NRT product to not visible
-            if (!empty($oldVersions)){
-
+            if (count($nrtVersions)) {
                 $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                     'collection' => $collection,
-                    'featureArray' => $oldVersions,
+                    'featuresArray' => $nrtVersions,
                     'visible' => 0,
-                    'newVersion' => $feature->identifier                    
-            ));
+                    'newVersion' => $allVersions[0]['id']
+                ));
             }
         }
     }
@@ -884,6 +936,13 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
         }
 
+        /*
+         * Default realtime value
+         */
+        if (empty($properties['realtime'])) {
+            $properties['realtime'] = $this->getDefaultRealtime($feature->collection->name, $properties);
+        }
+        
         /*
          * Updates feature
         */
@@ -997,30 +1056,40 @@ abstract class RestoModel {
      * @param unknown $collection
      * @return Ambigous <NULL, string>
      */
-    private function getFeatureVersionPattern($productIdentifier, $collection) {
+    private function getFeatureVersionPattern($productIdentifier, $collection)
+    {
+        $length = strlen($productIdentifier);
         
-            // Product identifier length
-            $length = strlen($productIdentifier);
-            $regexFeatureVersions = null;
+        $regexFeatureVersions = null;
+        switch ($collection) {
+            case 'S1' :
+                // ignore checksum (CCCC)
+                //      MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC
+                $regexFeatureVersions = substr($productIdentifier, 0, $length - 4) . '%';
+                break;
+            case 'S2' :
+                // ignore ... (yyyymmddThhmmss)
+                //      MMM_CCCC_TTTTTTTTTT_ssss_yyyymmddThhmmss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
+                $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                break;
+            case 'S2ST' :
+                // ignore processing baseline number (xxyy)
+                //      MMM_MSIL1C_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_YYYYMMDDTHHMMSS
+                $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
+                break;
+            case 'S3' :
+                // ignore product creation date + center code + timeliness
+                //      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
+                $regexFeatureVersions = substr($productIdentifier, 0, 48)  . '%'    // product creation date (YYYYMMDDTHHMMSS)
+                                      . substr($productIdentifier, 63, 19) . '%'    // center code (GGG)
+                                      . substr($productIdentifier, 85, 3)  . '%'    // timeliness (XX)
+                                      . substr($productIdentifier, 90);
+                break;
+            default :
+                break;
+        }
         
-            // We verify all the cases by collection
-            switch ($collection) {
-                case 'S1' :
-                    $regexFeatureVersions = substr($productIdentifier, 0, $length - 4) . '%';
-                    break;
-                case 'S2' :
-                    $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
-                    break;
-                case 'S2ST' :
-                    $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
-                    break;
-                case 'S3' :
-                    $regexFeatureVersions = substr($productIdentifier, 0, 48) . '%' . substr($productIdentifier, 64);
-                    break;
-                default :
-                    break;
-            }
-            return $regexFeatureVersions;
+        return $regexFeatureVersions;
     }
     
 }

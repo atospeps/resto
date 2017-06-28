@@ -150,6 +150,11 @@ class RestoContext {
     public $processingCartMaxProducts = 0;
     
     /*
+     * obsolescenceS1useDhusIngestDate
+     */
+    public $obsolescenceS1useDhusIngestDate = false;
+    
+    /*
      * JSON Web Token duration (in seconds)
      */
     private $tokenDuration = 3600;
@@ -163,6 +168,7 @@ class RestoContext {
      * JSON Web Token accepted encryption algorithms
      */
     private $tokenEncryptions = array('HS256');
+
     
     /**
      * Constructor
@@ -413,7 +419,14 @@ class RestoContext {
         if (isset($config['general']['hpss']['restapi'])) {
             $this->hpssRestApi = $config['general']['hpss']['restapi'];
         }
-
+        
+        /*
+         * S1 obsolescence
+         */
+        if (isset($config['general']['obsolescenceS1useDhusIngestDate'])) {
+            $this->obsolescenceS1useDhusIngestDate = $config['general']['obsolescenceS1useDhusIngestDate'];
+        }
+        
         /*
          * Initialize modules
          */

@@ -137,18 +137,11 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->getFeatureDescriptionByTitle($params['context'], $params['user'], $params['featureTitle'], isset($params['collection']) ? $params['collection'] : null, isset($params['filters']) ? $params['filters'] : array());
             /*
-             * Get new version of NRT product
+             * Get all versions of a product
              */
-            case parent::FEATURES_NEW_VERSION:
+            case parent::FEATURE_ALL_VERSIONS:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getNewVersion($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
-
-            /*
-             * Get old versions of Nominal product
-             */
-            case parent::FEATURES_OLD_VERSIONS:
-                $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->getOldVersions($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
+                return $featuresFunctions->getAllVersions($params['context'], $params['user'], $params['productIdentifier'], $params['dhusIngestDate'], $params['collection'], $params['pattern']);
 
             /*
              * Get feature collections description
@@ -349,6 +342,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::FEATURE:
                 $featuresFunctions = new Functions_features($this);
                 return $featuresFunctions->featureExists($params['featureIdentifier'], isset($params['schema']) ? $params['schema'] : null);
+            
+            /*
+             * Check if we get multiples products identifier or realtime.
+             */
+            case parent::FEATURE_S1_REALTIME:
+                $featuresFunctions = new Functions_features($this);
+                return $featuresFunctions->checkRealtimeExists($params['collectionName'], $params['realtime'], $params['pattern']);
             
             /*
              * True if user is item is in cart
@@ -742,7 +742,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::FEATURE_VERSION:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->updateFeatureVersions($params['collection'], $params['featureArray'], $params['visible'], $params['newVersion']);
+                return $featuresFunctions->updateFeatureVersions($params['collection'], $params['featuresArray'], $params['visible'], $params['newVersion']);
 
             /*
              * Update Keywords

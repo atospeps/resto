@@ -294,6 +294,7 @@ class RestoRoutePOST extends RestoRoute {
     /**
      * Insert feature into collection 
      * 
+     * @param RestoCollection $collection
      * @param array $data
      * @return type
      */

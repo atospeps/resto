@@ -62,9 +62,9 @@ abstract class RestoDatabaseDriver {
     const USER_DOWNLOADED_VOLUME = 37;
     const FEATURE_DESCRIPTION_BY_TITLE = 38;
     const FEATURE_FACETS = 39;
-    const FEATURES_NEW_VERSION = 40;
+    const FEATURE_ALL_VERSIONS = 40;
     const FEATURE_VERSION = 41;
-    const FEATURES_OLD_VERSIONS = 42;
+    const FEATURE_S1_REALTIME = 42;
     const SIMPLIFY_GEOMETRY = 43;
     const PROCESSING_CART_ITEM = 44;
     const PROCESSING_CART_ITEMS = 45;
@@ -78,6 +78,7 @@ abstract class RestoDatabaseDriver {
     const WPS_GROUP_RIGHTS = 53;
     const WPS_GROUPS = 54;
     const GROUP = 55;
+    
     
     /*
      * Results per page

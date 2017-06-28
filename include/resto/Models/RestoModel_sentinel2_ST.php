@@ -66,18 +66,6 @@ class RestoModel_sentinel2_ST extends RestoModel {
     }
     
     /**
-     * We verify if the feature has an (or multiple) old feature/s. We update them in order to have
-     * a reerence to the new feature, and make them invisible
-     *
-     * @param string $product_indetifier
-     * @param string collectionName
-     */
-    public function hasOldFeature($product_indetifier, $collection){
-        $partial_indetifier = substr($product_indetifier, 0, -53) . '%' . substr($product_indetifier, 40);
-        return parent::hasOldFeature($partial_indetifier, $collection);
-    }
-
-    /**
      * Create JSON feature from new resource xml string
      *
      * <product>

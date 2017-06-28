@@ -1,6 +1,8 @@
 --
---
 -- VERSION 2.0 de PEPS
+--
+-- WPS
+--
 
 /* Script de migration beta*/
 

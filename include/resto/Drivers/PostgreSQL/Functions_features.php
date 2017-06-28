@@ -179,7 +179,8 @@ class Functions_features {
     }    
 
     /**
-     * Get new version of NRT feature.
+     * Get all versions of a product
+     * 
      * @param RestoContext $context
      * @param RestoUser $user
      * @param string $productIdentifier
@@ -188,87 +189,112 @@ class Functions_features {
      * @param string $pattern
      * @return array|null
      */
-    public function getNewVersion($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern){
-
-        // Product collection
+    public function getAllVersions($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern)
+    {
+        $filtersUtils = new Functions_filters();
+        
         $schema = !empty($collection) ? '_' . strtolower($collection->name) : 'resto';
-
         $model = isset($collection) ? $collection->model : new RestoModel_default();
 
-        $filtersUtils = new Functions_filters();
-
-        // WHERE Clause
-        $whereClause = ' WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
-        $whereClause .= ' AND productidentifier <>  \'' . $productIdentifier . '\'';
-        $whereClause .= ' AND dhusingestdate > \'' . $dhusIngestDate . '\'';
-        $whereClause .= ($schema == '_s2st') ? (' AND SUBSTRING (productidentifier, 29, 4) > SUBSTRING (\''. $productIdentifier . '\', 29, 4)') : '';
-
-        // FROM Clause
+        /*
+         * WHERE
+         */
+        $whereClause = " WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'";
+        
+        /*
+         * FROM
+         */ 
         $fromClause = ' FROM ' . pg_escape_string($schema) . '.features';
 
-        // Orderby Clause
-        $orderByClause = ' ORDER BY '. (($schema == '_s2st') ? 'SUBSTRING (productidentifier, 65, 3)' : 'dhusingestdate') .  ' DESC';
+        /*
+         * ORDER BY
+         */ 
+        switch($schema) {
+            case '_s1':
+                $orderByClause = " ORDER BY"
+                               .   " isnrt ASC,"
+                               .   " CASE realtime"
+                               .     " WHEN 'Reprocessing' THEN 1"
+                               .     " WHEN 'Off-line'     THEN 2"
+                               .     " WHEN 'Fast-24h'     THEN 3"
+                               .     " WHEN 'NRT-3h'       THEN 4"
+                               .     " WHEN 'NRT-1h'       THEN 5"
+                               .     " WHEN 'NRT-10m'      THEN 6"
+                               .     " ELSE 7"
+                               .   " END";
+                if ($context->obsolescenceS1useDhusIngestDate === true) {
+                    $orderByClause .= ", dhusingestdate DESC";
+                }
+                break;
+            case '_s2st':
+                $orderByClause = " ORDER BY"
+                               .   " isnrt ASC,"
+                               .   " CASE realtime"
+                               .     " WHEN 'Nominal' THEN 1"
+                               .     " WHEN 'NRT'     THEN 2"
+                               .     " WHEN 'RT'      THEN 3"
+                               .     " ELSE 4"
+                               .   " END,"
+                               .   " SUBSTRING (productidentifier, 29, 4) DESC"; // version number
+                break;
+            case '_s3':
+                $orderByClause = " ORDER BY"
+                               . " isnrt ASC,"
+                               .   " CASE realtime"
+                               .     " WHEN 'NTC' THEN 1"
+                               .     " WHEN 'STC' THEN 2"
+                               .     " WHEN 'NRT' THEN 3"
+                               .     " ELSE 4"
+                               .   " END,"
+                               . " SUBSTRING (productidentifier, 49, 15) DESC"; // creation date
+                break;
+        }
 
-        // Query
+        /*
+         * Query
+         */ 
         $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
         $query .= $fromClause;
         $query .= $whereClause;
         $query .= $orderByClause;
-
+        
+        /*
+         * Results
+         */
         $results = $this->dbDriver->query(($query));
-        $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray[0]) ? $arrayOfFeatureArray[0] : null;
+        return $this->toFeatureArray($context, $user, $collection, $results);
     }
 
     /**
+     * Return true if a version of a product has already the specified realtime  
+     *    
+     * @param string $realtime
+     * @param string $pattern
      * 
-     * @param unknown $context
-     * @param unknown $user
-     * @param unknown $productIdentifier
-     * @param unknown $dhusIngestDate
-     * @param unknown $collection
-     * @param unknown $pattern
-     * @return Ambigous <NULL, number, multitype:multitype:string array Ambigous <NULL, string, number, string, multitype:, multitype:array >  >
+     * @return {bool} true a product version has already the specified realtime
      */
-    public function getOldVersions($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern){
-
-        // Product collection
-        $schema = !empty($collection) ? '_' . strtolower($collection->name) : 'resto';
-        $model = isset($collection) ? $collection->model : new RestoModel_default();
-
-        $filtersUtils = new Functions_filters();
-
-        // SQL WHERE Clause
-        $whereClause = 'WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
-        $whereClause .= ($schema != '_s2st') ? ' AND isnrt=1' : '';
-        $whereClause .= ' AND productidentifier <> \'' . $productIdentifier . '\'';
-        $whereClause .= ' AND dhusingestdate <= \'' . $dhusIngestDate . '\'';
-        $whereClause .= ($schema == '_s2st') ? (' AND SUBSTRING (productidentifier, 29, 4) < SUBSTRING (\''. $productIdentifier . '\', 29, 4)') : '';
-
-        // SQL FROM Clause
-        $fromClause = ' FROM ' . pg_escape_string($schema) . '.features ';
-
-        // Query
-        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
-        $query .= $fromClause;
-        $query .= $whereClause;
-
+    public function checkRealtimeExists($collectionName, $realtime, $pattern)
+    {
+        $schema = !empty($collectionName) ? '_' . strtolower($collectionName) : 'resto';
+        $query = "SELECT realtime"
+               . "  FROM " . $schema . ".features"
+               . "  WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'"
+               . "  AND realtime = '" . $realtime . "'";
         $results = $this->dbDriver->query($query);
-
-        $arrayOfFeatureArray = $this->toFeatureArray($context, $user, $collection, $results);
-        return isset($arrayOfFeatureArray) ? $arrayOfFeatureArray : null;
+        $rows = pg_num_rows($results);
+        return ($rows > 0);
     }
-
+    
     /**
      * 
-     * @param unknown $collection
-     * @param unknown $arrayOfFeatureId
-     * @param unknown $visible
-     * @param unknown $newVersion
+     * @param string $collection
+     * @param array $featuresArray
+     * @param int $visible
+     * @param string $newVersion    feature id of the new 
      * @return string
      */
-    public function updateFeatureVersions($collection, $featuresArray, $visible, $newVersion){
-
+    public function updateFeatureVersions($collection, $featuresArray, $visible, $newVersion)
+    {
         // Column/Values to update into database
         $columnsAndValues = array (
                 $collection->model->getDbKey('visible') => $visible,
@@ -280,7 +306,7 @@ class Functions_features {
         $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
 
         // List of product (by id) to update
-        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($featureId) { return "'{$featureId['id']}'"; }, $featuresArray)));
+        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($feature) { return "'{$feature['id']}'"; }, $featuresArray)));
 
         // Database schema
         $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';

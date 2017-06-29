@@ -115,8 +115,38 @@ class WPS extends RestoModule {
         }
 
         // Only autenticated user.
-        if ($this->user->profile['userid'] === -1) {
-            RestoLogUtil::httpError(401);
+        if ($this->user->profile['userid'] === -1) 
+        {
+            if (!empty($this->context->query['_tk']) 
+                    && $this->context->method == HttpRequestMethod::GET 
+                    && isset($segments[0]) && $segments[0] == 'outputs' 
+                    && !isset($segments[2])) 
+            {
+                $email = $this->context->dbDriver->check(
+                        RestoDatabaseDriver::SHARED_LINK, 
+                        array (
+                                'resourceUrl' => $this->externalOutputsUrl . $segments[1] . '.' . $this->context->outputFormat,
+                                'token' => $this->context->query['_tk']
+                ));
+
+                if (!$email) {
+                    RestoLogUtil::httpError(403);
+                }
+
+                if (empty($this->user->profile['email']) || $this->user->profile['email'] !== $email) 
+                {
+                    $this->user = new RestoUser(
+                            $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, 
+                            array (
+                                    'email' => $email
+                            )), 
+                            $this->context);
+                }
+            }
+            else {
+                RestoLogUtil::httpError(401);
+            }
+
         }
 
         // Checks if user can execute WPS services
@@ -282,7 +312,9 @@ class WPS extends RestoModule {
                         'value=' . $this->context->dbDriver->quote($resource)
                 ),
                 $this->wpsRequestManager->getOutputsUrl());
-        if (count($result) > 0) {
+        
+        if (count($result) > 0) 
+        {
             return $this->streamExternalUrl($result[0]['value'], $result[0]['type']);
         }
         
@@ -296,6 +328,9 @@ class WPS extends RestoModule {
      * @param string $type
      */
     private function streamExternalUrl($url, $type=null) {
+        
+        error_log($url, 0);
+        error_log(print_r($this->wpsRequestManager->getCurlOptions(), 0), 0);
         return Curl::Download($url, $type, $this->wpsRequestManager->getCurlOptions());
     }
     
@@ -443,7 +478,7 @@ class WPS extends RestoModule {
         if (isset($segments[2])) {
             // wps/users/{userid}/results
             if (!isset($segments[3]) && $segments[2] === 'results') {
-                return $this->placeOrder($data);
+                return $this->placeOrder($this->user->profile['email'], $data);
             }
         }
         return RestoLogUtil::httpError(404);
@@ -724,7 +759,7 @@ class WPS extends RestoModule {
      * @param unknown $data
      * @return NULL
      */
-    private function placeOrder($data) 
+    private function placeOrder($userid, $data) 
     {
 
         // ? Is Bad Request
@@ -759,12 +794,20 @@ class WPS extends RestoModule {
                     $this->externalOutputsUrl);
         
             if (count($result) > 0) {
-                $item = array('id' =>  $result[0]['identifier']);
+                $item = array(
+                        'id' =>  $result[0]['identifier'],
+                        'properties' => array(
+                                'services' => array(
+                                        'download' => array(
+                                                'url' => $result[0]['value']
+                                        )
+                                )
+                        )
+                );
+                // Add link to the file
+                $meta4->addLink($item, $userid);
                 $item['properties']['services']['download']['url'] = $result[0]['value'];
-            }
-        
-            // Add link to the file
-            $meta4->addLink($item, $userid);
+            }    
         }
         
         $this->context->outputFormat = 'meta4';

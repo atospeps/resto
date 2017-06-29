@@ -16,6 +16,34 @@ class RestoModel_sentinel2_ST extends RestoModel {
         'mgrs' => array(
                 'name' => 'mgrs',
                 'type' => 'TEXT'
+        ),
+        'bareSoil' => array(
+                'name' => 'baresoil',
+                'type' => 'NUMERIC'
+        ),
+        'highProbaClouds' => array(
+                'name' => 'highprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'mediumProbaClouds' => array(
+                'name' => 'mediumprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'lowProbaClouds' => array(
+                'name' => 'lowprobaclouds',
+                'type' => 'NUMERIC'
+        ),
+        'snowIce' => array(
+                'name' => 'snowice',
+                'type' => 'NUMERIC'
+        ),
+        'vegetation' => array(
+                'name' => 'vegetation',
+                'type' => 'NUMERIC'
+        ),
+        'water' => array(
+                'name' => 'water',
+                'type' => 'NUMERIC'
         )
     );
 
@@ -68,21 +96,21 @@ class RestoModel_sentinel2_ST extends RestoModel {
     /**
      * Create JSON feature from new resource xml string
      *
-     * <product>
-    <title>S1A_IW_OCN__2SDV_20150727T044706_20150727T044731_006992_0097D1_F6DA</title>
-    <resourceSize>6317404</resourceSize>
-    <startTime>2015-07-27T04:47:06.611</startTime>
-    <stopTime>2015-07-27T04:47:31.061</stopTime>
-    <productType>OCN</productType>
-    <missionId>S1A</missionId>
-    <processingLevel>1</processingLevel>
-    <mode>IW</mode>
-    <absoluteOrbitNumber>6992</absoluteOrbitNumber>
-    <orbitDirection>ASCENDING</orbitDirection>
-    <s2takeid>38865</s2takeid>
-    <cloudcover>0.0</cloudcover>
-    <instrument>Multi-Spectral Instrument</instrument>
-    <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
+    <product>
+        <title>S1A_IW_OCN__2SDV_20150727T044706_20150727T044731_006992_0097D1_F6DA</title>
+        <resourceSize>6317404</resourceSize>
+        <startTime>2015-07-27T04:47:06.611</startTime>
+        <stopTime>2015-07-27T04:47:31.061</stopTime>
+        <productType>OCN</productType>
+        <missionId>S1A</missionId>
+        <processingLevel>1</processingLevel>
+        <mode>IW</mode>
+        <absoluteOrbitNumber>6992</absoluteOrbitNumber>
+        <orbitDirection>ASCENDING</orbitDirection>
+        <s2takeid>38865</s2takeid>
+        <cloudcover>0.0</cloudcover>
+        <instrument>Multi-Spectral Instrument</instrument>
+        <footprint>POLYGON ((-161.306549 21.163258,-158.915909 21.585093,-158.623169 20.077986,-160.989746 19.652864,-161.306549 21.163258))</footprint>
     </product>
      *
      * @param string $xml
@@ -110,39 +138,45 @@ class RestoModel_sentinel2_ST extends RestoModel {
          * Initialize feature
          */
         $feature = array(
-                'type' => 'Feature',
-                'geometry' => array(
-                        'type' => 'Polygon',
-                        'coordinates' => array($polygon),
-                ),
-                'properties' => array(
-                    'productIdentifier' => $this->getElementByName($dom, 'title'),
-                    'title' => $this->getElementByName($dom, 'title'),
-                    'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
-                    'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
-                    'authority' => 'ESA',
-                    'startDate' => $this->getElementByName($dom, 'startTime'),
-                    'completionDate' => $this->getElementByName($dom, 'stopTime'),
-                    'productType' => $this->getElementByName($dom, 'productType'),
-                    'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
-                    'platform' =>  $this->getElementByName($dom, 'missionId'),
-                    'sensorMode' => $this->getElementByName($dom, 'mode'),
-                    'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
-                    'orbitDirection' => $orbitDirection,
-                    'instrument'=> $this->getElementByName($dom, 'instrument'),
-                    'quicklook'=> $this->getLocation($dom),
-                    's2TakeId' => $this->getElementByName($dom, 's2takeid'),
-                    'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
-                    'isNrt' => $this->getElementByName($dom, 'isNrt'),
-                    'realtime' => $this->getElementByName($dom, 'realtime'),
-                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title'))
-                )
+            'type' => 'Feature',
+            'geometry' => array(
+                    'type' => 'Polygon',
+                    'coordinates' => array($polygon),
+            ),
+            'properties' => array(
+                'productIdentifier' => $this->getElementByName($dom, 'title'),
+                'title' => $this->getElementByName($dom, 'title'),
+                'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
+                'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
+                'authority' => 'ESA',
+                'startDate' => $this->getElementByName($dom, 'startTime'),
+                'completionDate' => $this->getElementByName($dom, 'stopTime'),
+                'productType' => $this->getElementByName($dom, 'productType'),
+                'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
+                'platform' =>  $this->getElementByName($dom, 'missionId'),
+                'sensorMode' => $this->getElementByName($dom, 'mode'),
+                'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
+                'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
+                'cycleNumber' => $this->getElementByName($dom, 'cycle'),
+                'orbitDirection' => $orbitDirection,
+                'instrument'=> $this->getElementByName($dom, 'instrument'),
+                'quicklook'=> $this->getLocation($dom),
+                's2TakeId' => $this->getElementByName($dom, 's2takeid'),
+                'cloudCover' => $this->getElementByName($dom, 'cloudCover'),
+                'isNrt' => $this->getElementByName($dom, 'isNrt'),
+                'realtime' => $this->getElementByName($dom, 'realtime'),
+                'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
+                'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title')),
+                'bareSoil' => $this->getElementByName($dom, 'bareSoilPercentage'),
+                'highProbaClouds' => $this->getElementByName($dom, 'highProbaCloudsPercentage'),
+                'mediumProbaClouds' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage'),
+                'lowProbaClouds' => $this->getElementByName($dom, 'lowProbaCloudsPercentage'),
+                'snowIce' => $this->getElementByName($dom, 'snowIcePercentage'),
+                'vegetation' => $this->getElementByName($dom, 'vegetationPercentage'),
+                'water' => $this->getElementByName($dom, 'waterPercentage')
+            )
       );
-
+        
       return $feature;
     }
 

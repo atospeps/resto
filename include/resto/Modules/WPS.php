@@ -146,7 +146,6 @@ class WPS extends RestoModule {
             else {
                 RestoLogUtil::httpError(401);
             }
-
         }
 
         // Checks if user can execute WPS services
@@ -327,13 +326,12 @@ class WPS extends RestoModule {
      * @param unknown $url
      * @param string $type
      */
-    private function streamExternalUrl($url, $type=null) {
-        
-        error_log($url, 0);
-        error_log(print_r($this->wpsRequestManager->getCurlOptions(), 0), 0);
-        return Curl::Download($url, $type, $this->wpsRequestManager->getCurlOptions());
+    private function streamExternalUrl($url, $type=null) 
+    {
+        Curl::Download($url, $type, $this->wpsRequestManager->getCurlOptions());
+        return null;
     }
-    
+
     /**
      *
      * Process HTTP GET request on users
@@ -576,7 +574,7 @@ class WPS extends RestoModule {
         $rootPathOutputsUrl = isset($rootPath) ? $rootPath : '';
 
         // Query
-        $query = 'SELECT usermanagement.wps_results.uid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
+        $query = 'SELECT usermanagement.wps_results.uid as uid, usermanagement.wps_results.jobid as jobid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
                 . $this->context->dbDriver->quote($rootPathOutputsUrl) .' || value as value FROM usermanagement.wps_results' 
                 . ' INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
 
@@ -789,8 +787,10 @@ class WPS extends RestoModule {
             // ? User is allowed to download this result
             $result = $this->getProcessingResults(
                     $this->user->profile['userid'],
-                    $data[$i],
-                    array(),
+                    null,
+                    array(
+                            "uid=$data[$i]"
+                    ),
                     $this->externalOutputsUrl);
         
             if (count($result) > 0) {

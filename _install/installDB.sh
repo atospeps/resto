@@ -102,6 +102,7 @@ psql -d $DB -U $SUPERUSER -f "${PRG_DIR}/sql/createDB.sql"
 # Data
 psql -U $SUPERUSER -d $DB -f $DATADIR/platformsAndInstruments.sql
 psql -U $SUPERUSER -d $DB -f $DATADIR/regionsAndStates.sql
+psql -U $SUPERUSER -d $DB -f $DATADIR/misc.sql
 psql -U $SUPERUSER -d $DB -f $DATADIR/en/landuses.sql
 psql -U $SUPERUSER -d $DB -f $DATADIR/en/continentsAndCountries.sql
 psql -U $SUPERUSER -d $DB -f $DATADIR/en/generalKeywords.sql

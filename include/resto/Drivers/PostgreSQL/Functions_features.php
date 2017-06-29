@@ -208,7 +208,7 @@ class Functions_features {
 
         /*
          * ORDER BY
-         */ 
+         */
         switch($schema) {
             case '_s1':
                 $orderByClause = " ORDER BY"

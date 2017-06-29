@@ -40,3 +40,5 @@ UPDATE _s3.features SET isnrt = CASE WHEN realtime = 'NRT' THEN 1 ELSE 0 END;
 -- ----------------------------------------------------------------------------------------
 
 
+
+

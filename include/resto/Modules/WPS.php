@@ -80,7 +80,8 @@ class WPS extends RestoModule {
 
         $module = $this->context->modules[get_class($this)];
 
-        if (empty($module['serverAddress']) || empty($module['outputsUrl'])){
+        if (empty($module['serverAddress']) || empty($module['outputsUrl']))
+        {
             throw new Exception('WPS server configuration - problem', 500);
         }
         $this->externalServerAddress = $module['serverAddress'];
@@ -94,7 +95,7 @@ class WPS extends RestoModule {
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
 
         // WPS module route
-        $this->route = isset($this->context->modules[get_class($this)]['route']) ? $this->context->modules[get_class($this)]['route'] : '' ;
+        $this->route = isset($module['route']) ? $module['route'] : '' ;
     }
 
     /**
@@ -110,7 +111,8 @@ class WPS extends RestoModule {
         // Allowed HTTP method
         if ($this->context->method !== HttpRequestMethod::GET 
                 && $this->context->method !== HttpRequestMethod::POST
-                && $this->context->method !== HttpRequestMethod::PUT) {
+                && $this->context->method !== HttpRequestMethod::PUT) 
+        {
             RestoLogUtil::httpError(404);
         }
 
@@ -122,37 +124,20 @@ class WPS extends RestoModule {
                     && isset($segments[0]) && $segments[0] == 'outputs' 
                     && !isset($segments[2])) 
             {
-                $email = $this->context->dbDriver->check(
-                        RestoDatabaseDriver::SHARED_LINK, 
-                        array (
-                                'resourceUrl' => $this->externalOutputsUrl . $segments[1] . '.' . $this->context->outputFormat,
-                                'token' => $this->context->query['_tk']
-                ));
-
-                if (!$email) {
-                    RestoLogUtil::httpError(403);
-                }
-
-                if (empty($this->user->profile['email']) || $this->user->profile['email'] !== $email) 
-                {
-                    $this->user = new RestoUser(
-                            $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, 
-                            array (
-                                    'email' => $email
-                            )), 
-                            $this->context);
-                }
+                $this->authenticateToken($this->context->query['_tk']);
             }
-            else {
+            else 
+            {
                 RestoLogUtil::httpError(401);
             }
         }
 
         // Checks if user can execute WPS services
-        if ($this->user->canExecuteWPS() === false) {
+        if ($this->user->canExecuteWPS() === false) 
+        {
             RestoLogUtil::httpError(403);
         }
-            
+
         // We get URL segments and the http method
         $this->segments = $segments;
         $method = $this->context->method;
@@ -245,7 +230,8 @@ class WPS extends RestoModule {
         $response->replaceTerms($this->replacements);
         
         // saves job status into database
-        if ($response->isExecuteResponse()) {
+        if ($response->isExecuteResponse()) 
+        {
             $executeResponse = new WPS_ExecuteResponse($response->toXML());
 
             $data = array_merge(
@@ -265,9 +251,31 @@ class WPS extends RestoModule {
      * 
      * @param unknown $segments
      */
-    private function POST_wps($segments)
+    private function POST_wps($segments, $data)
     {
-        return null;
+        $this->context->outputFormat =  'xml';
+
+        // Gets wps rights
+        $processes_enabled = $this->getEnabledProcessings($this->user->profile['groupname']);
+        $response  = $this->wpsRequestManager->Post($data, $processes_enabled);
+        $response->replaceTerms($this->replacements);
+        
+        // saves job status into database
+        if ($response->isExecuteResponse()) 
+        {
+            $executeResponse = new WPS_ExecuteResponse($response->toXML());
+
+            $data = array_merge(
+                    $executeResponse->toArray(),
+                    array(
+                            'querytime' => date("Y-m-d H:i:s"),
+                            'method'    => HttpRequestMethod::GET,
+                            'data'      => $this->context->query
+                    ));
+            // Store job into database
+            $this->storeJob($this->user->profile['userid'], $data);
+        }
+        return $response;
     }
     
     /**
@@ -428,17 +436,19 @@ class WPS extends RestoModule {
      * 
      *      TODO    HTTP/POST wps
      *      HTTP/POST wps/users/{userid}/results/download
+     *      $segments    [ {0} , {1}    , {2}   , {3}    ]
      */
     private function processPOST($segments, $data)
     {
         
         if (!isset($this->segments[0])) {
             // HTTP/POST wps
-            return $this->POST_wps($this->segments);
+            return $this->POST_wps($this->segments, join('', $data));
         }
         else
         {
-            switch ($this->segments[0]) {
+            switch ($this->segments[0]) 
+            {
                 /*
                  * HTTP/GET wps/users/{userid}/results/download
                  */
@@ -920,6 +930,34 @@ class WPS extends RestoModule {
         return RestoLogUtil::success("WPS Processings list", array (
                 'items' => $results
         ));
+    }
+
+    /**
+     * 
+     * @param unknown $token
+     */
+    function authenticateToken($token){
+
+        $email = $this->context->dbDriver->check(
+                RestoDatabaseDriver::SHARED_LINK,
+                array (
+                        'resourceUrl' => $this->externalOutputsUrl . $segments[1] . '.' . $this->context->outputFormat,
+                        'token' => $token
+                ));
+        
+        if (!$email) {
+            RestoLogUtil::httpError(403);
+        }
+        
+        if (empty($this->user->profile['email']) || $this->user->profile['email'] !== $email)
+        {
+            $this->user = new RestoUser(
+                    $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE,
+                            array (
+                                    'email' => $email
+                            )),
+                    $this->context);
+        }
     }
 
 }

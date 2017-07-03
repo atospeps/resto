@@ -40,22 +40,26 @@ class WPS_RequestManager {
      */
     public function __construct($config, $curlOpts) {
         
-        if (!isset($config) || !is_array($config)){
+        if (!isset($config) || !is_array($config))
+        {
             throw new Exception('WPS server configuration is missing', 500);
         }
 
         // ? WPS server address url is setted
-        if (empty($config['serverAddress'])) {
+        if (empty($config['serverAddress'])) 
+        {
             throw new Exception('WPS server configuration - ServerAddress is missing', 500);
         }
 
         // ? WPS outputs url is setted
-        if (empty($config['outputsUrl'])) {
+        if (empty($config['outputsUrl'])) 
+        {
             throw new Exception('WPS server configuration - outputsUrl is missing', 500);
         }
         
         // ? pywps conf is setted
-        if (empty($config['conf']['serverAddress']) || empty($config['conf']['outputsUrl'])) {
+        if (empty($config['conf']['serverAddress']) || empty($config['conf']['outputsUrl'])) 
+        {
             throw new Exception('WPS server configuration - pywps.conf : missing parameter', 500);
         }
 
@@ -69,11 +73,11 @@ class WPS_RequestManager {
     /**
      * Getters
      */
-    public function getServerAddress(){
+    public function getServerAddress() {
         return $this->serverAddress;
     }
         
-    public function getCurlOptions(){
+    public function getCurlOptions() {
         return $this->curlOpts;
     }
     
@@ -81,11 +85,11 @@ class WPS_RequestManager {
         return $this->outputsUrl . (substr($this->outputsUrl, -1) == '/' ? '' : '/');
     }
     
-    public function getResponseServerAddress(){
+    public function getResponseServerAddress() {
         return $this->wpsResponseServerAddress;
     }
 
-    public function getResponseOutputsUrl(){
+    public function getResponseOutputsUrl() {
         return $this->wpsResponseOutputsUrl;
     }
     
@@ -102,7 +106,8 @@ class WPS_RequestManager {
         /*
          * Perfom request
          */
-        switch (strtolower($request)) {
+        switch (strtolower($request)) 
+        {
             /*
              * WPS GetCapabilities
              * wps?request=GetCapabilities&xxx
@@ -144,22 +149,45 @@ class WPS_RequestManager {
     public function Post($data, $processes_enabled = array()) {
         
         $request = $this->checkRequestType($data);
-        
+        $response = null;
         /*
          * Perfom request
          */
-        switch (strtolower($request)) {
+        switch (strtolower($request))
+        {
+            /*
+             * WPS GetCapabilities
+             * wps?request=GetCapabilities&xxx
+             */
             case self::GET_CAPABILITIES :
-                return GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                $response = GetCapabilities::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                break;
+                /*
+                 * WPS DescribeProcess
+                 * wps?request=DescribeProcess&xxx
+                 */
             case self::DESCRIBE_PROCESS :
-                return DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                $response = DescribeProcess::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                break;
+                /*
+                 * WPS Execute
+                 * wps?request=Execute&xxx
+                 */
             case self::EXECUTE :
-                return Execute::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                $response = Execute::Post($this->serverAddress, $data, $processes_enabled, $this->curlOpts);
+                break;
+                // ? Is WSDL, missing or invalid parameter 'request'
             default :
-                return Curl::Post($this->serverAddress, $data, $this->curlOpts);
+                $response = Curl::Post($this->serverAddress, $data, $this->curlOpts);
+                break;
         }
+        return new WPS_Response($response);
     }
 
+    /**
+     * 
+     * @param unknown $resource
+     */
     public function download($resource) {
         
     }
@@ -170,87 +198,60 @@ class WPS_RequestManager {
      * @return WPS_ExecuteResponse|boolean
      */
     public function getExecuteResponse($statusLocation) {
-        try {
+        try 
+        {
             $url = $this->getOutputsUrl() . $statusLocation;
-            $response = new WPS_Response(Curl::Get($url, array(), $this->curlOpts));
-            
-            if ($response->isExecuteResponse()) {
+            $data = Curl::Get($url, array(), $this->curlOpts);
+            $response = new WPS_Response($data);
+
+            if ($response->isExecuteResponse()) 
+            {
                 $response = new WPS_ExecuteResponse($response->toXML());
                 return $response;
             }
-        } catch (Exception $e) {}
+        } 
+        catch (Exception $e) { }
 
         return false;
     }
+    
+    /**
+     * 
+     * @param unknown $data
+     * @return string|NULL
+     */
+    private function checkRequestType($data) {
 
-    // private function perform($url, $data, $options) {
-    
-    // //return $response;
-    // $xml = new WPSResponse($this->updateWPSURLs($response));
-    
-    // /*
-    // * Saves user's job into database (Only valid WPS processes).
-    // * Parses responses in order to check WPS processing service=WPS&request=execute.
-    // */
-    // if ($saveExecuteResponse == true){
-    // try {
-    // $wpsExecuteResponse = new ExecuteResponse($response);
-    // $data = array(
-    // 'query_time' => date("Y-m-d H:i:s"),
-    // 'identifier' => $wpsExecuteResponse->getIdentifier(),
-    // 'status' => $wpsExecuteResponse->getStatus(),
-    // 'statusLocation' => $wpsExecuteResponse->getStatusLocation(),
-    // 'statusMessage' => $wpsExecuteResponse->getStatusMessage(),
-    // 'percentcompleted' => $wpsExecuteResponse->getPercentCompleted(),
-    // 'outputs' => $wpsExecuteResponse->getOutputs()
-    // );
-    // $this->createJob($data);
-    // } catch (ExecuteResponseException $e) {
-    // }
-    // }
-    
-    // /*
-    // * Returns WPS response.
-    // */
-    // return $xml;
-    // }
-    
-    private function checkRequestType($data){
-        libxml_use_internal_errors(true);
-        $sxe = new SimpleXMLElement($data);
-        libxml_clear_errors();
+        $dom = new DOMDocument;        
+        $dom->loadXML($data);
 
-        $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/');
-        $sxe->registerXPathNamespace('soap', 'http://www.w3.org/2003/05/soap-envelope');
-
-        $result = $sxe->xpath('//wps:GetCapabilities');
-        if (!$result && count($result) == 0) {
-            return self::GET_CAPABILITIES;
-        }
-        $result = $sxe->xpath('/GetCapabilities');
-        if (!$result && count($result) == 0) {
-            return self::GET_CAPABILITIES;
-        }
-        $result = $sxe->xpath('//wps:DescribeProcess');
-        if (!$result && count($result) == 0) {
-            return self::DESCRIBE_PROCESS;
-        }
-        $result = $sxe->xpath('/DescribeProcess');
-        if (!$result && count($result) == 0) {
-            return self::DESCRIBE_PROCESS;
-        }
         /*
-         * TODO
+         * HTTP/POST GetCapabilities
          */ 
-        $result = $sxe->xpath('//wps:Execute');
-        if (!$result && count($result) == 0) {
+        $request = $dom->getElementsByTagNameNS('http://www.opengis.net/wps/1.0.0', 'GetCapabilities');
+        if ($request && $request->length > 0)
+        {
+            return self::GET_CAPABILITIES;
+        }
+        
+        /*
+         * HTTP/POST DescribeProcess
+         */
+        $request = $dom->getElementsByTagNameNS('http://www.opengis.net/wps/1.0.0', 'DescribeProcess');
+        if ($request && $request->length > 0)
+        {
+            return self::DESCRIBE_PROCESS;
+        }
+        
+        /*
+         * HTTP/POST Execute
+         */
+        $request = $dom->getElementsByTagNameNS('http://www.opengis.net/wps/1.0.0', 'Execute');
+        if ($request && $request->length > 0)
+        {
             return self::EXECUTE;
         }
-        // <soap:Body><Execute_PROCESSNAME ...></Execute_PROCESSNAME>
-        $result = $sxe->xpath('/soap:Body');
-        if (!$result && count($result) == 0) {
-            return self::EXECUTE;
-        }
+
         return null;
     }
     

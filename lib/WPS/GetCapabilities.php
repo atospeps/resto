@@ -93,7 +93,38 @@ class GetCapabilities {
      * @param unknown $options
      */
     public static function Post($url, $data, $processes_enabled, $options) {
-        // TODO
-        return Curl::Post($url, $data, $options);
+
+        $full_wps_rights = in_array('all', $processes_enabled);
+        $response = Curl::Post($url, $data, $options);
+
+        if ($full_wps_rights == false) {
+
+            $dom = new DOMDocument;
+            // pretty print options
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+
+            $dom->loadXML($response);
+
+            $processes = $dom->getElementsByTagNameNS('http://www.opengis.net/wps/1.0.0', 'Process');
+            $processesToRemove = array();
+
+            if ($processes && $processes->length > 0) {
+                // on parcours les process de la reponse et on supprime les process non autorisés
+                foreach ($processes as $process) {
+                    $identifier = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier');                    
+                    if ($identifier && $identifier->length > 0) {
+                        if (!in_array($identifier->item(0)->nodeValue, $processes_enabled)) {
+                            $processesToRemove[] = $process;
+                        }
+                    }
+                }
+                foreach($processesToRemove as $process) {
+                    $process->parentNode->removeChild($process);
+                }
+                $response = $dom->saveXML();
+            }
+        }
+        return $response;    
     }
 }

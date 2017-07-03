@@ -30,6 +30,7 @@ output('STARTING UPDATE');
 
 update_realtime();
 update_visible_newversion();
+vacuumFeatures();
 
 output('UPDATE FINISHED');
 
@@ -242,6 +243,18 @@ function getFeatureVersionPattern($productIdentifier, $collection)
     }
     
     return $regexFeatureVersions;
+}
+
+/**
+ * Nettoyage/optimisation des tables features
+ */
+function vacuumFeatures()
+{
+    query('vacuum analyse _s1.features');
+    query('vacuum analyse _s2.features');
+    query('vacuum analyse _s2st.features');
+    query('vacuum analyse _s3.features');
+    query('vacuum analyse resto.features');
 }
 
 /**

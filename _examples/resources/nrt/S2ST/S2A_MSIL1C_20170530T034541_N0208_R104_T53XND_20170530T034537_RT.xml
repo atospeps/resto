@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<product>
+<title>S2A_MSIL1C_20170530T034541_N0208_R104_T53XND_20170530T034537</title>
+<resourceSize>566000000</resourceSize>
+<startTime>2017-05-30T03:45:41.026</startTime>
+<stopTime>2017-05-30T03:45:41.026</stopTime>
+<productType>S2MSI1C</productType>
+<missionId>S2A</missionId>
+<processingLevel>LEVEL1C</processingLevel>
+<mode>INS-NOBS</mode>
+<checksum/>
+<dhusIngestDate>2017-05-30T06:43:11.036</dhusIngestDate>
+<absoluteOrbitNumber>10111</absoluteOrbitNumber>
+<relativeOrbitNumber>104</relativeOrbitNumber>
+<orbitDirection>DESCENDING</orbitDirection>
+<s2takeid>GS2A_20170530T034541_010111_N02.05</s2takeid>
+<cloudCover>99.3967</cloudCover>
+<instrument>MSI</instrument>
+<footprint>POLYGON ((134.99927537630452 75.6846675191961,138.97128290744928 75.65161939241639,138.7222016833189 74.66974521647244,134.9993209575529 74.70058136465785,134.99927537630452 75.6846675191961))</footprint>
+<isNrt>1</isNrt>
+<realtime>RT</realtime>
+</product>

@@ -1091,5 +1091,4 @@ abstract class RestoModel {
         
         return $regexFeatureVersions;
     }
-    
 }

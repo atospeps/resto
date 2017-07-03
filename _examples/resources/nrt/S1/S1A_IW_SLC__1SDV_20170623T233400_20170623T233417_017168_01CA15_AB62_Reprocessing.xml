@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<product>
+<title>S1A_IW_SLC__1SDV_20170623T233400_20170623T233417_017168_01CA15_AB62</title>
+<resourceSize>4000000000</resourceSize>
+<startTime>2017-06-23T23:34:00.126</startTime>
+<stopTime>2017-06-23T23:34:17.001</stopTime>
+<productType>SLC</productType>
+<missionId>S1A</missionId>
+<processingLevel>LEVEL1</processingLevel>
+<mode>IW</mode>
+<checksum/>
+<dhusIngestDate>2017-06-24T12:34:13.965</dhusIngestDate>
+<absoluteOrbitNumber>17168</absoluteOrbitNumber>
+<relativeOrbitNumber>121</relativeOrbitNumber>
+<orbitDirection>ASCENDING</orbitDirection>
+<swath>IW1 IW2 IW3</swath>
+<polarisation>VV VH</polarisation>
+<missiontakeid>117269</missiontakeid>
+<instrument>SAR-C SAR</instrument>
+<footprint>POLYGON ((-82.586899 18.518419,-80.242638 18.945047,-80.044891 17.926836,-82.374847 17.497934,-82.586899 18.518419))</footprint>
+<isNrt>0</isNrt>
+<cycle>112</cycle>
+<realtime>Reprocessing</realtime>
+</product>

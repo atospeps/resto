@@ -200,8 +200,9 @@ class WPS_RequestManager {
      * 
      * @param unknown $resource
      */
-    public function download($resource) {
-        
+    public function download($url, $type=null) {
+        Curl::Download($url, $type, $this->getCurlOptions());
+        return null;
     }
     
     /**

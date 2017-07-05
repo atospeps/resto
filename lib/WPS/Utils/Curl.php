@@ -63,6 +63,26 @@ class Curl {
     
     /**
      * 
+     * @param unknown $method
+     * @param unknown $url
+     * @param unknown $data
+     * @param unknown $options
+     * @return unknown
+     */
+    public static function Perform($method, $url, $data, $options=array()) {
+        switch ($method)
+        {
+            case 'GET':
+                return $this->Get($url, $data, $options);
+            case 'POST';
+                return $this->Post($url, $data, $options);
+            default:
+                RestoLogUtil::httpError(404);
+        }
+    }
+    
+    /**
+     * 
      * @param unknown $url
      * @param unknown $curl_options
      */

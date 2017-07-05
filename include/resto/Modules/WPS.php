@@ -78,23 +78,31 @@ class WPS extends RestoModule {
         // Database handler
         $this->dbh = $this->getDatabaseHandler();
 
+        $this->initialize();
+    }
+    
+    /**
+     * 
+     */
+    private function initialize() 
+    {    
         $module = $this->context->modules[get_class($this)];
-
+        
         if (empty($module['serverAddress']) || empty($module['outputsUrl']))
         {
             RestoLogUtil::httpError(500, 'WPS server configuration - problem');
         }
         $this->externalServerAddress = $module['serverAddress'];
         $this->externalOutputsUrl = $module['outputsUrl'];
-
+        
         $wpsConf = isset($module['pywps']) ? $module['pywps'] : array() ;
         $curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
         $this->wpsRequestManager = new WPS_RequestManager($wpsConf, $curlOpts);
-
+        
         // wps response replacements
         $this->replacements[$this->wpsRequestManager->getResponseServerAddress()] = $this->externalServerAddress;
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
-
+        
         // WPS module route
         $this->route = isset($module['route']) ? $module['route'] : '' ;
     }
@@ -256,7 +264,7 @@ class WPS extends RestoModule {
         
             $query = ($method == HttpRequestMethod::GET) 
                         ?  $this->context->query 
-                        : (strlen ($data) > 2500 ? substr ($data, 0, 2500) . ' ... ... ... ' : $data);
+                        : (strlen ($data) > 2500 ? substr ($data, 0, 2500) . ' ... ' : $data);
             $data = array_merge(
                     $executeResponse->toArray(),
                     array(
@@ -293,7 +301,8 @@ class WPS extends RestoModule {
                 );
 
         // ? statusLocation exists 
-        if (count($job) > 0) {
+        if (count($job) > 0) 
+        {
             $response = $this->wpsRequestManager->getExecuteResponse($job[0]['statuslocation']);
             if ($response == false){
                 return RestoLogUtil::httpError(404);
@@ -313,22 +322,11 @@ class WPS extends RestoModule {
         
         if (count($result) > 0) 
         {
-            return $this->streamExternalUrl($result[0]['value'], $result[0]['type']);
+            return $this->wpsRequestManager->download($result[0]['value'], $result[0]['type']);
         }
         
         // HTTP 404
         return RestoLogUtil::httpError(404);
-    }
-
-    /**
-     * 
-     * @param unknown $url
-     * @param string $type
-     */
-    private function streamExternalUrl($url, $type=null) 
-    {
-        Curl::Download($url, $type, $this->wpsRequestManager->getCurlOptions());
-        return null;
     }
 
     /**
@@ -398,14 +396,17 @@ class WPS extends RestoModule {
                             if (!is_numeric($segments[3])) {
                                 RestoLogUtil::httpError(400);
                             }
+                            
                             // ? Is processings file result
                             $result = $this->getProcessingResults(
                                     $this->user->profile['userid'],
                                     $segments[3],
                                     array(),
                                     $this->wpsRequestManager->getOutputsUrl());
-                            if (count($result) > 0) {                               
-                                return $this->streamExternalUrl($result[0]['value'], $result[0]['type']);
+                            
+                            if (count($result) > 0) 
+                            {                               
+                                return $this->wpsRequestManager->download($result[0]['value'], $result[0]['type']);
                             }
                         default:
                             break;

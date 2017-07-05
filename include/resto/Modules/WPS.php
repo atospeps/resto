@@ -82,10 +82,11 @@ class WPS extends RestoModule {
 
         if (empty($module['serverAddress']) || empty($module['outputsUrl']))
         {
-            throw new Exception('WPS server configuration - problem', 500);
+            RestoLogUtil::httpError(500, 'WPS server configuration - problem');
         }
         $this->externalServerAddress = $module['serverAddress'];
         $this->externalOutputsUrl = $module['outputsUrl'];
+
         $wpsConf = isset($module['pywps']) ? $module['pywps'] : array() ;
         $curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
         $this->wpsRequestManager = new WPS_RequestManager($wpsConf, $curlOpts);
@@ -157,7 +158,7 @@ class WPS extends RestoModule {
             /*
              * HTTP/PUT
              */
-            case 'PUT' :
+            case HttpRequestMethod::PUT:
                 return $this->processPUT($data);
             /*
              * Error
@@ -220,57 +221,49 @@ class WPS extends RestoModule {
      * @throws Exception
      * @return WPS_Response
      */
-    private function GET_wps($segments) 
-    {
-        $this->context->outputFormat =  'xml';
-
-        // Gets wps rights
-        $processes_enabled = $this->getEnabledProcessings($this->user->profile['groupname']);
-        $response  = $this->wpsRequestManager->Get($this->context->query, $processes_enabled);
-        $response->replaceTerms($this->replacements);
-        
-        // saves job status into database
-        if ($response->isExecuteResponse()) 
-        {
-            $executeResponse = new WPS_ExecuteResponse($response->toXML());
-
-            $data = array_merge(
-                    $executeResponse->toArray(),
-                    array(
-                            'querytime' => date("Y-m-d H:i:s"),
-                            'method'    => HttpRequestMethod::GET,
-                            'data'      => $this->context->query
-                    ));
-            // Store job into database
-            $this->storeJob($this->user->profile['userid'], $data);
-        }
-        return $response;
+    private function GET_wps($segments) {
+        return $this->perform_wps($segments, HttpRequestMethod::GET, $this->context->query);        
+    }
+    
+    /**
+     *
+     * @param unknown $segments
+     */
+    private function POST_wps($segments, $data) {
+        return $this->perform_wps($segments, HttpRequestMethod::POST, $data);        
     }
     
     /**
      * 
      * @param unknown $segments
+     * @param unknown $method
+     * @param unknown $data
+     * @return unknown
      */
-    private function POST_wps($segments, $data)
-    {
-        $this->context->outputFormat =  'xml';
+    private function perform_wps($segments, $method, $data) {
 
+        $this->context->outputFormat =  'xml';
+        
         // Gets wps rights
         $processes_enabled = $this->getEnabledProcessings($this->user->profile['groupname']);
-        $response  = $this->wpsRequestManager->Post($data, $processes_enabled);
+        $response  = $this->wpsRequestManager->Perform($method, $data, $processes_enabled);
         $response->replaceTerms($this->replacements);
         
         // saves job status into database
-        if ($response->isExecuteResponse()) 
+        if ($response->isExecuteResponse())
         {
             $executeResponse = new WPS_ExecuteResponse($response->toXML());
-
+        
+            $query = ($method == HttpRequestMethod::GET) 
+                        ?  $this->context->query 
+                        : (strlen ($data) > 2500 ? substr ($data, 0, 2500) . ' ... ... ... ' : $data);
             $data = array_merge(
                     $executeResponse->toArray(),
                     array(
                             'querytime' => date("Y-m-d H:i:s"),
-                            'method'    => HttpRequestMethod::GET,
-                            'data'      => $this->context->query
+                            'method'    => $method,
+                            'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
+                            'data'      => $query
                     ));
             // Store job into database
             $this->storeJob($this->user->profile['userid'], $data);
@@ -295,9 +288,7 @@ class WPS extends RestoModule {
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
                 array(
                         'userid' => $this->user->profile['userid'],
-                        'filters' => array(
-                                'statuslocation=' . $this->context->dbDriver->quote($resource)
-                                )
+                        'filters' => array('statuslocation=' . $this->context->dbDriver->quote($resource))
                         )
                 );
 
@@ -548,7 +539,8 @@ class WPS extends RestoModule {
      */
     private function getCompletedJobsStats($userid)
     {
-        if ($this->user->profile['userid'] !== $userid) {
+        if ($this->user->profile['userid'] !== $userid) 
+        {
             RestoLogUtil::httpError(403);
         }
         
@@ -569,13 +561,15 @@ class WPS extends RestoModule {
         $items = array();
 
         // ? User id not setted
-        if (!isset($userid)) {
+        if (!isset($userid)) 
+        {
             return $items;
         }
         $filters[] = 'usermanagement.wps_results.userid=' . $this->context->dbDriver->quote($userid);
 
         // ? Job id is setted
-        if (isset($jobid)) {
+        if (isset($jobid)) 
+        {
             $filters[] = 'usermanagement.wps_results.jobid=' . $this->context->dbDriver->quote($jobid);
         }
 
@@ -584,9 +578,12 @@ class WPS extends RestoModule {
         $rootPathOutputsUrl = isset($rootPath) ? $rootPath : '';
 
         // Query
-        $query = 'SELECT usermanagement.wps_results.uid as uid, usermanagement.wps_results.jobid as jobid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
-                . $this->context->dbDriver->quote($rootPathOutputsUrl) .' || value as value FROM usermanagement.wps_results' 
-                . ' INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
+        $select = 'SELECT usermanagement.wps_results.uid as uid, usermanagement.wps_results.jobid as jobid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
+                . $this->context->dbDriver->quote($rootPathOutputsUrl) . ' || value as value ';
+        $from  = 'FROM usermanagement.wps_results INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid';
+        $where = 'WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
+
+        $query =  $select . ' ' . $from . ' ' . $where;
 
         return $this->context->dbDriver->fetch($this->context->dbDriver->query($query));
     }
@@ -598,14 +595,17 @@ class WPS extends RestoModule {
     private function GET_userWPSJobs($userid) {
 
         // Only user admin can see WPS jobs of all users.
-        if ($this->user->profile['userid'] !== $userid) {
-            if ($this->user->profile['groupname'] !== 'admin') {
+        if ($this->user->profile['userid'] !== $userid) 
+        {
+            if ($this->user->profile['groupname'] !== 'admin') 
+            {
                 RestoLogUtil::httpError(403);
             }
         }
 
         // User identifier pattern is valid ?
-        if (is_numeric($userid)) {
+        if (is_numeric($userid)) 
+        {
 
             $results = $this->context->dbDriver->get(
                     RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
@@ -616,7 +616,8 @@ class WPS extends RestoModule {
             return $results;
         }
         // ? Is Bad Request
-        else {
+        else 
+        {
             RestoLogUtil::httpError(400);
         }
     }
@@ -719,14 +720,14 @@ class WPS extends RestoModule {
      */
     private function updateStatusOfJobs($jobs) {
         foreach ($jobs as &$job) {
-            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') {
-
-                if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) {
-
+            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
+            {
+                if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) 
+                {
                     if ($job['status'] != $executeResponse->getStatus() 
                             || $job['statusmessage'] != $executeResponse->getStatusMessage()
-                            || $job['percentcompleted'] != $executeResponse->getPercentCompleted()) {
-
+                            || $job['percentcompleted'] != $executeResponse->getPercentCompleted()) 
+                    {
                         $job['status'] = $executeResponse->getStatus();
                         $job['statusTime'] = $executeResponse->getStatusTime();
                         $job['statusmessage'] = $executeResponse->getStatusMessage();
@@ -771,12 +772,14 @@ class WPS extends RestoModule {
     {
 
         // ? Is Bad Request
-        if (empty($data) || !is_array($data)) {
+        if (empty($data) || !is_array($data)) 
+        {
             RestoLogUtil::httpError(400);
         }
         
         parse_str($data[0], $data);
-        if (empty($data['items'])){
+        if (empty($data['items']))
+        {
             RestoLogUtil::httpError(400);
         }
         
@@ -784,39 +787,33 @@ class WPS extends RestoModule {
         $data = json_decode($data['items']);
         
         $data = array_unique($data);
-        if (count($data) == 0) {
+        if (count($data) == 0) 
+        {
             RestoLogUtil::httpError(400);
         }
         $meta4 = new RestoMetalink($this->context);
         
-        for ($i = count($data); $i--;) {
+        for ($i = count($data); $i--;) 
+        {
             // ? Is numeric
-            if (!is_numeric($data[$i])) {
+            if (!is_numeric($data[$i])) 
+            {
                 RestoLogUtil::httpError(400);
             }
             // ? User is allowed to download this result
             $result = $this->getProcessingResults(
                     $this->user->profile['userid'],
                     null,
-                    array(
-                            "uid=$data[$i]"
-                    ),
+                    array("uid=$data[$i]"),
                     $this->externalOutputsUrl);
         
-            if (count($result) > 0) {
-                $item = array(
-                        'id' =>  $result[0]['identifier'],
-                        'properties' => array(
-                                'services' => array(
-                                        'download' => array(
-                                                'url' => $result[0]['value']
-                                        )
-                                )
-                        )
-                );
+            if (count($result) > 0) 
+            {
+                $item['id'] = $result[0]['identifier'];
+                $item['properties']['services']['download']['url'] = $result[0]['value'];
+
                 // Add link to the file
                 $meta4->addLink($item, $userid);
-                $item['properties']['services']['download']['url'] = $result[0]['value'];
             }    
         }
         
@@ -952,10 +949,7 @@ class WPS extends RestoModule {
         if (empty($this->user->profile['email']) || $this->user->profile['email'] !== $email)
         {
             $this->user = new RestoUser(
-                    $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE,
-                            array (
-                                    'email' => $email
-                            )),
+                    $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array ('email' => $email)),
                     $this->context);
         }
     }

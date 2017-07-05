@@ -93,6 +93,18 @@ class WPS_RequestManager {
         return $this->wpsResponseOutputsUrl;
     }
     
+    public function Perform($method, $data, $processes_enabled = array()) {
+        switch ($method) 
+        {
+            case 'GET':
+                return $this->Get($data, $processes_enabled);
+            case 'POST';
+                return $this->Post($data, $processes_enabled);
+            default:
+                RestoLogUtil::httpError(404);
+        }
+    }
+    
     /**
      *
      * @param unknown $url

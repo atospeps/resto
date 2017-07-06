@@ -512,6 +512,13 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             case parent::PROCESSING_JOBS_ITEM:
                 $jobsFunctions = new Functions_jobs($this);
                 return $jobsFunctions->remove($params['userid'], $params['jobid']);
+            
+            /*
+             * Remove processing item
+             */
+            case parent::PROCESSING_JOBS_DATA:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->delete($params['userid'], $params['jobid']);
 
             /*
              * Remove all processing items

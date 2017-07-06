@@ -47,7 +47,8 @@ class Functions_jobs {
             $filters[] = 'gid=' . $this->dbDriver->quote($jobid);
         }
 
-        $filters[] = 'userid=' . $this->dbDriver->quote($userid); 
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid);
+        $filters[] = 'visible=TRUE';
         $oFilter = implode(' AND ', $filters);
 
         // Query
@@ -72,7 +73,8 @@ class Functions_jobs {
                . " FROM usermanagement.jobs"
                . " WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed')"
                . " AND userid = " . $this->dbDriver->quote($userid)
-               . " AND acknowledge = FALSE";
+               . " AND acknowledge = FALSE"
+               . " AND visible = TRUE";
         
         $result = $this->dbDriver->query($query);
         $row = $this->dbDriver->fetch_assoc($result);
@@ -100,6 +102,7 @@ class Functions_jobs {
             $userid             = $this->dbDriver->quote($userid);
             $querytime          = $this->dbDriver->quote($data['querytime'], date("Y-m-d H:i:s"));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
+            $title              = $this->dbDriver->quote($data['title'], 'NULL');
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
@@ -113,15 +116,20 @@ class Functions_jobs {
                     $userid,
                     $querytime,
                     $method,
+                    $title,
                     $data,
                     $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $jobid = $this->dbDriver->query($query);
-
+            
+            if (!$jobid)
+            {
+                return false;
+            }
             // Save results
             foreach ($outputs as $output){
                 if (isset($output['value']) && isset($output['type']) && isset($output['identifier'])) {
@@ -146,16 +154,40 @@ class Functions_jobs {
      * @param integer $jobid
      * @return boolean
      */
-    public function remove($userid, $jobid){
+    public function remove($userid, $jobid) {
 
-        if (!isset($userid) || $isset($jobid)) {
+        if (!isset($userid) || !isset($jobid)) {
             return false;
         }
 
         try {
-            $query = 'DELETE FROM usermanagement.jobs WHERE gid=' . $this->dbDriver->quote($jobid) . 'AND userid=' . $this->dbDriver->quote($userid);
+            $query = 'UPDATE usermanagement.jobs set visible=FALSE WHERE gid=' . $this->dbDriver->quote($jobid) . 'AND userid=' . $this->dbDriver->quote($userid);
             $result = $this->dbDriver->query($query);
             
+            if (!$result){
+                return false;
+            }
+            // If no update, return false
+            if (pg_num_rows($result) < 1) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+    
+    public function delete($userid, $jobid) {
+    
+        if (!isset($userid) || $isset($jobid)) {
+            return false;
+        }
+    
+        try {
+            $query = 'DELETE FROM usermanagement.jobs WHERE gid=' . $this->dbDriver->quote($jobid) . 'AND userid=' . $this->dbDriver->quote($userid);
+            $result = $this->dbDriver->query($query);
+    
             // If no deletion, return false
             if (pg_num_rows($result) < 1) {
                 return false;

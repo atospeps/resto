@@ -62,10 +62,10 @@ class WPS extends RestoModule {
     private $route;
 
     /**
-     * Constructor
+     * WPS Module Constructor
      *
-     * @param RestoContext $context
-     * @param RestoUser $user
+     * @param RestoContext $context context
+     * @param RestoUser $user user
      */
     public function __construct($context, $user) {
         parent::__construct($context, $user);
@@ -82,7 +82,7 @@ class WPS extends RestoModule {
     }
     
     /**
-     * 
+     * Initializes module context.
      */
     private function initialize() 
     {    
@@ -120,7 +120,8 @@ class WPS extends RestoModule {
         // Allowed HTTP method
         if ($this->context->method !== HttpRequestMethod::GET 
                 && $this->context->method !== HttpRequestMethod::POST
-                && $this->context->method !== HttpRequestMethod::PUT) 
+                && $this->context->method !== HttpRequestMethod::PUT
+                && $this->context->method !== HttpRequestMethod::DELETE) 
         {
             RestoLogUtil::httpError(404);
         }
@@ -168,6 +169,11 @@ class WPS extends RestoModule {
              */
             case HttpRequestMethod::PUT:
                 return $this->processPUT($data);
+            /*
+             * HTTP/DELETE
+             */
+            case HttpRequestMethod::DELETE:
+                return $this->processDELETE($segments, $data);
             /*
              * Error
              */
@@ -347,19 +353,29 @@ class WPS extends RestoModule {
      */
     private function GET_users($segments)
     {
-        if (!isset($segments[1])) {
+        if (!isset($segments[1])) 
+        {
             RestoLogUtil::httpError(404);
         }
 
         $userid = $segments[1];
-        if ($this->user->profile['userid'] !== $userid) {
-            RestoLogUtil::httpError(403);
+        
+        // ? Is valid user id pattern
+        if (!is_numeric($userid))
+        {
+            RestoLogUtil::httpError(400);
+        }
+        
+        // ? User can route
+        if ($this->checkUserAccess($userid) === false) 
+        {
+             RestoLogUtil::httpError(403);
         }
         
         if (isset($segments[2])) {
             // jobs
             if ($segments[2] === 'jobs') {
-                if (!isset($segments[3])){
+                if (!isset($segments[3])) {
                     // users/{userid}/jobs
                     $jobs = $this->GET_userWPSJobs($segments[1]);
                     return RestoLogUtil::success("WPS jobs stats for user {$this->user->profile['userid']}", array (
@@ -471,8 +487,9 @@ class WPS extends RestoModule {
             RestoLogUtil::httpError(404);
         }
         $userid = $segments[1];
-        if ($this->user->profile['userid'] !== $userid) {
-            RestoLogUtil::httpError(403);
+        if ($this->checkUserAccess($userid) === false) 
+        {
+             RestoLogUtil::httpError(403);
         }
         
         if (isset($segments[2])) {
@@ -494,6 +511,60 @@ class WPS extends RestoModule {
             return $this->PUT_users($this->segments);
         }
         RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * 
+     * @param unknown $data
+     */
+    private function processDELETE($segments, $data)
+    {
+        switch ($segments[0])
+        {
+            /*
+             * HTTP/GET wps/users/{userid}/results/download
+             */
+            case 'users':
+                if (!isset($segments[1])) {
+                    RestoLogUtil::httpError(404);
+                }
+                
+                $userid = $segments[1];
+                if (!is_numeric($userid)){
+                    RestoLogUtil::httpError(400);
+                }
+                if ($this->checkUserAccess($userid) === false) 
+                {
+                     RestoLogUtil::httpError(403);
+                }
+                
+                if (isset($segments[2])) {
+                    // jobs
+                    if ($segments[2] === 'jobs') 
+                    {
+                        if (isset($segments[3]) && !isset($segments[4]))
+                        {
+                            $jobid = $segments[3];
+                            if (!is_numeric($jobid))
+                            {
+                                RestoLogUtil::httpError(400);
+                            }
+                            $this->removeJob($userid, $jobid);
+                            $jobs = $this->GET_userWPSJobs($userid);
+                            return RestoLogUtil::success("WPS jobs for user {$userid}", array (
+                                    'data' => $jobs
+                            ));
+                        }
+                    }
+                }
+                
+                /*
+                 * Unknown route
+                */
+            default:
+                break;
+        }
+        return RestoLogUtil::httpError(404);
     }
     
     /**
@@ -520,8 +591,9 @@ class WPS extends RestoModule {
      */
     private function setJobsAcknowledges($userid)
     {
-        if ($this->user->profile['userid'] !== $userid) {
-            RestoLogUtil::httpError(403);
+        if ($this->checkUserAccess($userid) === false) 
+        {
+             RestoLogUtil::httpError(403);
         }
         
         $query = "UPDATE usermanagement.jobs "
@@ -539,12 +611,7 @@ class WPS extends RestoModule {
      * @return {int} count
      */
     private function getCompletedJobsStats($userid)
-    {
-        if ($this->user->profile['userid'] !== $userid) 
-        {
-            RestoLogUtil::httpError(403);
-        }
-        
+    {        
         return $this->context->dbDriver->get(
             RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
             array('userid' => $userid)
@@ -582,7 +649,7 @@ class WPS extends RestoModule {
         $select = 'SELECT usermanagement.wps_results.uid as uid, usermanagement.wps_results.jobid as jobid, usermanagement.jobs.title, usermanagement.jobs.querytime as processingtime, usermanagement.jobs.identifier as processing, usermanagement.jobs.statusTime as datetime, usermanagement.wps_results.identifier, type,' 
                 . $this->context->dbDriver->quote($rootPathOutputsUrl) . ' || value as value ';
         $from  = 'FROM usermanagement.wps_results INNER JOIN usermanagement.jobs ON usermanagement.jobs.gid = usermanagement.wps_results.jobid';
-        $where = 'WHERE ' . $oFilter . ' ORDER BY usermanagement.jobs.statusTime DESC';
+        $where = 'WHERE ' . $oFilter . ' AND visible=true ORDER BY usermanagement.jobs.statusTime DESC';
 
         $query =  $select . ' ' . $from . ' ' . $where;
 
@@ -595,32 +662,13 @@ class WPS extends RestoModule {
      */
     private function GET_userWPSJobs($userid) {
 
-        // Only user admin can see WPS jobs of all users.
-        if ($this->user->profile['userid'] !== $userid) 
-        {
-            if ($this->user->profile['groupname'] !== 'admin') 
-            {
-                RestoLogUtil::httpError(403);
-            }
-        }
+        $results = $this->context->dbDriver->get(
+                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
+                array('userid' => $userid));
 
-        // User identifier pattern is valid ?
-        if (is_numeric($userid)) 
-        {
-
-            $results = $this->context->dbDriver->get(
-                    RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
-                    array('userid' => $userid));
-
-            // TODO Updates status's jobs.
-            $results = $this->updateStatusOfJobs($results);
-            return $results;
-        }
-        // ? Is Bad Request
-        else 
-        {
-            RestoLogUtil::httpError(400);
-        }
+        // TODO Updates status's jobs.
+        $results = $this->updateStatusOfJobs($results);
+        return $results;
     }
 
     /**
@@ -693,12 +741,12 @@ class WPS extends RestoModule {
      *
      * @throws Exception
      */
-    private function removeJob($userid, $data) {
+    private function removeJob($userid, $jobid) {
         return $this->context->dbDriver->remove(
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
                 array(
                         'userid' => $userid,
-                        'data' => $data
+                        'jobid' => $jobid
                 ));
     }
     
@@ -769,7 +817,7 @@ class WPS extends RestoModule {
      * @param unknown $data
      * @return NULL
      */
-    private function placeOrder($userid, $data) 
+    private function placeOrder($email, $data) 
     {
 
         // ? Is Bad Request
@@ -953,6 +1001,23 @@ class WPS extends RestoModule {
                     $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array ('email' => $email)),
                     $this->context);
         }
+    }
+    
+    /**
+     * 
+     * @param unknown $userid
+     * @return boolean
+     */
+    function checkUserAccess($userid) {
+
+        if ($this->user->profile['userid'] !== $userid)
+        {
+            if ($this->user->profile['groupname'] !== 'admin')
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

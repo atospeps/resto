@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS usermanagement.jobs
   	percentcompleted integer DEFAULT 0,
   	nbresults integer,
     acknowledge boolean DEFAULT false,
+    last_dispatch timestamp without time zone,
+    visible boolean DEFAULT true,
   	CONSTRAINT jobs_pkey PRIMARY KEY (gid)
 );
 

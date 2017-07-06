@@ -213,7 +213,8 @@ class WPS_RequestManager {
     public function getExecuteResponse($statusLocation) {
         try 
         {
-            $url = $this->getOutputsUrl() . $statusLocation;
+            // Prevent proxy cache issues
+            $url = $this->getOutputsUrl() . $statusLocation . '?' . time();
             $data = Curl::Get($url, array(), $this->curlOpts);
             $response = new WPS_Response($data);
 

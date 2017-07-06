@@ -41,6 +41,25 @@ class WPS extends RestoModule {
      * Database handler
      */
     private $dbh;
+    
+    /*
+     * Minimum period (seconds) between processings updates. 
+     * This option prevent user from abusing of manual refresh.
+     * Default value: 10
+     */ 
+    private $minPeriodBetweenProcessingsRefresh = 10;
+
+    /* 
+     * ? "Remove" also deletes processings from database
+     * Default value: false
+     */
+    private $doesRemoveAlsoDeletesProcessingsFromDatabase = false;
+    
+    /* 
+     * Time life of processings (days)
+     * Default value : 0 (0 => Infinite)
+     */
+    private $timeLifeOfProcessings = 0;
 
     /*
      * WPS Server url.
@@ -56,7 +75,7 @@ class WPS extends RestoModule {
     
     private $replacements = array();
 
-    /**
+    /*
      * WPS module route.
      */
     private $route;
@@ -103,6 +122,21 @@ class WPS extends RestoModule {
         $this->replacements[$this->wpsRequestManager->getResponseServerAddress()] = $this->externalServerAddress;
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
         
+        // ? Minimum period between processing update (units: seconds)
+        $this->minPeriodBetweenProcessingsRefresh = 
+            (isset($module['users']['minPeriodBetweenProcessingsRefresh']) && is_numeric($module['users']['minPeriodBetweenProcessingsRefresh'])) 
+            ? $module['users']['minPeriodBetweenProcessingsRefresh'] : $this->minPeriodBetweenProcessingsRefresh;
+
+        // ? "Remove" also deletes processings from database
+        $this->timeLifeOfProcessings =
+        (isset($module['users']['timeLifeOfProcessings']) && is_numeric($module['users']['timeLifeOfProcessings']))
+        ? $module['users']['timeLifeOfProcessings'] : $this->timeLifeOfProcessings;
+
+        // ? "Remove" also deletes processings from database
+        $this->doesRemoveAlsoDeletesProcessingsFromDatabase =
+            (isset($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']) && is_bool($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']))
+            ? $module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase'] : $this->doesRemoveAlsoDeletesProcessingsFromDatabase;
+
         // WPS module route
         $this->route = isset($module['route']) ? $module['route'] : '' ;
     }
@@ -110,7 +144,7 @@ class WPS extends RestoModule {
     /**
      * Run module - this function should be called by Resto.php
      *
-     * @param array $elements : route elements
+     * @param array $segments : route elements
      * @param array $data : POST or PUT parameters
      *       
      * @return string : result from run process in the $context->outputFormat
@@ -134,7 +168,7 @@ class WPS extends RestoModule {
                     && isset($segments[0]) && $segments[0] == 'outputs' 
                     && !isset($segments[2])) 
             {
-                $this->authenticateToken($this->context->query['_tk']);
+                $this->authenticateToken($segments, $this->context->query['_tk']);
             }
             else 
             {
@@ -231,27 +265,28 @@ class WPS extends RestoModule {
 
     /**
      * HTTP/GET wps?
-     * @param unknown $segments
-     * @throws Exception
-     * @return WPS_Response
+     * @param array $segments route elements
+     * @return unknown
      */
     private function GET_wps($segments) {
         return $this->perform_wps($segments, HttpRequestMethod::GET, $this->context->query);        
     }
     
     /**
-     *
-     * @param unknown $segments
+     * HTTP/POST wps
+     * @param array $segments route elements
+     * @param array $data request parameters
+     * @return unknown
      */
     private function POST_wps($segments, $data) {
         return $this->perform_wps($segments, HttpRequestMethod::POST, $data);        
     }
     
     /**
-     * 
-     * @param unknown $segments
-     * @param unknown $method
-     * @param unknown $data
+     * Perform wps service.
+     * @param array $segments route elements
+     * @param string $method HTTP method
+     * @param array $data request parameters
      * @return unknown
      */
     private function perform_wps($segments, $method, $data) {
@@ -287,8 +322,8 @@ class WPS extends RestoModule {
     
     /**
      * 
-     * @param unknown $segments
-     * @return WPS_Response
+     * @param array $segments route elements
+     * @return unknown
      */
     private function GET_wps_outputs($segments) {
     
@@ -768,9 +803,14 @@ class WPS extends RestoModule {
      * Updates status of jobs.
      */
     private function updateStatusOfJobs($jobs) {
+        
+        $now = date( "m/d/Y h:i:s A", time() + $this->minPeriodBetweenProcessingsRefresh );
+        
+
         foreach ($jobs as &$job) {
             if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
             {
+                error_log($job['last_dispatch']);
                 if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) 
                 {
                     if ($job['status'] != $executeResponse->getStatus() 
@@ -862,7 +902,7 @@ class WPS extends RestoModule {
                 $item['properties']['services']['download']['url'] = $result[0]['value'];
 
                 // Add link to the file
-                $meta4->addLink($item, $userid);
+                $meta4->addLink($item, $email);
             }    
         }
         
@@ -982,7 +1022,7 @@ class WPS extends RestoModule {
      * 
      * @param unknown $token
      */
-    function authenticateToken($token){
+    function authenticateToken($segments, $token){
 
         $email = $this->context->dbDriver->check(
                 RestoDatabaseDriver::SHARED_LINK,

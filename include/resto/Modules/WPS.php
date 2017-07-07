@@ -244,7 +244,7 @@ class WPS extends RestoModule {
                 case 'users':
                     return $this->GET_users($this->segments);
                 /*
-                 * 
+                 * HTTP/GET wps/outputs
                  */
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
@@ -333,13 +333,10 @@ class WPS extends RestoModule {
 
         // ? Is statusLocation
         $resource = $segments[1] . (isset($this->context->outputFormat) ? '.' . $this->context->outputFormat : '');
-        $job = $this->context->dbDriver->get(
-                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
-                array(
-                        'userid' => $this->user->profile['userid'],
-                        'filters' => array('statuslocation=' . $this->context->dbDriver->quote($resource))
-                        )
-                );
+        $job = $this->getJobs(
+                $this->user->profile['userid'], 
+                null, 
+                array('statuslocation=' . $this->context->dbDriver->quote($resource)));
 
         // ? statusLocation exists 
         if (count($job) > 0) 
@@ -356,9 +353,7 @@ class WPS extends RestoModule {
         $result = $this->getProcessingResults(
                 $this->user->profile['userid'],
                 null,
-                array(
-                        'value=' . $this->context->dbDriver->quote($resource)
-                ),
+                array('value=' . $this->context->dbDriver->quote($resource)),
                 $this->wpsRequestManager->getOutputsUrl());
         
         if (count($result) > 0) 
@@ -675,6 +670,12 @@ class WPS extends RestoModule {
         {
             $filters[] = 'usermanagement.wps_results.jobid=' . $this->context->dbDriver->quote($jobid);
         }
+        
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0) 
+        {
+            $filters[] = 'usermanagement.jobs.querytime < now() + (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
 
         $oFilter = implode(' AND ', $filters);
 
@@ -696,14 +697,11 @@ class WPS extends RestoModule {
      * @return multitype:multitype:
      */
     private function GET_userWPSJobs($userid) {
-
-        $results = $this->context->dbDriver->get(
-                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
-                array('userid' => $userid));
-
-        // TODO Updates status's jobs.
-        $results = $this->updateStatusOfJobs($results);
-        return $results;
+        
+        return $this->getJobs(
+                $userid, 
+                null, 
+                array());
     }
 
     /**
@@ -772,6 +770,47 @@ class WPS extends RestoModule {
     }
     
     /**
+     * 
+     * @param integer $userid
+     * @param integer $jobid
+     * @param array $filters
+     * @return multitype:|unknown
+     */
+    private function getJobs($userid, $jobid=null, $filters=array()) {
+
+        $items = array();
+
+        // ? User id not setted
+        if (!isset($userid)) 
+        {
+            return $items;
+        }
+
+        // ? Job id is setted
+        if (isset($jobid)) 
+        {
+            $filters[] = 'gid=' . $this->context->dbDriver->quote($jobid);
+        }
+        
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0) 
+        {
+            $filters[] = 'querytime < now() + (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
+        
+        $results = $this->context->dbDriver->get(
+                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
+                array(
+                        'userid' => $userid,
+                        'filters' => $filters
+                ));
+        
+        // Updates status's jobs.
+        $results = $this->updateStatusOfJobs($results);
+        return $results;        
+    }
+    
+    /**
      * We remove a job
      *
      * @throws Exception
@@ -804,13 +843,15 @@ class WPS extends RestoModule {
      */
     private function updateStatusOfJobs($jobs) {
         
-        $now = date( "m/d/Y h:i:s A", time() + $this->minPeriodBetweenProcessingsRefresh );
-        
+        $now = time();
 
         foreach ($jobs as &$job) {
             if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
-            {
-                error_log($job['last_dispatch']);
+            {                
+                if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
+                {
+                    continue;    
+                }
                 if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) 
                 {
                     if ($job['status'] != $executeResponse->getStatus() 
@@ -823,6 +864,7 @@ class WPS extends RestoModule {
                         $job['percentcompleted'] = $executeResponse->getPercentCompleted();
                         $job['outputs'] = $executeResponse->getOutputs();
                         $job['nbresults'] = count($job['outputs']);
+                        $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
                         
                         $this->updateJob($job['userid'], $job);
                     }
@@ -898,7 +940,7 @@ class WPS extends RestoModule {
         
             if (count($result) > 0) 
             {
-                $item['id'] = $result[0]['identifier'];
+                $item['id'] = basename($result[0]['value']);
                 $item['properties']['services']['download']['url'] = $result[0]['value'];
 
                 // Add link to the file
@@ -919,9 +961,12 @@ class WPS extends RestoModule {
      */
     function getProcessingDescription($identifier)
     {
-        if ($this->user->profile['groupname'] === 'admin') {
+        if ($this->user->profile['groupname'] === 'admin') 
+        {
             $wpsRights = array('all');
-        } else {
+        } 
+        else 
+        {
             $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
         }
         

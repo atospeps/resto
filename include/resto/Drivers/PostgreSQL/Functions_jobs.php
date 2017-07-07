@@ -115,7 +115,6 @@ class Functions_jobs {
             $values = array (
                     $userid,
                     $querytime,
-                    'now()',
                     $method,
                     $title,
                     $data,
@@ -123,7 +122,7 @@ class Functions_jobs {
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, last_dispatch, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $jobid = $this->dbDriver->query($query);
             
@@ -223,10 +222,11 @@ class Functions_jobs {
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $gid                = $this->dbDriver->quote($data['gid']);
             $nbResults          = count($outputs);
+            $last_dispatch      = $this->dbDriver->quote($data['last_dispatch'], 'now()');
         
             // update properties
             $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=now(), status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}"
+                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}"
                     . " WHERE gid=${gid}";
             
             $this->dbDriver->query($query);

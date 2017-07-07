@@ -178,9 +178,15 @@ class Functions_jobs {
         }
     }
     
+    /**
+     * 
+     * @param integer $userid
+     * @param integer $jobid
+     * @return boolean
+     */
     public function delete($userid, $jobid) {
     
-        if (!isset($userid) || $isset($jobid)) {
+        if (!isset($userid) || !isset($jobid)) {
             return false;
         }
     

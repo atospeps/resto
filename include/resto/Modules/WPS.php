@@ -581,9 +581,7 @@ class WPS extends RestoModule {
                             }
                             $this->removeJob($userid, $jobid);
                             $jobs = $this->GET_userWPSJobs($userid);
-                            return RestoLogUtil::success("WPS jobs for user {$userid}", array (
-                                    'data' => $jobs
-                            ));
+                            return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
                         }
                     }
                 }
@@ -816,12 +814,18 @@ class WPS extends RestoModule {
      * @throws Exception
      */
     private function removeJob($userid, $jobid) {
+
+        $removeType = ($this->doesRemoveAlsoDeletesProcessingsFromDatabase == true) 
+                ? RestoDatabaseDriver::PROCESSING_JOBS_DATA 
+                : RestoDatabaseDriver::PROCESSING_JOBS_ITEM;
+
+        $options = array(
+                'userid' => $userid,
+                'jobid' => $jobid
+                );
         return $this->context->dbDriver->remove(
-                RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
-                array(
-                        'userid' => $userid,
-                        'jobid' => $jobid
-                ));
+                $removeType,
+                $options);
     }
     
     /**

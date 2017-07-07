@@ -262,18 +262,35 @@ return array(
                         'outputsUrl' => 'http://192.168.56.102/resto/wps/outputs/',
                         // pywps configuration
                         'pywps' => array(
-                                'serverAddress' => 'http://172.24.218.59:8081/cgi-bin/pywps.cgi', // VIZO ATOS
-//                                 'serverAddress' => 'http://192.168.56.102:4444/cgi-bin/pywps.cgi', // Docker VM
-                                'outputsUrl' => 'http://172.24.218.59:8081/wps/outputs/',
+                                'serverAddress' => "http://localhost:8081/cgi-bin/pywps.cgi", // VIZO TEST
+                                'outputsUrl' => 'http://localhost:8081/wps/outputs/',
                                 'conf' => array(
                                         'serverAddress' => 'http://localhost:8081/cgi-bin/pywps.cgi',
                                         'outputsUrl' => 'http://localhost:8081/wps/outputs/'
                                 )
                         ),
+                        'users' => array(
+                                /*
+                                 * Minimum period (seconds) between processings updates. 
+                                 * This option prevent user from abusing of manual refresh.
+                                 * Default value: 10
+                                 */ 
+                                'minPeriodBetweenProcessingsRefresh' => 20,
+                                /* 
+                                 * ? "Remove" also deletes processings from database
+                                 * Default value: false
+                                 */
+                                'doesRemoveAlsoDeletesProcessingsFromDatabase' => false,
+                                /* 
+                                 * Time life of processings (days)
+                                 * Default value : 0 (0 => Infinite)
+                                 */
+                                'timeLifeOfProcessings' => 1
+                        ),
                         'curlOpts' => array(
                                 CURLOPT_PROXY => '',
-                                CURLOPT_TIMEOUT => 2,
-                                CURLOPT_CONNECTTIMEOUT => 2
+                                CURLOPT_TIMEOUT => 30,
+                                CURLOPT_CONNECTTIMEOUT => 30
                         ),
                 )
         ),

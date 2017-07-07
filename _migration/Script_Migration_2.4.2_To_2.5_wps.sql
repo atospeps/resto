@@ -124,7 +124,9 @@ CREATE TABLE usermanagement.wps_results
   value text,
   jobid serial NOT NULL,
   CONSTRAINT wps_results_pkey PRIMARY KEY (uid),
-  CONSTRAINT wps_results_jobid_fkey FOREIGN KEY (jobid) REFERENCES usermanagement.jobs (gid) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT wps_results_jobid_fkey FOREIGN KEY (jobid)
+      REFERENCES usermanagement.jobs (gid) MATCH SIMPLE
+      ON UPDATE RESTRICT ON DELETE CASCADE
 )
 WITH (
   OIDS=FALSE

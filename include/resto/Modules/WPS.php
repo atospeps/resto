@@ -973,7 +973,7 @@ class WPS extends RestoModule {
         {
             $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
         }
-        
+
         $response = $this->wpsRequestManager->Get(
                 array(
                     'request' => 'describeProcess',
@@ -984,34 +984,16 @@ class WPS extends RestoModule {
                 $wpsRights
         );
         
-        $dom = new DOMDocument;
-        $dom->preserveWhiteSpace = false;
-        $dom->formatOutput = true;
-        $dom->loadXML($response->toXML());
-        
-        $description = '';
-        $inputs = array();
-        
-        $processDescription = $dom->getElementsByTagName('ProcessDescription')->item(0);
-        if ($processDescription) {
-            $description = $processDescription->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Abstract')->item(0)->textContent;
+        $describeProcessResponse = new WPS_DescribeProcessResponse($response->toXML());
+        $processes = $describeProcessResponse->getProcesses();
+        if (count($processes) > 0)
+        {
+            $process = $processes[0];
             
-            $inputs['storeSupported'] = $processDescription->getAttribute('storeSupported');
-            $inputs['statusSupported'] = $processDescription->getAttribute('statusSupported');
             
-            $dataInputs = $processDescription->getElementsByTagName('DataInputs')->item(0);
-            if ($dataInputs) {
-                $firstInput = $dataInputs->getElementsByTagName('Input')->item(0);
-                if ($firstInput) {
-                    $inputs['identifierKey'] = $firstInput->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier')->item(0)->textContent;
-                }
-            }
+            return $process->toArray();
         }
-        
-        return array(
-            'description' => $description,
-            'inputs' => $inputs
-        );
+        RestoLogUtil::httpError(400);        
     }
     
     /**

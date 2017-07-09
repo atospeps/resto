@@ -5,7 +5,7 @@
  * @author Driss El maalem
  *
  */
-class WPS_ExecuteResponse extends WPS_Response {
+class WPS_DescribeProcessResponse extends WPS_Response {
 
     /*
      * Process identifier.
@@ -65,7 +65,7 @@ class WPS_ExecuteResponse extends WPS_Response {
      *
      * @param unknown $pXml
     */
-    function __construct($pXml) {
+    function __construct($pXml){
         parent::__construct($pXml);
         libxml_use_internal_errors(true);
         $sxe = new SimpleXMLElement($this->xml);
@@ -78,7 +78,7 @@ class WPS_ExecuteResponse extends WPS_Response {
 
         $result = $sxe->xpath('//wps:ExecuteResponse');
         if (!$result && count($result) == 0) {
-            throw new ExecuteResponseException('WPS_ExecuteResponse::__contruct : Invalid xml');
+            throw new ExecuteResponseException('wps:ExecuteResponse::__contruct : Invalid xml');
         }
         $this->parseExecuteResponse($result[0]);
     }

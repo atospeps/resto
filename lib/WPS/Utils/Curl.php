@@ -111,7 +111,7 @@ class Curl {
             }
         }
         $context = stream_context_create($context_options);
-        $handle = fopen($url, "rb", false, $context);
+        $handle = @fopen($url, "rb", false, $context);
         if ($handle === false) {
             RestoLogUtil::httpError(500, 'Resource cannot be downloaded');
         }

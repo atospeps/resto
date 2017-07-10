@@ -214,7 +214,7 @@ class WPS_RequestManager {
         try 
         {
             // Prevent proxy cache issues
-            $url = $this->getOutputsUrl() . $statusLocation . '?' . time();
+            $url = $this->getOutputsUrl() . $statusLocation;
             $data = Curl::Get($url, array(), $this->curlOpts);
             $response = new WPS_Response($data);
 

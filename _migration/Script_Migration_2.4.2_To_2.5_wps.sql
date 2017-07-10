@@ -71,6 +71,9 @@ GRANT ALL ON TABLE usermanagement.jobs TO resto;
 GRANT ALL ON SEQUENCE usermanagement.jobs_gid_seq TO postgres;
 GRANT SELECT, UPDATE ON SEQUENCE usermanagement.jobs_gid_seq TO resto;
 
+CREATE INDEX jobs_userid_idx ON usermanagement.jobs USING userid (querytime DESC);
+CREATE INDEX jobs_querytime_idx ON usermanagement.jobs USING btree (querytime DESC);
+CREATE INDEX jobs_last_dispatch_idx ON usermanagement.jobs USING btree (last_dispatch DESC);
 
 -- ----------------------------------------------------------------------------------------
 --

@@ -25,6 +25,7 @@ class Curl {
             $opts[$key] = $value;
         }
 
+        $data['_t'] = time();
         $_url = $url . (
                 count($data) > 0 
                 ? ((substr($url, -1) == '?' ? '' : '?') . http_build_query($data)) 

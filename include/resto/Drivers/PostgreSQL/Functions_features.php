@@ -261,7 +261,7 @@ class Functions_features {
         /*
          * Results
          */
-        $results = $this->dbDriver->query(($query));
+        $results = $this->dbDriver->query($query);
         return $this->toFeatureArray($context, $user, $collection, $results);
     }
 
@@ -373,22 +373,25 @@ class Functions_features {
             /*
              * Start transaction
              */
-            pg_query($this->dbh, 'BEGIN');
-            
+            $this->dbDriver->query('BEGIN');
+
             /*
              * Store feature
              */
-            pg_query($this->dbh, 'INSERT INTO ' . pg_escape_string('_' . strtolower($collection->name)) . '.features (' . join(',', array_keys($columnsAndValues)) . ') VALUES (' . join(',', array_values($columnsAndValues)) . ')');
-            
+            $query = 'INSERT INTO ' . pg_escape_string('_' . strtolower($collection->name)) . '.features (' . join(',', array_keys($columnsAndValues)) . ') VALUES (' . join(',', array_values($columnsAndValues)) . ')';
+            $this->dbDriver->query($query);
+
             /*
              * Store facets
              */
             $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
             
-            pg_query($this->dbh, 'COMMIT');
+            $this->dbDriver->query('COMMIT');
             
-        } catch (Exception $e) {
-            pg_query($this->dbh, 'ROLLBACK');
+        } 
+        catch (Exception $e) 
+        {
+            $this->dbDriver->query('ROLLBACK');
             RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be inserted in database');
         }
     }

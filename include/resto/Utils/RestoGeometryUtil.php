@@ -274,9 +274,16 @@ class RestoGeometryUtil {
                 /*
                  * For each coordinate, stores lon/lat
                 */
-                for($i = 0; $i < count($coordinates); $i++) {
+                $count = count($coordinates);
+                
+                for($i = 0; $i < $count; $i++) {
                     preg_match_all("/$lon/", $coordinates[$i], $coord_matches);
                     $coordinates[$i] = $coord_matches[0];
+                }
+                if ($coordinates[0][0] != $coordinates[$count-1][0]
+                        || $coordinates[0][1] != $coordinates[$count-1][1]) 
+                {
+                    throw new Exception(__method__ . ': Invalid input WKT. geometry contains non-closed rings', 500);
                 }
             }
         } else {

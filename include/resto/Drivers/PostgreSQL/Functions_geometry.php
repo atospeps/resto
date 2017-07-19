@@ -20,9 +20,18 @@ class Functions_geometry {
     }
 
     public function simplifyPolygon($wkt) {
-        $query = 'with t as (select (st_dump(ST_Shift_Longitude(st_geomFromText(\'' . $wkt . '\')))).geom) select st_astext(ST_Shift_Longitude(st_union(geom))) from t;';                
-        $result = $this->dbDriver->fetch($this->dbDriver->query($query));
-        return isset($result[0]['st_astext']) ? $result[0]['st_astext'] : null;
+        try 
+        {
+            $query = 'with t as (select (st_dump(ST_Shift_Longitude(\'' . $wkt . '\'))).geom) select st_astext(ST_Shift_Longitude(st_union(geom))) from t;';
+            $result = $this->dbDriver->query($query);
+            $arr = $this->dbDriver->fetch($result);
+            return isset($arr[0]['st_astext']) ? $arr[0]['st_astext'] : null;
+        }
+        catch (Exception $e) 
+        {
+            error_log(__method__ . ': Invalid input WKT : ' . $wkt, 0);
+            throw new Exception(__method__ . ': Invalid input WKT.', 500);
+        }
     }
 
 }

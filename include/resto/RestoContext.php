@@ -101,14 +101,14 @@ class RestoContext {
     public $streamMethod = 'php';
     
     /*
-     * Instant download limit (in Mb)
+     * Instant download limit (nb max)
      */
-    public $instantDownloadLimit = 1000;
+    public $instantDownloadLimit = 0;
     
     /*
-     * Weekly download limit (in Mb)
+     * Weekly download limit (nb max)
      */
-    public $weeklyDownloadLimit = 5000;
+    public $weeklyDownloadLimit = 200;
     
     /*
      * 
@@ -388,15 +388,15 @@ class RestoContext {
         /*
          * Instant download limit
          */
-        if (isset($config['general']['instantLimitDownloadVolume'])) {
-            $this->instantDownloadLimit = $config['general']['instantLimitDownloadVolume'];
+        if (isset($config['general']['instantLimitDownload'])) {
+            $this->instantDownloadLimit = $config['general']['instantLimitDownload'];
         }
 
         /*
          * Weekly download limit
          */
-        if (isset($config['general']['weeklyLimitDownloadVolume'])) {
-            $this->weeklyDownloadLimit = $config['general']['weeklyLimitDownloadVolume'];
+        if (isset($config['general']['weeklyLimitDownload'])) {
+            $this->weeklyDownloadLimit = $config['general']['weeklyLimitDownload'];
         }
         
         /*

@@ -464,13 +464,6 @@ class RestoRouteGET extends RestoRoute {
         if ($downloadState !== "OK") {
             return $downloadState;
         }
-        
-        //We validate all the possible elemnts to allow the product download
-        $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
-    
-        if ($sizeLimitState !== "OK") {
-            return $sizeLimitState;
-        }
     }
     
     /**
@@ -498,13 +491,6 @@ class RestoRouteGET extends RestoRoute {
                 )), $this->context);
                 $feature->user = $this->user;
             }
-        }
-
-        //We validate all the possible elemnts to allow the product download
-        $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
-
-        if ($sizeLimitState !== "OK") {
-            return $sizeLimitState;
         }
 
         // We validate all the elemetns needed to make the product available to the user
@@ -650,11 +636,8 @@ class RestoRouteGET extends RestoRoute {
      * @param string $emailOrId
      * @throws Exception
      */
-    private function GET_userProfile($emailOrId) {
-
-        /*
-         * Profile can only be seen by its owner or by admin
-         */
+    private function GET_userProfile($emailOrId)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
 
         return RestoLogUtil::success('Profile for ' . $user->profile['userid'], array(
@@ -670,17 +653,14 @@ class RestoRouteGET extends RestoRoute {
      * @param string $featureIdentifier
      * @throws Exception
      */
-    private function GET_userRights($emailOrId, $collectionName = null, $featureIdentifier = null) {
-
-        /*
-         * Rights can only be seen by its owner or by admin
-         */
+    private function GET_userRights($emailOrId, $collectionName = null, $featureIdentifier = null)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
 
         return RestoLogUtil::success('Rights for ' . $user->profile['userid'], array(
-                    'userid' => $user->profile['userid'],
-                    'groupname' => $user->profile['groupname'],
-                    'rights' => $user->getFullRights($collectionName, $featureIdentifier)
+            'userid' => $user->profile['userid'],
+            'groupname' => $user->profile['groupname'],
+            'rights' => $user->getFullRights($collectionName, $featureIdentifier)
         ));
     }
 
@@ -691,11 +671,8 @@ class RestoRouteGET extends RestoRoute {
      * @param string $itemid
      * @throws Exception
      */
-    private function GET_userCart($emailOrId, $itemid = null) {
-
-        /*
-         * Cart can only be seen by its owner or by admin
-         */
+    private function GET_userCart($emailOrId, $itemid = null)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
 
         if (isset($itemid)) {
@@ -730,11 +707,8 @@ class RestoRouteGET extends RestoRoute {
      * @param string $orderid
      * @throws Exception
      */
-    private function GET_userOrders($emailOrId, $orderid = null) {
-
-        /*
-         * Orders can only be seen by its owner or by admin
-         */
+    private function GET_userOrders($emailOrId, $orderid = null)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
         
         /*
@@ -756,13 +730,17 @@ class RestoRouteGET extends RestoRoute {
      * @param string $emailOrId
      * @throws Exception
      */
-    private function GET_userDownloadInfo($emailOrId) {
-        /*
-         * Infos can only be seen by its owner or by admin
-         */
+    private function GET_userDownloadInfo($emailOrId)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
         
-        $result = array("weekDownloadedVolume" => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_VOLUME, array('identifier' => $this->user->profile['userid'])));
+        $downloadLimits = $user->getDownloadLimits();
+        
+        $result = array(
+            "instantLimitDownload" => $downloadLimits['instantLimitDownload'],
+            "weeklyLimitDownload"  => $downloadLimits['weeklyLimitDownload'],
+            "weeklyDownloaded"     => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_WEEKLY, array('identifier' => $user->profile['email']))
+        );
         
         return $result;
     }
@@ -831,39 +809,6 @@ class RestoRouteGET extends RestoRoute {
     }
 
     /**
-     * Validate that a user can download a product by it's limit download size
-     */    
-    private function validateUserSizeLimit($collection, $feature) {
-        // We get a correct array format
-        $featureProp = $feature->toArray();
-        //We get the size limit of the user
-        $size = isset($featureProp['properties']['services']['download']['size']) ? $featureProp['properties']['services']['download']['size'] : 900;
-        // Refresh user profile
-        $this->user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $this->user->profile['email']));
-        
-        /*
-         * Or the user has reached his instant download limit
-         */
-        if ($size > $this->user->profile['instantdownloadvolume'] * 1048576) {
-            $this->user->storeQuery('ERROR', 'download', $collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-            return RestoLogUtil::httpError(420, "instant|" . $this->user->profile['instantdownloadvolume']);
-        }
-        /*
-         * Or the user has reached his weekly download limit.
-         */
-        else if ($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array (
-                'userprofile' => $this->user->profile,
-                'size' => $size
-        ))) {
-            $this->user->storeQuery('ERROR', 'download', $collection->name, $featureProp['id'], $this->context->query, $this->context->getUrl());
-            return RestoLogUtil::httpError(420, "week|" . $this->user->profile['weeklydownloadvolume']);
-        
-        } else {
-            return "OK";
-        }
-    }
-
-    /**
      * Return license url in the curent language
      *
      * @param array $collectionDescription
@@ -876,5 +821,4 @@ class RestoRouteGET extends RestoRoute {
         
         return null;
     }
-
 }

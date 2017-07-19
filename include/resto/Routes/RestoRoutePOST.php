@@ -382,7 +382,7 @@ class RestoRoutePOST extends RestoRoute {
     private function POST_users($segments, $data) {
         
         /*
-         * No modifier allwed
+         * update disallowed
          */
         if (isset($segments[3])) {
             RestoLogUtil::httpError(404);
@@ -460,8 +460,8 @@ class RestoRoutePOST extends RestoRoute {
                 'adress' => isset($data['adress']) ? $data['adress'] : null,
                 'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
                 'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
-                'instantdownloadvolume' => $this->context->instantDownloadLimit,
-                'weeklydownloadvolume' => $this->context->weeklyDownloadLimit,
+                'instantdownload' => $this->context->instantDownloadLimit,
+                'weeklydownload' => $this->context->weeklyDownloadLimit,
                 'activated' => 0
             ))
         );
@@ -698,34 +698,35 @@ class RestoRoutePOST extends RestoRoute {
      * @param array $data
      * @throws Exception
      */
-    private function POST_userOrders($emailOrId, $data) {
-        
-    	/*
-    	 * Order can only be modified by its owner or by admin
-    	 */
+    private function POST_userOrders ($emailOrId, $data)
+    {
         $user = $this->getAuthorizedUser($emailOrId);
+        
+        $downloadLimits = $user->getDownloadLimits();
 
-        // Retrieve all order items
-        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
+        // retrieve all order items
         $items = array();
+        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
         if($fromCart) {
             $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
         } else {
             $items = $data;
         }
-
-        $size = $this->context->dbDriver->get(RestoDatabaseDriver::ORDER_SIZE, array('order' => $items));
-        // Refresh user profile
+        
+        // refresh user profile
         $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
         
-        /*
-         * Check if the user hasn't exceed his download volume limit
-         */
-        if ($size > $user->profile['instantdownloadvolume'] * 1048576) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['instantdownloadvolume'] . "Mo at once, please remove some products, or contact our administrator");
+        // get the total of products ordered by the user for the last week
+        $weeklyDownloaded = $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_WEEKLY, array('identifier' => $user->profile['email']));
+        
+        // check weekly download limit
+        if($downloadLimits['weeklyLimitDownload'] > 0 && $weeklyDownloaded + count($items) > $downloadLimits['weeklyLimitDownload']) {
+            return RestoLogUtil::httpError(420, "You can't download more than " . $downloadLimits['weeklyLimitDownload'] . "products per week, please wait some days, or contact our administrator");
         }
-        if($this->context->dbDriver->check(RestoDatabaseDriver::USER_LIMIT, array('userprofile' => $user->profile, 'size' => $size))) {
-            return RestoLogUtil::httpError(420, "You can't download more than " . $user->profile['weeklydownloadvolume'] . "Mo per week, please wait some days, or contact our administrator");
+        
+        // check instant download limit
+        if ($downloadLimits['instantLimitDownload'] > 0 && count($items) > $downloadLimits['instantLimitDownload']) {
+            return RestoLogUtil::httpError(421, "You can't download more than " . $downloadLimits['instantLimitDownload'] . " products at once, please remove some products, or contact our administrator");
         }
         
         // Try to place order
@@ -739,7 +740,5 @@ class RestoRoutePOST extends RestoRoute {
         else {
             return RestoLogUtil::error('Cannot place order');
         }
-        
     }
-
 }

@@ -175,9 +175,13 @@ class RestoRights{
      * @param string $collectionName
      * @param string $featureIdentifier
      */
-    public function getFullRights($collectionName = null, $featureIdentifier = null) {
+    public function getFullRights($collectionName = null, $featureIdentifier = null)
+    {
         $rights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS_FULL, array('emailOrGroup' => $this->identifier, 'collectionName' => $collectionName, 'featureIdentifier' => $featureIdentifier));
-        return isset($rights) ? array_merge(array('*' => $this->groupRights[$this->groupname]), $rights) : array('*' => $this->groupRights[$this->groupname]);
+        
+        $grouprights = isset($this->groupRights[$this->groupname]) ? $this->groupRights[$this->groupname] : $this->groupRights['default'];
+         
+        return isset($rights) ? array_merge(array('*' => $grouprights), $rights) : array('*' => $grouprights);
     }
     
     /**
@@ -185,7 +189,8 @@ class RestoRights{
      * 
      * @param string $groupname
      */
-    private function getGroupRights($collectionName) {
+    private function getGroupRights($collectionName)
+    {
         $groupRights = $this->context->dbDriver->get(RestoDatabaseDriver::RIGHTS, array('emailOrGroup' => $this->groupname, 'collectionName' => $collectionName));
         // If some group rights are missing, complete with hard coded rights
         if (!isset($groupRights) || $this->isIncomplete($groupRights)) {

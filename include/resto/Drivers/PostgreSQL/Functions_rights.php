@@ -80,7 +80,8 @@ class Functions_rights {
      * @return array
      * @throws Exception
      */
-    public function getFullRights($identifier, $collectionName = null, $featureIdentifier = null) {
+    public function getFullRights($identifier, $collectionName = null, $featureIdentifier = null)
+    {
         $query = 'SELECT collection, featureid, productidentifier, search, download, visualize, canpost as post, canput as put, candelete as delete, filters, wps FROM usermanagement.rights WHERE emailorgroup=\'' . pg_escape_string($identifier) . '\'' . (isset($collectionName) ?  ' AND collection=\'' . pg_escape_string($collectionName) . '\'' : '')  . (isset($featureIdentifier) ?  ' AND featureid=\'' . pg_escape_string($featureIdentifier) . '\'' : '');
         $results = $this->dbDriver->query($query);
         if (pg_num_rows($results) === 0) {

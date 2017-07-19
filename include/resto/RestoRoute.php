@@ -222,8 +222,8 @@ abstract class RestoRoute {
      * 
      * @param string $emailOrId
      */
-    protected function getAuthorizedUser($emailOrId) {
-        
+    protected function getAuthorizedUser($emailOrId)
+    {
         $user = $this->user;
         $userid = $this->userid($emailOrId);
         if ($user->profile['userid'] !== $userid) {

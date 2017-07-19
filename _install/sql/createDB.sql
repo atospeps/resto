@@ -201,8 +201,8 @@ CREATE TABLE usermanagement.users (
     adress              TEXT,
     numtel              TEXT,
     numfax              TEXT,
-    instantdownloadvolume	INTEGER,
-    weeklydownloadvolume	INTEGER
+    instantdownload		INTEGER,
+    weeklydownload		INTEGER
 );
 CREATE INDEX idx_email_users ON usermanagement.users (email);
 CREATE INDEX idx_groupname_users ON usermanagement.users (groupname);

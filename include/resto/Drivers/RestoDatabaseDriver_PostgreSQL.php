@@ -265,9 +265,9 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             /*
              * Get user downloaded volume the last 7 days 
              */
-            case parent::USER_DOWNLOADED_VOLUME:
+            case parent::USER_DOWNLOADED_WEEKLY:
                 $usersFunctions = new Functions_users($this);
-                return $usersFunctions->getUserLastWeekDownloadedVolume($params['identifier']);
+                return $usersFunctions->getUserLastWeekDownloaded($params['identifier']);
             
             default:
                 return null;
@@ -413,13 +413,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 $usersFunctions = new Functions_users($this);
                 return $usersFunctions->userExists($params['email']);
             
-            /*
-             * True if the user reaches his download limitation
-             */
-            case parent::USER_LIMIT:
-            	$usersFunctions = new Functions_users($this);
-            	return $usersFunctions->hasUserReachedWeekLimitation($params['userprofile'], $params['size']);
-
         	/*
         	 * True if the group exist
         	 */

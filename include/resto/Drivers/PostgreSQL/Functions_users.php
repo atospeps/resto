@@ -63,7 +63,7 @@ class Functions_users {
             RestoLogUtil::httpError(404);
         }
 
-        $query = "SELECT userid, email, md5(email) AS userhash, u.groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, to_char(registrationdate, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), activated, CAST(g.canwps AS INT) AS wps"
+        $query = "SELECT userid, email, md5(email) AS userhash, u.groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownload, weeklydownload, to_char(registrationdate, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), activated, CAST(g.canwps AS INT) AS wps"
                . " FROM usermanagement.users AS u"
                . " LEFT JOIN usermanagement.groups AS g ON u.groupname = g.groupname" 
                . " WHERE " . $this->useridOrEmailFilter($identifier)
@@ -74,11 +74,12 @@ class Functions_users {
         if (count($results) === 0) {
             RestoLogUtil::httpError(404);
         }
-
-        $results[0]['instantdownloadvolume'] = (integer) $results[0]['instantdownloadvolume'];
-        $results[0]['weeklydownloadvolume'] = (integer) $results[0]['weeklydownloadvolume'];
-        $results[0]['activated'] = (integer) $results[0]['activated'];
-        $results[0]['wps'] = (integer) $results[0]['wps'];
+        
+        $results[0]['instantdownload'] = isset($results[0]['instantdownload']) ? (int)$results[0]['instantdownload'] : NULL;
+        $results[0]['weeklydownload']  = isset($results[0]['weeklydownload'])  ? (int)$results[0]['weeklydownload']  : NULL;
+        
+        $results[0]['activated'] = (int) $results[0]['activated'];
+        $results[0]['wps'] = (int) $results[0]['wps'];
         
         return $results[0];
     }
@@ -88,8 +89,8 @@ class Functions_users {
      * 
      * @param string $email - user email
      * 
-     * @return boolean
      * @throws Exception
+     * @return boolean
      */
     public function userExists($email) {
         $query = 'SELECT 1 FROM usermanagement.users WHERE email=\'' . pg_escape_string($email) . '\'';
@@ -134,8 +135,8 @@ class Functions_users {
 				'username', 'givenname', 'lastname',
 				'organization', 'nationality', 'domain',
 				'use', 'country', 'adress', 
-        		'numtel', 'numfax',	'instantdownloadvolume',
-				'weeklydownloadvolume' 
+        		'numtel', 'numfax',	'instantdownload',
+				'weeklydownload' 
 		) ) as $field ) {
 			$values .= (isset ( $profile [$field] ) ? "'" . pg_escape_string($profile[$field]) . "'" : 'NULL') . ",";
 		}
@@ -143,7 +144,7 @@ class Functions_users {
         $values .= $profile['activated'] . ',now()';
         
         // TODO change to pg_fetch_assoc ?
-		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,adress,numtel,numfax,instantdownloadvolume,weeklydownloadvolume,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
+		$results = $this->dbDriver->query ( 'INSERT INTO usermanagement.users (email,password,groupname,username,givenname,lastname,organization,nationality,domain,use,country,adress,numtel,numfax,instantdownload,weeklydownload,activationcode,activated,registrationdate) VALUES (' . $values . ') RETURNING userid, activationcode' );
         return pg_fetch_array($results);
         
     }
@@ -155,7 +156,8 @@ class Functions_users {
      * @return integer (userid)
      * @throws exception
      */
-    public function updateUserProfile($profile) {
+    public function updateUserProfile($profile)
+    {
         if (!is_array($profile) || (!isset($profile['email']) && !isset($profile['id']))) {
             RestoLogUtil::httpError(500, 'Cannot update user profile - invalid user identifier');
         }
@@ -188,11 +190,20 @@ class Functions_users {
 				'username', 'givenname', 'lastname',
 				'organization', 'nationality', 'domain',
 				'use', 'country', 'adress', 
-        		'numtel', 'numfax',	'instantdownloadvolume',
-				'weeklydownloadvolume' 
+        		'numtel', 'numfax',	'instantdownload',
+				'weeklydownload' 
 		) ) as $field ) {
-		    if (isset($profile[$field])) {
-		        $values[] = pg_escape_string($field) . '=\'' . pg_escape_string($profile[$field]) . '\'';
+		    if (array_key_exists($field, $profile)) {
+                switch(gettype($profile[$field])) {
+                    case 'integer':
+                        $values[] = pg_escape_string($field) . '=' . pg_escape_string($profile[$field]);
+                        break;
+                    case 'NULL':
+                        $values[] = pg_escape_string($field) . '= NULL';
+                        break;
+                    default:
+                        $values[] = pg_escape_string($field) . '=\'' . pg_escape_string($profile[$field]) . '\'';
+                }
 		    }
 		}
 
@@ -202,9 +213,11 @@ class Functions_users {
 		}
 		
         if(isset($profile['email'])) {
-            $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid'));
+            $query = 'UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid';
+            $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         } else {
-            $results = $this->dbDriver->fetch($this->dbDriver->query('UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['id']))) .'\' RETURNING userid'));
+            $query = 'UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['id']))) .'\' RETURNING userid';
+            $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         }
         
         return count($results) === 1 ? $results[0]['userid'] : null;
@@ -301,53 +314,30 @@ class Functions_users {
     }
     
     /**
-     * Return true if the user reaches his weekly download limit
-     * for a size download equals to $size.
-     *
-     * @param array $userprofile
-     * @param integer $size
-     */
-    public function hasUserReachedWeekLimitation($userprofile, $size) {
-        if(!isset($userprofile['userid'])) {
-            RestoLogUtil::httpError(404);
-        }
-
-        $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
-        $totalsize = 0;
-        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid';
-        $query .= ' WHERE service=\'download\' AND method=\'GET\' AND userid=\'' . pg_escape_string($userprofile['userid']) . '\' AND querytime>\'' . $timestamp . '\'';
-        $results = pg_fetch_assoc($this->dbDriver->query($query));
-        if($results) {
-            $totalsize = $results['sum'];
-        }
-        if ($totalsize + $size > $userprofile['weeklydownloadvolume'] * 1048576) {
-             return true;
-        }
-        return false;
-    }
-
-    /**
-     * Return the volume that a user has downloaded the last 7 days.
+     * Return the sum of products that a user has downloaded the last 7 days.
      * 
      * @param string $identifier
-     * @return integer $totalsize
+     * @return integer $totalproducts
      */
-    public function getUserLastWeekDownloadedVolume($identifier) {
-        if(!isset($identifier)) {
+    public function getUserLastWeekDownloaded($identifier)
+    {
+        if (!isset($identifier)) {
             RestoLogUtil::httpError(404);
         }
 
-        $timestamp = date('Y-m-d G:i:s', mktime(0, 0, 0, date("m"), date("d") - 7, date("Y")));
-        $totalsize = 0;
-        $query = 'SELECT sum(resource_size) FROM resto.features INNER JOIN usermanagement.history ON resto.features.identifier = usermanagement.history.resourceid';
-        $query .= ' WHERE service=\'download\' AND method=\'GET\' AND userid=\'' . pg_escape_string($identifier) . '\' AND querytime>\'' . $timestamp . '\'';
+        $query = "SELECT SUM(nbitems) AS total "
+               . "FROM usermanagement.orders "
+               . "WHERE " . $this->useridOrEmailFilter($identifier) . " "
+               . "AND querytime > now() - interval '7 days'";
+        
         $results = pg_fetch_assoc($this->dbDriver->query($query));
-        if($results['sum']) {
-            $totalsize = $results['sum'];
-        }
-        return $totalsize;
+        
+        return (int) $results['total'];
     }
     
+    /**
+     * 
+     */
     public function checkPassword($identifier, $password) {
         if(!isset($identifier) || !isset($password)) {
             RestoLogUtil::httpError(404);

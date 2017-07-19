@@ -559,8 +559,8 @@ class Administration extends RestoModule {
 	                'adress' => isset($data['adress']) ? $data['adress'] : null,
 	                'numtel' => isset($data['numtel']) ? $data['numtel'] : null,
 	                'numfax' => isset($data['numfax']) ? $data['numfax'] : null,
-	                'instantdownloadvolume' => isset($data['instantdownloadvolume']) ? $data['instantdownloadvolume'] : $this->context->instantDownloadLimit,
-	                'weeklydownloadvolume' => isset($data['weeklydownloadvolume']) ? $data['weeklydownloadvolume'] : $this->context->weeklyDownloadLimit,
+	                'instantdownload' => isset($data['instantdownload']) ? $data['instantdownload'] : $this->context->instantDownloadLimit,
+	                'weeklydownload' => isset($data['weeklydownload']) ? $data['weeklydownload'] : $this->context->weeklyDownloadLimit,
                     'activated' => 0
                 ))
             );
@@ -837,7 +837,7 @@ class Administration extends RestoModule {
         try {
             $orderBy = isset($orderBy) ? $orderBy : 'userid';
             $ascOrDesc = isset($ascOrDesc) ? $ascOrDesc : 'DESC';
-            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownloadvolume, weeklydownloadvolume, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
+            $results = pg_query($this->context->dbDriver->dbh, 'SELECT userid, email, groupname, username, givenname, lastname, organization, nationality, domain, use, country, adress, numtel, numfax, instantdownload, weeklydownload, registrationdate, activated FROM usermanagement.users ' . (isset($keyword) ? 'WHERE email LIKE \'%' . $keyword . '%\' OR username LIKE \'%' . $keyword . '%\' OR groupname LIKE \'%' . $keyword . '%\' OR givenname LIKE \'%' . $keyword . '%\' OR lastname LIKE \'%' . $keyword . '%\'' : '') . ' ORDER BY ' . pg_escape_string($orderBy) . ' ' . pg_escape_string($ascOrDesc) . ' LIMIT ' . $number . ' OFFSET ' . $min);
             if (!$results) {
                 throw new Exception();
             }
@@ -1003,13 +1003,13 @@ class Administration extends RestoModule {
                 'username', 'givenname', 'lastname',
                 'organization', 'nationality', 'domain',
                 'use', 'country', 'adress',
-                'numtel', 'numfax',	'instantdownloadvolume',
-                'weeklydownloadvolume')) as $field) {
-            if (isset($data[$field])) {
+                'numtel', 'numfax',	'instantdownload',
+                'weeklydownload')) as $field) {
+            if (array_key_exists($field, $data)) {
                 $profile[$field] = $data[$field];
             }
         }
-         
+        
         // Check if groupname exists
         if(isset($data['groupname'])) {
             if(!$this->context->dbDriver->check(RestoDatabaseDriver::GROUPS, array('groupname' => $data['groupname']))) {

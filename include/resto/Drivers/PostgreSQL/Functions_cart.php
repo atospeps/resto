@@ -322,9 +322,10 @@ class Functions_cart{
                 '\'' . pg_escape_string($orderId) . '\'',
                 '\'' . pg_escape_string($identifier) . '\'',
                 '\'' . pg_escape_string(json_encode($itemsId)) . '\'',
-                'now()'
+                'now()',
+                count($itemsId)
             );
-            $this->dbDriver->query('INSERT INTO usermanagement.orders (orderid, email, items, querytime) VALUES (' . join(',', $values) . ')');
+            $this->dbDriver->query('INSERT INTO usermanagement.orders (orderid, email, items, querytime, nbitems) VALUES (' . join(',', $values) . ')');
             
         } catch (Exception $e) {
             RestoLogUtil::httpError($e->getCode(), $e->getMessage());

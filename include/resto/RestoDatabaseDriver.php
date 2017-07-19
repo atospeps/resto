@@ -59,7 +59,7 @@ abstract class RestoDatabaseDriver {
     const USER_LIMIT = 34;
     const ORDER_SIZE = 35;
     const GROUP_DESCRIPTIONS = 36;
-    const USER_DOWNLOADED_VOLUME = 37;
+    const USER_DOWNLOADED_WEEKLY = 37;
     const FEATURE_DESCRIPTION_BY_TITLE = 38;
     const FEATURE_FACETS = 39;
     const FEATURE_ALL_VERSIONS = 40;

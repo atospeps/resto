@@ -346,6 +346,17 @@ class RestoUser {
     }
     
     /**
+     * Get user download limits
+     */
+    public function getDownloadLimits()
+    {
+        return array(
+            "instantLimitDownload" => $this->profile['instantdownload'] === NULL ? $this->context->instantDownloadLimit : $this->profile['instantdownload'],
+            "weeklyLimitDownload"  => $this->profile['weeklydownload'] === NULL  ? $this->context->weeklyDownloadLimit  : $this->profile['weeklydownload']
+        );
+    }
+    
+    /**
      * Clear processing cart
      * 
      */

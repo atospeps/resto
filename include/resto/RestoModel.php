@@ -823,7 +823,7 @@ abstract class RestoModel {
                                 
                 $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                         'collection' => $collection,
-                        'identifier' => $feature->identifier,
+                        'featureArray' => array($feature->identifier),
                         'visible' => 0,
                         'newVersion' => $newVersion['id']
                 ));

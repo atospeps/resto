@@ -381,7 +381,13 @@ class RestoFeatureUtil {
      * @param string $value
      * @param RestoCollection $collection
      */
-    private function castExplicit($key, $value, $collection) {
+    private function castExplicit($key, $value, $collection)
+    {
+        // keep the null value
+        if ($value === null) {
+            return $value;
+        }
+        
         switch($collection->model->getDbType($key)) {
             case 'integer':
                 return (integer) $value;

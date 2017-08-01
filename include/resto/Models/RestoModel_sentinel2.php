@@ -70,7 +70,7 @@ class RestoModel_sentinel2 extends RestoModel {
      * @param RestoCollection $collection : collection
      */
     public function storeFeature($data, $collection) {
-        return parent::storeFeature($this->parse(join('',$data), $collection), $collectionName);
+        return parent::storeFeature($this->parse(join('',$data), $collection), $collection);
     }
     
     /**
@@ -122,11 +122,13 @@ class RestoModel_sentinel2 extends RestoModel {
      * @param RestoCollection $collection
      * @return array GeoJson feature
      */
-    private function parse($xml){
+    private function parse($xml, $collection){
     	
         $dom = new DOMDocument();
-        $dom->loadXML(rawurldecode($xml));
-
+        if (!@$dom->loadXML(rawurldecode($xml))) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
+        }
+        
     	/*
     	 * Retreives orbit direction
     	 */

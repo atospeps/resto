@@ -31,6 +31,9 @@ class RestoRoutePOST extends RestoRoute {
      *
      * Process HTTP POST request
      * 
+     *    api/collections/search                        |  Search on all collections
+     *    api/collections/{collection}/search           |  Search on {collection}
+     *    
      *    api/users/connect                             |  Connect user
      *    api/users/disconnect                          |  Disconnect user
      *    api/users/resetPassword                       |  Reset password
@@ -46,11 +49,13 @@ class RestoRoutePOST extends RestoRoute {
      *    users/{userid}/cart                           |  Add new item in {userid} cart
      *    users/{userid}/processingcart                 |  Add new item in {userid} processing cart
      *    users/{userid}/orders                         |  Send an order for {userid}
+     *    
+     *    upload/area                                   |  Upload a SHP, KML or GeoJSON file
      * 
      * @param array $segments
      */
-    public function route($segments) {
-        
+    public function route($segments)
+    {
         /*
          * Input data for POST request
          */
@@ -60,6 +65,8 @@ class RestoRoutePOST extends RestoRoute {
         }*/
 
         switch($segments[0]) {
+            case 'upload':
+                return $this->POST_upload($segments, $data);
             case 'api':
                 return $this->POST_api($segments, $data);
             case 'collections':
@@ -77,6 +84,48 @@ class RestoRoutePOST extends RestoRoute {
    
     /**
      * 
+     * Process HTTP POST request on upload
+     * 
+     *    upload/area                         |  Upload a SHP, KML or GeoJSON file
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function POST_upload($segments, $data)
+    {
+        if ($segments[0] === 'upload') {
+            
+            if (!isset($segments[1])) {
+                RestoLogUtil::httpError(404);
+            }
+            
+            /*
+             * api/upload/area
+             */
+            if ($segments[1] === 'area' && !isset($segments[2])) {
+                // GeoJSON
+                if (RestoGeometryUtil::isValidGeoJSONFeatureCollection($data) || 
+                    RestoGeometryUtil::isValidGeoJSONFeature($data)
+                ) {
+                    return $data;
+                }
+                // SHP
+                /*elseif () {
+                    
+                }
+                // KML
+                elseif () {
+                        
+                }*/
+                else {
+                    RestoLogUtil::httpError(415);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 
      * Process HTTP POST request on api
      * 
      *    api/users/connect                             |  Connect user
@@ -85,17 +134,28 @@ class RestoRoutePOST extends RestoRoute {
      * @param array $segments
      * @param array $data
      */
-    private function POST_api($segments, $data) {
-        
-        
+    private function POST_api($segments, $data)
+    {
         if (!isset($segments[1])) {
             RestoLogUtil::httpError(404);
         }
 
         /*
+         * api/collections/search
+         * api/collections/{collection}/search
+         */
+        if ($segments[1] === 'collections' &&
+           ($segments[2] === 'search' ||
+               (isset($segments[2], $segments[3]) && $segments[3] === 'search'))
+        ) {
+            $this->context->query = $data;
+            return $this->POST_apiCollectionsSearch(isset($segments[3]) ? $segments[2] : null);
+        }
+        
+        /*
          * api/users
          */
-        if ($segments[1] === 'users') {
+        else if ($segments[1] === 'users') {
             
             if (!isset($segments[2])) {
                 RestoLogUtil::httpError(404);
@@ -129,6 +189,27 @@ class RestoRoutePOST extends RestoRoute {
         else {
             return $this->processModuleRoute($segments, $data);
         }
+        
+    }
+    
+    /**
+     * Process
+     * 
+     *    api/collections/search                        |  Search on all collections
+     *    api/collections/{collection}/search           |  Search on {collection}
+     *    
+     * @param string $collectionName
+     * @throws Exception
+     */
+    private function POST_apiCollectionsSearch($collectionName = null)
+    {
+        /*
+         * Search in one collection...or in all collections
+         */
+        $resource = isset($collectionName) ? new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true)) : new RestoCollections($this->context, $this->user);
+        $this->storeQuery('search', isset($collectionName) ? $collectionName : '*', null);
+
+        return $resource->search();
         
     }
     
@@ -253,7 +334,11 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Check credentials
          */
-        if (!$this->user->canPost(isset($collection) ? $collection->name : null)) {
+        if ($segments[0] === 'search' &&
+            !$this->user->canSearch(isset($collection) ? $collection->name : null)
+        ) {
+            RestoLogUtil::httpError(403);
+        } elseif (!$this->user->canPost(isset($collection) ? $collection->name : null)) {
             RestoLogUtil::httpError(403);
         }
 

@@ -366,8 +366,8 @@ class RestoUtil {
      * @return array
      * @throws Exception
      */
-    public static function readInputData($uploadDirectory) {
-
+    public static function readInputData($uploadDirectory)
+    {
         /*
          * No file is posted - check HTTP request body
          */
@@ -377,10 +377,9 @@ class RestoUtil {
         /*
          * A file is posted - read attachement
          */
-        // By now, we don't attach files to POST URLs
-        /*else {
+        else {
             return RestoUtil::readFile($uploadDirectory);
-        }*/
+        }
         
     }
     

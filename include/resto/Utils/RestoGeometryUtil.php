@@ -50,6 +50,33 @@ class RestoGeometryUtil {
     }
     
     /**
+     * Check if input object is a valid GeoJSON Feature Collection
+     * 
+     * Valid GeoJSON FeatureCollection 
+     * 
+     *      array(
+     *          'type' => 'FeatureCollection',
+     *          'features' => array(...)
+     *      )
+     *       
+     * @param Array $object : json object
+     */
+    public static function isValidGeoJSONFeatureCollection($object)
+    {
+        if (!$object || !is_array($object)) {
+            return false;
+        }
+        if (!isset($object['type']) || $object['type'] !== 'FeatureCollection') {
+            return false;
+        }
+        if (!isset($object['features']) || !is_array($object['features'])) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
      * Return WKT from geometry
      * @param array $geometry - GeoJSON geometry
      */

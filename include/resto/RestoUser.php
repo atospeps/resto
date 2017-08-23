@@ -144,6 +144,17 @@ class RestoUser {
     }
     
     /**
+     * Can User search ?
+     * 
+     * @param string $collectionName
+     * @return boolean
+     */
+    public function canSearch($collectionName = null){
+        $rights = $this->rights->getRights($collectionName);
+        return $rights['search'];
+    }
+    
+    /**
      * Can User download ? 
      * 
      * @param string $collectionName

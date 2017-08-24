@@ -211,7 +211,8 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function update($userid, $data){
+    public function update($userid, $data)
+    {
         if (!isset($userid) || !isset($data['gid'])) {
             return false;
         }
@@ -222,17 +223,18 @@ class Functions_jobs {
             pg_query($this->dbh, 'BEGIN');
 
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
-            $statusMessage      = $this->dbDriver->quote($data['statusmessage'], 'NULL');
+            $statusMessage      = $this->dbDriver->quote(isset($data['statusmessage']) ? $data['statusmessage'] : null, 'NULL');
             $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $gid                = $this->dbDriver->quote($data['gid']);
             $nbResults          = count($outputs);
-            $last_dispatch      = $this->dbDriver->quote($data['last_dispatch'], 'now()');
+            $last_dispatch      = $this->dbDriver->quote(isset($data['last_dispatch']) ? $data['last_dispatch'] : null, 'now()');
+            $title              = $this->dbDriver->quote(isset($data['title']) ? $data['title'] : null, 'NULL');
         
             // update properties
             $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}"
+                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, title=${title}"
                     . " WHERE gid=${gid}";
             
             $this->dbDriver->query($query);

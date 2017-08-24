@@ -18,6 +18,8 @@
  *    |   
  *    | HTTP/GET        wps/processings                                 | List of all processings (admin only)
  *    | HTTP/GET        wps/processings/{identifier}/describe           | Get the description of processing {identifier}
+ *    |
+ *    | HTTP/GET        wps/check                                       | Check VIZO status
  *    
  */
 class WPS extends RestoModule {
@@ -249,6 +251,11 @@ class WPS extends RestoModule {
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
                 /*
+                 * HTTP/GET wps/check
+                 */
+                case 'check':
+                    return $this->GET_wps_check($this->segments);
+                /*
                  * HTTP/GET wps/processings (admin only)
                  * HTTP/GET wps/processings/{identifier}/describe
                  */
@@ -289,8 +296,8 @@ class WPS extends RestoModule {
      * @param array $data request parameters
      * @return unknown
      */
-    private function perform_wps($segments, $method, $data) {
-
+    private function perform_wps($segments, $method, $data)
+    {
         $this->context->outputFormat =  'xml';
         
         // Gets wps rights
@@ -318,6 +325,61 @@ class WPS extends RestoModule {
             $this->storeJob($this->user->profile['userid'], $data);
         }
         return $response;
+    }
+    
+    /**
+     * 
+     */
+    private function GET_wps_check()
+    {
+        // get the current check job
+        $jobs = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_CHECK, array(
+            'filters' => array("identifier = 'CHECK'")
+        ));
+        if (!isset($jobs[0])) {
+            return RestoLogUtil::httpError(404);
+        }
+        
+        if ($jobs[0]['percentcompleted'] < 100) {
+            /*
+             * still running check: update job status
+             */ 
+            $jobs = $this->updateStatusOfJobs($jobs);
+        }
+        else {
+            /*
+             * last check finished: start a new vizo check
+             */
+            $params = array(
+                'request' => WPS_RequestManager::EXECUTE,
+                'service' => 'WPS',
+                'version' => '1.0.0',
+                'identifier' => 'CHECK',
+                'status' => 'true',
+                'storeExecuteResponse' => 'true'
+            );
+            $response  = $this->wpsRequestManager->Perform(HttpRequestMethod::GET, $params, array('all'));
+            if ($response->isExecuteResponse()) {
+                $executeResponse = new WPS_ExecuteResponse($response->toXML());
+                $data = array_merge(
+                        $executeResponse->toArray(),
+                        array(
+                            'gid'           => $jobs[0]['gid'],
+                            'querytime'     => date("Y-m-d H:i:s"),
+                            'method'        => HttpRequestMethod::GET,
+                            'data'          => $params,
+                            'last_dispatch' => date("Y-m-d\TH:i:s", time()),
+                            'title'         => $jobs[0]['status']       // store the current VIZO status before restart a new check
+                        ));
+                $this->updateJob(-1, $data);
+            }
+        }
+        
+        $status = ($jobs[0]['percentcompleted'] < 100 ? ($jobs[0]['title'] === 'ProcessSucceeded') : $jobs[0]['status'] === 'ProcessSucceeded') ;
+        
+        return RestoLogUtil::success("vizo status: " . ($status ? 'ok' : 'ko'), array(
+            'status' => $status
+        ));
     }
     
     /**

@@ -265,8 +265,8 @@ return array(
                                 'serverAddress' => "http://localhost:8081/cgi-bin/pywps.cgi", // VIZO TEST
                                 'outputsUrl' => 'http://localhost:8081/wps/outputs/',
                                 'conf' => array(
-                                        'serverAddress' => 'http://localhost:8081/cgi-bin/pywps.cgi',
-                                        'outputsUrl' => 'http://localhost:8081/wps/outputs/'
+                                    'serverAddress' => 'http://localhost:8081/cgi-bin/pywps.cgi',
+                                    'outputsUrl' => 'http://localhost:8081/wps/outputs/'
                                 )
                         ),
                         'users' => array(

@@ -132,10 +132,10 @@ return array(
         ),
             
         /*
-         * Set the default user download limit volume (in Megabyte)
+         * Set the default user download limit (nb max - 0 = no limit)
          */
-        'instantLimitDownloadVolume' => 1000,
-        'weeklyLimitDownloadVolume' => 5000,
+        'instantLimitDownload' => 0,
+        'weeklyLimitDownload' => 200,
 
         /*
          * Tape data management (download service)

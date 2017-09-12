@@ -57,16 +57,23 @@ class RestoModel_sentinel2_ST extends RestoModel {
         parent::__construct();
         
         $this->searchFilters['resto:tileid'] = array (
-                'key' => 'mgrs',
-                'osKey' => 'tileid',
-                'operation' => '=',
-                'options' => 'auto',
-                'title' => 'MGRS tile identifier',
-                'pattern' => '^[0-6][0-9][A-Za-z]([A-Za-z]){0,2}%?$',
-                'keyword' => array (
-                        'value' => '{:mgrs:}',
-                        'type' => 'mgrs'
-                )
+            'key' => 'mgrs',
+            'osKey' => 'tileid',
+            'operation' => '=',
+            'options' => 'auto',
+            'title' => 'MGRS tile identifier',
+            'pattern' => '^[0-6][0-9][A-Za-z]([A-Za-z]){0,2}%?$',
+            'keyword' => array (
+                    'value' => '{:mgrs:}',
+                    'type' => 'mgrs'
+            )
+        );
+        $this->searchFilters['resto:s2TakeId'] = array (
+            'key' => 's2TakeId',
+            'osKey' => 's2TakeId',
+            'operation' => '=',
+            'title' => 'mission data take identifier',
+            'pattern' => '^G(?:S2A|S2B)_\d{8}T\d{6}_\d{6}_N\d\d\.\d\d$'
         );
     }
 

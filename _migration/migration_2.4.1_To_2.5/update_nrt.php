@@ -4,7 +4,8 @@
  * update_nrt.php -d <database> -u <user> - p <password>
  */
 
-ini_set('display_errors', '1');
+//ini_set('display_errors', '1');
+date_default_timezone_set('Europe/Paris');
 error_reporting(E_ALL);
     
 $options = getopt('d:u:p:');
@@ -63,6 +64,8 @@ function update_realtime()
            .                  "ELSE 'NTC' "
            .                "END;";
     query($query);
+    
+    output(" OK");
 }
 
 /**
@@ -70,11 +73,13 @@ function update_realtime()
  */
 function update_visible_newversion()
 {
-    output(" updating visible and new_version...");
+    output(" updating visible flag and new_version...");
     
     setVisibleNewVersion('S1');
     setVisibleNewVersion('S2ST');
     setVisibleNewVersion('S3');
+    
+    output(" OK");
 }
 
 /**
@@ -92,8 +97,9 @@ function setVisibleNewVersion($collectionName)
     query("UPDATE " . $schema . ".features SET visible = 1, new_version = NULL WHERE isnrt = 0");
     
     // for all the NRT products...
-    $nrtProducts = getAllNRTProducts($collectionName);
-    foreach ($nrtProducts as $nrtProduct) {
+    //$nrtProducts = getAllNRTProducts($collectionName);
+    $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
+    while ($nrtProduct = pg_fetch_assoc($r)) {
         // get all the versions of the current product
         $allVersions = getAllVersions($collectionName, $nrtProduct['productidentifier']);
         if (count($allVersions)) {
@@ -114,7 +120,7 @@ function setVisibleNewVersion($collectionName)
 /**
  * Get all NRT products for a specified collection
  */
-function getAllNRTProducts($collectionName)
+/*function getAllNRTProducts($collectionName)
 {
     $schema = '_' . strtolower($collectionName);
     
@@ -130,7 +136,7 @@ function getAllNRTProducts($collectionName)
     }
     
     return $products;
-}
+}*/
 
 /**
  * Get all version
@@ -250,11 +256,24 @@ function getFeatureVersionPattern($productIdentifier, $collection)
  */
 function vacuumFeatures()
 {
+    output(" database optimisation...");
+    
+    output("  _s1.features");
     query('vacuum analyse _s1.features');
+    
+    output("  _s2.features");
     query('vacuum analyse _s2.features');
+    
+    output("  _s2st.features");
     query('vacuum analyse _s2st.features');
+    
+    output("  _s3.features");
     query('vacuum analyse _s3.features');
+    
+    output("  resto.features");
     query('vacuum analyse resto.features');
+    
+    output(" OK");
 }
 
 /**

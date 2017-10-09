@@ -68,7 +68,16 @@ class WPS_DescribeProcessResponse extends WPS_Response {
         $description = $processDescriptionDomNode->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Abstract');
         if ($description && $description->length > 0)
         {
-            $process->setDescription($description->item(0)->textContent);
+
+            $item = $description->item(0);
+            
+            $descriptionText = $item->textContent;            
+            if ($item->hasChildNodes())
+            {
+                $descriptionText = $item->firstChild->C14N();
+            }
+            
+            $process->setDescription($descriptionText);
         }
         
         // Data inputs

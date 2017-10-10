@@ -7,7 +7,7 @@
 //ini_set('display_errors', '1');
 date_default_timezone_set('Europe/Paris');
 error_reporting(E_ALL);
-    
+
 $options = getopt('d:u:p:');
 
 /*************************************************/
@@ -31,7 +31,7 @@ output('STARTING UPDATE');
 
 update_realtime();
 update_visible_newversion();
-vacuumFeatures();
+//vacuumFeatures();    -> ce traitement est exécuté dans le script db_optim_features.php
 
 output('UPDATE FINISHED');
 

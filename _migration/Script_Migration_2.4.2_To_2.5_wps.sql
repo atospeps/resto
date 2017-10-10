@@ -32,7 +32,7 @@ END
 $func$;
 
 SELECT f_add_col('usermanagement.groups', 'canwps', 'boolean');
-ALTER TABLE usermanagement.groups ADD COLUMN proactiveid serial;
+SELECT f_add_col('usermanagement.groups', 'proactiveid', 'integer');
 ALTER TABLE usermanagement.groups ALTER COLUMN canwps SET DEFAULT FALSE;
 UPDATE usermanagement.groups SET canwps = FALSE;
 UPDATE usermanagement.groups SET canwps = TRUE WHERE groupname = 'admin';

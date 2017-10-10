@@ -724,19 +724,27 @@ abstract class RestoModel {
         $properties = $this->mapInputProperties($data['properties']);
 
         if (empty($properties['title'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not defined');
         }
         
         if (empty($properties['orbitDirection'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
+            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not defined');
+        }
+        
+        if (empty($properties['relativeOrbitNumber'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Relative orbit number is not defined');
+        }
+        
+        if (empty($properties['orbitNumber'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Absolute orbit number is not defined');
         }
         
         if (empty($properties['resourceSize'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not defined');
         }
         
         if (empty($properties['dhusIngestDate'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
+            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not defined');
         }
 
         /*

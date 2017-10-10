@@ -113,7 +113,7 @@ class RestoMetalink extends RestoXML {
      * @param array $item
      */
     private function addChecksum($item) {
-        if (isset($item['properties']['services']['download']['checksum'])) {
+        if (!empty($item['properties']['services']['download']['checksum'])) {
             list($type, $checksum) = explode('=', $item['properties']['services']['download']['checksum'], 2);
             $this->startElement('hash');
             $this->writeAttribute('type', $type);

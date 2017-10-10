@@ -524,14 +524,17 @@ class RestoFeature {
      */
     private function callStagingWS($path, $timeout = 30){
 
-        $token = isset($this->user->token) ? $this->user->token : $this->context->createToken($this->user->profile['userid'], $this->user->profile);
-        $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path . '&_bearer=' . $token;
+        $access_token = isset($this->user->token) ? $this->user->token : $this->context->createToken($this->user->profile['userid'], $this->user->profile);
+        $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path;
 
-        $curl = curl_init();
+        $curl = curl_init($url);
+
+        $headers = array('Authorization: Bearer ' . $access_token);
         curl_setopt_array($curl, array (
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_URL => $url,
                 CURLOPT_POST => 1,
+                CURLOPT_POSTFIELDS => '',
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_SSL_VERIFYPEER => 0,
                 CURLOPT_TIMEOUT => $timeout

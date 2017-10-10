@@ -1,7 +1,7 @@
 <?php
 
 /*
- * update_nrt.php -d <database> -u <user> - p <password>
+ * update_obsolescence.php -d <database> -u <user> - p <password>
  */
 
 //ini_set('display_errors', '1');
@@ -27,13 +27,11 @@ $db = verify_db($resto_db);
 /*************************************************/
 /*************************************************/
 
-output('STARTING UPDATE');
+output('STARTING OBSOLESCENCE UPDATE');
 
-update_realtime();
-update_visible_newversion();
-//vacuumFeatures();    -> ce traitement est exécuté dans le script db_optim_features.php
+update_obsolescence();
 
-output('UPDATE FINISHED');
+output('OBSOLESCENCE UPDATE FINISHED');
 
 /*************************************************/
 /*************************************************/
@@ -64,16 +62,14 @@ function update_realtime()
            .                  "ELSE 'NTC' "
            .                "END;";
     query($query);
-    
-    output(" OK");
 }
 
 /**
  * Update visible and new_version for all collections
  */
-function update_visible_newversion()
+function update_obsolescence()
 {
-    output(" updating visible flag and new_version...");
+    output(" updating obsolescence...");
     
     setVisibleNewVersion('S1');
     setVisibleNewVersion('S2ST');
@@ -97,7 +93,6 @@ function setVisibleNewVersion($collectionName)
     query("UPDATE " . $schema . ".features SET visible = 1, new_version = NULL WHERE isnrt = 0");
     
     // for all the NRT products...
-    //$nrtProducts = getAllNRTProducts($collectionName);
     $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
     while ($nrtProduct = pg_fetch_assoc($r)) {
         // get all the versions of the current product
@@ -116,27 +111,6 @@ function setVisibleNewVersion($collectionName)
         }
     }
 }
-
-/**
- * Get all NRT products for a specified collection
- */
-/*function getAllNRTProducts($collectionName)
-{
-    $schema = '_' . strtolower($collectionName);
-    
-    $query = " SELECT *"
-           . " FROM " . $schema . ".features"
-           . " WHERE isnrt = 1";
-    
-    $results = query($query);
-    
-    $products = array();
-    while ($result = pg_fetch_assoc($results)) {
-        $products[] = $result;
-    }
-    
-    return $products;
-}*/
 
 /**
  * Get all version
@@ -249,31 +223,6 @@ function getFeatureVersionPattern($productIdentifier, $collection)
     }
     
     return $regexFeatureVersions;
-}
-
-/**
- * Nettoyage/optimisation des tables features
- */
-function vacuumFeatures()
-{
-    output(" database optimisation...");
-    
-    output("  _s1.features");
-    query('vacuum analyse _s1.features');
-    
-    output("  _s2.features");
-    query('vacuum analyse _s2.features');
-    
-    output("  _s2st.features");
-    query('vacuum analyse _s2st.features');
-    
-    output("  _s3.features");
-    query('vacuum analyse _s3.features');
-    
-    output("  resto.features");
-    query('vacuum analyse resto.features');
-    
-    output(" OK");
 }
 
 /**

@@ -1,12 +1,13 @@
 <?php
 
 /*
- * update_nrt.php -d <database> -u <user> - p <password>
+ * update_obsolescence.php -d <database> -u <user> - p <password>
  */
 
-ini_set('display_errors', '1');
+//ini_set('display_errors', '1');
+date_default_timezone_set('Europe/Paris');
 error_reporting(E_ALL);
-    
+
 $options = getopt('d:u:p:');
 
 /*************************************************/
@@ -26,13 +27,11 @@ $db = verify_db($resto_db);
 /*************************************************/
 /*************************************************/
 
-output('STARTING UPDATE');
+output('STARTING OBSOLESCENCE UPDATE');
 
-update_realtime();
-update_visible_newversion();
-vacuumFeatures();
+update_obsolescence();
 
-output('UPDATE FINISHED');
+output('OBSOLESCENCE UPDATE FINISHED');
 
 /*************************************************/
 /*************************************************/
@@ -46,7 +45,7 @@ function update_realtime()
     
     // S1
     output("  S1");
-    query("UPDATE _s1.features   SET realtime = 'Reprocessing' WHERE isnrt = 0");     // [DEV] 11m pour 417 000 lignes
+    query("UPDATE _s1.features   SET realtime = 'Fast-24h'     WHERE isnrt = 0");     // [DEV] 11m pour 417 000 lignes
     query("UPDATE _s1.features   SET realtime = 'NRT-3h'       WHERE isnrt = 1");
     
     // S2ST
@@ -68,13 +67,15 @@ function update_realtime()
 /**
  * Update visible and new_version for all collections
  */
-function update_visible_newversion()
+function update_obsolescence()
 {
-    output(" updating visible and new_version...");
+    output(" updating obsolescence...");
     
     setVisibleNewVersion('S1');
     setVisibleNewVersion('S2ST');
     setVisibleNewVersion('S3');
+    
+    output(" OK");
 }
 
 /**
@@ -92,8 +93,8 @@ function setVisibleNewVersion($collectionName)
     query("UPDATE " . $schema . ".features SET visible = 1, new_version = NULL WHERE isnrt = 0");
     
     // for all the NRT products...
-    $nrtProducts = getAllNRTProducts($collectionName);
-    foreach ($nrtProducts as $nrtProduct) {
+    $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
+    while ($nrtProduct = pg_fetch_assoc($r)) {
         // get all the versions of the current product
         $allVersions = getAllVersions($collectionName, $nrtProduct['productidentifier']);
         if (count($allVersions)) {
@@ -109,27 +110,6 @@ function setVisibleNewVersion($collectionName)
             }
         }
     }
-}
-
-/**
- * Get all NRT products for a specified collection
- */
-function getAllNRTProducts($collectionName)
-{
-    $schema = '_' . strtolower($collectionName);
-    
-    $query = " SELECT *"
-           . " FROM " . $schema . ".features"
-           . " WHERE isnrt = 1";
-    
-    $results = query($query);
-    
-    $products = array();
-    while ($result = pg_fetch_assoc($results)) {
-        $products[] = $result;
-    }
-    
-    return $products;
 }
 
 /**
@@ -243,18 +223,6 @@ function getFeatureVersionPattern($productIdentifier, $collection)
     }
     
     return $regexFeatureVersions;
-}
-
-/**
- * Nettoyage/optimisation des tables features
- */
-function vacuumFeatures()
-{
-    query('vacuum analyse _s1.features');
-    query('vacuum analyse _s2.features');
-    query('vacuum analyse _s2st.features');
-    query('vacuum analyse _s3.features');
-    query('vacuum analyse resto.features');
 }
 
 /**

@@ -39,6 +39,56 @@ class Alerts extends RestoModule {
      */
     private $dbh;
     
+    /*
+     * Translations for mail
+     */
+    private $translations = array(
+        'fr' => array(
+            'maxRecords' => 'Nombre de résultats',
+            'collection' => 'Collection',
+            'platform' => 'Plateforme',
+            'instrument' => 'Instrument',
+            'processingLevel' => 'Niveau de traitement',
+            'productType' => 'Type de produit',
+            'sensorMode' => 'Mode du capteur',
+            'isNrt' => 'Produit NRT',
+            'polarisation' => 'Polarisation',
+            'orbitDirection' => "Sens de l'orbite",
+            'orbitNumber' => "Numéro d'orbite absolue",
+            'relativeOrbitNumber' => "Numéro d'orbite relative",
+            'cycleNumber' => 'Numéro de cycle',
+            'cloudCover' => 'Couverture nuageuse',
+            'realtime' => 'Fraîcheur du produit',
+            'box' => "Zone d'intérêt géographique",
+            'geometry' => "Zone d'intérêt géographique",
+            'tileId' => "Identifiant de tuile MGRS",
+            'startDate' => "Date de début d'acquisition",
+            'completionDate' => "Date de fin d'acquisition"
+        ),
+        'en' => array(
+            'maxRecords' => 'Number of results',
+            'collection' => 'Collection',
+            'platform' => 'Platform',
+            'instrument' => 'Instrument',
+            'processingLevel' => 'Processing level',
+            'productType' => 'Product type',
+            'sensorMode' => 'Sensor mode',
+            'isNrt' => 'NRT product',
+            'polarisation' => 'Polarization',
+            'orbitDirection' => "Orbit direction",
+            'orbitNumber' => "Absolute orbit number",
+            'relativeOrbitNumber' => "Relative orbit number",
+            'cycleNumber' => 'Cycle number',
+            'cloudCover' => 'Cloud cover',
+            'realtime' => 'Product freshness',
+            'box' => "Geographic interest area",
+            'geometry' => "Geographic interest area",
+            'tileId' => "MGRS Tile identifier",
+            'startDate' => "Acquisition start date",
+            'completionDate' => "Acquisition end date"
+        )
+    );
+    
     /**
      * Constructor
      *
@@ -354,18 +404,16 @@ class Alerts extends RestoModule {
                         if ($content !== FALSE) {
                             
                             $criterias = isset($row['criterias']) ? json_decode($row['criterias'], true) : array();
-                            $row['title'] = !empty($row['title']) ? $row['title'] : http_build_query($criterias);
 
                             // We established all the parameters used on the mail
                             $params['filename'] = date("Y-m-d H:i:s", $now) . '.meta4';
                             $params['to'] = $row['email'];
-                            $params['message'] = $this->getBodyMessage($row);
                             $params['senderName'] = $this->context->mail['senderName'];
                             $params['senderEmail'] = $this->context->mail['senderEmail'];
-                            $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
-                            $params['subject'] = $this->context->dictionary->translate($this->options['notification'][$langage]['subject'], $row['title']);
-                            $params['content'] = $content ;
-
+                            $params['subject'] = $this->getMailSubject($row);
+                            $params['message'] = $this->getMailBody($row);
+                            $params['content'] = $content;
+                            
                             // We send the mail
                             if (!$this->sendAttachedMeta4Mail($params)) {
                                 // TODO: log error sending mail...
@@ -565,12 +613,50 @@ class Alerts extends RestoModule {
      *
      * @param array $row Element returned from the database
      */
-    private function getBodyMessage($row) {
-
+    private function getMailBody($row)
+    {
         $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
+        
+        $tcriterias = $this->getTranslatedCriterias($row['criterias'], $langage);
+        
         $body = $this->context->dictionary->translate(
-                $this->options['notification'][$langage]['message'], 
-                $row['title']);
+            $this->options['notification'][$langage]['message'],
+            $tcriterias
+        );
+        
         return $body;
+    }
+    
+    /**
+     * Return the subject of the mail
+     * 
+     * @param object $row alert infos
+     * @return string mail subject
+     */
+    private function getMailSubject($row)
+    {
+        $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
+        
+        $subject = $this->options['notification'][$langage]['subject'] . ($row['title'] ? (' « ' . $row['title'] . ' »') : '');
+        
+        return $subject;
+    }
+    
+    /**
+     * Return a string with translated criterias and values
+     * @param array $criterias
+     * @param string $language
+     */
+    private function getTranslatedCriterias($criterias, $language)
+    {
+        $tcriterias = '';
+        $criterias = json_decode($criterias, true);
+        if ($criterias) {
+            foreach ($criterias as $key => $value) {
+                $tkey = isset($this->translations[$language][$key]) === true ? $this->translations[$language][$key] : $key; 
+                $tcriterias .= $tkey . ' = ' . $value . '<br>';
+            }
+        }
+        return $tcriterias;
     }
 }

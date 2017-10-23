@@ -75,27 +75,30 @@ class RestoModel_sentinel1 extends RestoModel {
         parent::__construct();
         
         $this->searchFilters['eo:polarisation'] = array (
-                'key' => 'polarisation',
-                'osKey' => 'polarisation',
-                'operation' => '=',
-                'options' => 'auto'
+            'key' => 'polarisation',
+            'osKey' => 'polarisation',
+            'operation' => '=',
+            'options' => 'auto',
+            'title' => ''
         );
 
         $this->searchFilters['eo:swath'] = array (
-                'key' => 'swath',
-                'osKey' => 'swath',
-                'operation' => '=',
-                'options' => 'auto'
+            'key' => 'swath',
+            'osKey' => 'swath',
+            'operation' => '=',
+            'options' => 'auto',
+            'title' => 'Acquisition mode'
         );
 
         $this->searchFilters['resto:cycleNumber'] = array (
-                'key' => 'cycleNumber',
-                'osKey' => 'cycleNumber',
-                'operation' => 'interval',
-                'minInclusive' => 1,
-                'quantity' => array (
-                        'value' => 'cyclenumber'
-                )
+            'key' => 'cycleNumber',
+            'osKey' => 'cycleNumber',
+            'operation' => 'interval',
+            'minInclusive' => 1,
+            'quantity' => array (
+                    'value' => 'cyclenumber'
+            ),
+            'title' => ''
         );
         
         

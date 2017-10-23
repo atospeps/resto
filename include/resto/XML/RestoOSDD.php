@@ -62,6 +62,53 @@ class RestoOSDD extends RestoXML {
         'title'
     );
     
+    /*
+     * Titles for options values
+     */
+    private $titles = array(
+        /* processingLevel */
+        'LEVEL1'      => 'Use of algorithms and calibration data to create a basic product from which higher level products are derived',
+        'LEVEL1C'     => 'Radiometric and geometric corrections, including ortho-rectification and spatial registration on a global reference system with sub-pixel accuracy',
+        'LEVEL2'      => 'Geo-localized Geophysical Products Derived From Level 1 Products',
+        'LEVEL2A'     => 'Ortho-corrected products providing ground-corrected reflectances corrected for atmospheric effects, and basic pixel classification (including different classes for cloud types)',
+        /* productType */
+        'GRD'         => 'Radar data projected to the ground via an ellipsoid terrain model',
+        'OCN'         => 'Geo-referenced radar data via orbit and satellite altitude',
+        'SLC'         => 'Single Look Complex data: complex imaging with amplitude and phase',
+        'S2MSI1C'     => 'Reflectance at the top of the ortho-rectified atmosphere, with a sub-pixel recalibration between spectral bands. Cloud, land, and water masks included in the product',
+        'OL_1_EFR___' => 'S3 Ocean and Land Color Instrument: Reflectance at the top of the atmosphere at full resolution',
+        'OL_1_ERR___' => 'S3 Ocean and Land Color Instrument: Reflectance at the top of the atmosphere at reduced resolution',
+        'SL_1_RBT___' => 'S3 Radiometer at surface temperature on Earth and Ocean: brightness and radiance temperatures',
+        'SR_2_LAN___' => 'S3 Radar altimeter with synthetic aperture: waveform and parameters LRM / SAR in Ku and C bands at 1Hz and 20Hz. On Land, coastal areas, ice and inland waters',
+        /* instrument */
+        'SAR-C SAR'   => 'Synthetic aperture radar operating in C-band',
+        'MSI'         => 'Multi-Spectral Instrument',
+        'SLSTR'       => 'Sea and Land Surface Temperature Radiometer',
+        'OLCI'        => 'Ocean and Land Colour Instrument',
+        'SRAL'        => 'Synthetic Aperture Radar Altimeter',
+        /* sensorMode */
+        'EW'          => 'Extra Wide swath',
+        'IW'          => 'Interferometric Wide swath',
+        'SM'          => 'Stripmap',
+        'WV'          => 'Wave mode',
+        'INS-NOBS'    => 'Nominal Observation',
+        'INS-RAW'     => 'Raw Measurement',
+        'INS-VIC'     => 'Vicarious Calibration',
+        'Earth Observation' => 'sea surface topography, sea and land surface temperature, and ocean and land surface colour with high accuracy and reliability',
+        /* Realtime */
+        'NOMINAL'     => 'Product S2 available between 3h and 24h after its acquisition',
+        'NRT-10M'     => 'Product S1 available 10 minutes after acquisition',
+        'NRT-1H'      => 'Product S1 available 1h after its acquisition',
+        'NRT-3H'      => 'Product S1 available 3h after its acquisition',
+        'FAST-24H'    => 'Product S1 available 24 hours after its acquisition',
+        'OFF-LINE'    => 'S1 gross final product',
+        'REPROCESSING'=> 'Final product S1 processed',
+        'NRT'         => 'Product S2 available between 100 minutes and 3 hours after its acquisition or Product S3 available less than 3h after its acquisition, mainly used for marine meteorology and the study of the transfer of gas between the ocean and the atmosphere',
+        'RT'          => 'Product S2 available less than 100 minutes after acquisition',
+        'STC'         => 'S3 product available less than 48 hours after its acquisition, mainly used for geophysical and oceanographic studies',
+        'NTC'         => 'Product S3 available less than 1 month after its acquisition, mainly used for geophysical and oceanographic studies'
+    );
+    
     /**
      * Constructor
      * 
@@ -243,6 +290,9 @@ class RestoOSDD extends RestoXML {
                             if (isset($filter['options'][$i]['label'])) {
                                 $this->writeAttribute('label', $filter['options'][$i]['label']);
                             }
+                            if (isset($this->titles[strtoupper($filter['options'][$i]['value'])])) {
+                                $this->writeAttribute('title', $this->titles[$filter['options'][$i]['value']]);
+                            }
                             $this->endElement();
                         }
                     }
@@ -252,6 +302,9 @@ class RestoOSDD extends RestoXML {
                             foreach (array_keys($statistics['facets'][$filter['key']]) as $key) {
                                 $this->startElement('parameters:Options');
                                 $this->writeAttribute('value', $key);
+                                if (isset($this->titles[strtoupper($key)])) {
+                                    $this->writeAttribute('title', $this->titles[strtoupper($key)]);
+                                }
                                 $this->endElement();
                             }
                         }

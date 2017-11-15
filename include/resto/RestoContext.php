@@ -358,6 +358,20 @@ class RestoContext {
         }
       
         /*
+         * Contact mail
+         */
+        if (isset($config['general']['contactEmail'])) {
+            $this->contactEmail = $config['general']['contactEmail'];
+        }
+        
+        /*
+         * reCaptcha secret key
+         */
+        if (isset($config['reCaptcha'])) {
+            $this->reCaptcha = $config['reCaptcha'];
+        }
+        
+        /*
          * Reset password url
          */
         if (isset($config['general']['resetPasswordUrl'])) {

@@ -51,6 +51,8 @@ class RestoRoutePOST extends RestoRoute {
      *    users/{userid}/orders                         |  Send an order for {userid}
      *    
      *    upload/area                                   |  Upload a SHP, KML or GeoJSON file
+     *    
+     *    contact                                       |  Send contact form to contact email
      * 
      * @param array $segments
      */
@@ -75,8 +77,10 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->POST_groups($data);
             case 'proactive':
                 return $this->POST_proactive($data);
-                case 'users':
+            case 'users':
                 return $this->POST_users($segments, $data);
+            case 'contact':
+                return $this->POST_contact($segments, $data);
             default:
                 return $this->processModuleRoute($segments, $data);
         }
@@ -508,6 +512,58 @@ class RestoRoutePOST extends RestoRoute {
             RestoLogUtil::httpError(404);
         }
         
+    }
+    
+    /**
+     * 
+     * Process HTTP POST request for contact
+     * 
+     *    contact                                         |  Send contact form to contact email
+     * 
+     * @param array $segments
+     * @param array $data
+     */
+    private function POST_contact($segments, $data)
+    {
+        // check email
+        if (!isset($data['email'])) {
+            RestoLogUtil::httpError(1101, 'Email is not set');
+        }
+        if (!RestoUtil::isValidEmail($data['email'])) {
+            RestoLogUtil::httpError(1102, "Email is invalid");
+        }
+        
+        // check reCaptcha
+        $response = Curl::Post(
+            $this->context->reCaptcha['verifyUrl'],
+            array(
+                'secret' => $this->context->reCaptcha['secret'],
+                'response' => $data['response']
+            ),
+            $this->context->reCaptcha['curlOpts']
+        );
+        $decode = json_decode($response, true);
+        if ($decode === null) {
+            RestoLogUtil::httpError(1104, "reCaptcha verifying error");
+        }
+        if (!isset($decode['success']) || $decode['success'] !== true) {
+            RestoLogUtil::httpError(1104, "reCaptcha verifying error" . (isset($decode['error-codes']) && is_array($decode['error-codes'])) ? ': ' . implode(', ', $decode['error-codes']) : '');
+        }
+        
+        // send
+        $rn = "\r\n";
+        $to = $this->context->contactEmail;
+        $subject = 'PEPS Contact: ' . $data['name'];
+        $message = wordwrap(str_replace("\n", "\r\n", $data['message']), 70, "\r\n");
+        $params = '-f' . $data['email'];
+        $headers = 'From: ' . $data['email'] . $rn
+                 . 'Reply-To: ' . $this->context->contactEmail . $rn
+                 . 'X-Mailer: PHP/' . phpversion();
+        if (mail($to, $subject, $message, $headers, $params) !== true) {
+            RestoLogUtil::httpError(1103, "Email can not be sent");
+        }
+        
+        return RestoLogUtil::success('Contact send');
     }
     
     /**

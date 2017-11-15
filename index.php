@@ -29,6 +29,7 @@ function autoload($className) {
         'include/resto/Routes/', 
         'include/resto/Utils/', 
         'include/resto/XML/',
+        'lib/',
         'lib/iTag/',
         'lib/WPS/',
         'lib/WPS/Utils/',

@@ -170,6 +170,16 @@ class RestoUtil {
     }
     
     /**
+     * Check email adress
+     * 
+     * @param string $email
+     */
+    public static function isValidEmail($email)
+    {
+        return filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+    
+    /**
      * Upgraded implode($glue, $arr) function that
      * do not aggregate NULL elements in result
      */
@@ -272,7 +282,6 @@ class RestoUtil {
                     '\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}' . '' . '[,|\.]\d+' . '' . '[\+|\-]\d{2}\d{2}' // YYYYMMDDTHHMMSSZ(. or ,)n +HHMM or -HHMM
                 )) . '$/i', $dateStr);
     }
-    
     
     /**
      *

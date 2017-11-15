@@ -42,6 +42,11 @@ return array(
         'languages' => array('en', 'fr'),
         
         /*
+         *  Contact email
+         */
+        'contactEmail' => 'exppeps@cnes.fr',
+        
+        /*
          * Debug mode
          */
         'debug' => false,
@@ -151,6 +156,19 @@ return array(
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
+        )
+    ),
+
+    /*
+     * Google reCaptcha
+     */
+    'reCaptcha' => array(
+        'secret' => '',
+        'verifyUrl' => 'https://www.google.com/recaptcha/api/siteverify',
+        'curlOpts' => array(
+            CURLOPT_PROXY => '',
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 30
         )
     ),
 

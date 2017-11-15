@@ -1,6 +1,6 @@
 <?php
 
-require 'Utils/Curl.php';
+require 'Curl.php';
 require 'GetCapabilities.php';
 require 'DescribeProcess.php';
 require 'Execute.php';

@@ -63,7 +63,7 @@ class RestoOSDD extends RestoXML {
     );
     
     /*
-     * Titles for options values
+     * Titles for options values (uppercase keys)
      */
     private $titles = array(
         /* processingLevel */
@@ -94,7 +94,7 @@ class RestoOSDD extends RestoXML {
         'INS-NOBS'    => 'Nominal Observation',
         'INS-RAW'     => 'Raw Measurement',
         'INS-VIC'     => 'Vicarious Calibration',
-        'Earth Observation' => 'sea surface topography, sea and land surface temperature, and ocean and land surface colour with high accuracy and reliability',
+        'EARTH OBSERVATION' => 'sea surface topography, sea and land surface temperature, and ocean and land surface colour with high accuracy and reliability',
         /* Realtime */
         'NOMINAL'     => 'Product S2 available between 3h and 24h after its acquisition',
         'NRT-10M'     => 'Product S1 available 10 minutes after acquisition',

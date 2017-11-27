@@ -418,7 +418,7 @@ class RestoRoutePOST extends RestoRoute {
         
         if($this->context->dbDriver->store(RestoDatabaseDriver::GROUPS, array(
                 'groupName' => $data['groupName'],
-                'groupDescription' => $data['groupDescription'],
+                'groupDescription' => isset($data['groupDescription']) ? $data['groupDescription'] : null,
                 'groupCanWps' => $data['groupCanWps'],
                 'groupProactiveId' => $data['groupProactiveId']
         ))) {

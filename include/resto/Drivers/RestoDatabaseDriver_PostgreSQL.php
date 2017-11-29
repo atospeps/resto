@@ -592,7 +592,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_JOBS_ITEM:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->add($params['userid'], $params['data']);
+                return $jobsFunctions->add($params['userid'], $params['data'], $params['context']);
                 
              /*
              * Store collection
@@ -707,7 +707,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_JOBS_ITEM:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->update($params['userid'], $params['data']);
+                return $jobsFunctions->update($params['userid'], $params['data'], $params['context']);
                 
              /*
              * Update rights

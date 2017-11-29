@@ -11,6 +11,9 @@
  *    | HTTP/GET        wps/users/{userid}/jobs/stats                   | User's completed jobs stats
  *    | HTTP/PUT        wps/users/{userid}/jobs/acknowledges            | Update user's jobs acknowledges
  *    | HTTP/DELETE     wps/users/{userid}/jobs/{jobid}                 | Delete job
+ *    | HTTP/GET        wps/users/{userid}/jobs/download                | 
+ *    | HTTP/GET        wps/users/{userid}/jobs/{jobid}/download        | 
+ *    | HTTP/GET        wps/users/{userid}/jobs/{jobid}/log             | Get the job result log_0
  *    | HTTP/GET        wps/users/{userid}/processings                  | List of all processings enabled for the user
  *    |
  *    | HTTP/GET        wps?                                            | HTTP/GET wps services (OGC)
@@ -242,6 +245,7 @@ class WPS extends RestoModule {
                  * HTTP/GET wps/users/{userid}/jobs/{jobid}
                  * HTTP/GET wps/users/{userid}/jobs/download
                  * HTTP/GET wps/users/{userid}/jobs/{jobid}/download
+                 * HTTP/GET wps/users/{userid}/jobs/{jobid}/log
                  */
                 case 'users':
                     return $this->GET_users($this->segments);
@@ -415,12 +419,12 @@ class WPS extends RestoModule {
         $result = $this->getProcessingResults(
                 $this->user->profile['userid'],
                 null,
-                array('value=' . $this->context->dbDriver->quote($resource)),
-                $this->wpsRequestManager->getOutputsUrl());
+                array('value=' . $this->context->dbDriver->quote($resource))/*,
+                $this->wpsRequestManager->getOutputsUrl()*/);
         
         if (count($result) > 0) 
         {
-            return $this->wpsRequestManager->download($result[0]['value'], $result[0]['type']);
+            return $this->wpsRequestManager->download($result[0]['value'], null);
         }
         
         // HTTP 404
@@ -432,8 +436,8 @@ class WPS extends RestoModule {
      * Process HTTP GET request on users
      * 
      *              HTTP/GET wps/users/{userid}/jobs
-     *      TODO    HTTP/GET wps/users/{userid}/jobs/{jobid}
-     *      TODO    HTTP/GET wps/users/{userid}/jobs/{jobid}/download
+     *              HTTP/GET wps/users/{userid}/jobs/{jobid}
+     *              HTTP/GET wps/users/{userid}/jobs/{jobid}/download
      *              HTTP/GET wps/users/{userid}/jobs/stats
      *              HTTP/GET wps/users/{userid}/jobs/results
 	 * 				HTTP/GET wps/users/{userid}/processings
@@ -487,8 +491,8 @@ class WPS extends RestoModule {
                             $results = $this->getProcessingResults(
                                 $this->user->profile['userid'],
                                 null,
-                                array(),
-                                $this->externalOutputsUrl);
+                                array()/*,
+                                //$this->externalOutputsUrl*/);
                             
                             return RestoLogUtil::success(
                                     "WPS jobs results for user {$this->user->profile['userid']}",
@@ -498,23 +502,32 @@ class WPS extends RestoModule {
                     }
                 }
                 else {
+                    $jobid = $segments[3];
+                    if (!is_numeric($jobid)) {
+                        RestoLogUtil::httpError(400);
+                    }
                     switch ($segments[4]) {
                         case 'download':
-                            // ? Is Bad Request                            
-                            if (!is_numeric($segments[3])) {
-                                RestoLogUtil::httpError(400);
-                            }
-                            
                             // ? Is processings file result
                             $result = $this->getProcessingResults(
                                     $this->user->profile['userid'],
-                                    $segments[3],
-                                    array(),
-                                    $this->wpsRequestManager->getOutputsUrl());
+                                    $jobid,
+                                    array()/*,
+                                    $this->wpsRequestManager->getOutputsUrl()*/);
                             
                             if (count($result) > 0) 
                             {                               
-                                return $this->wpsRequestManager->download($result[0]['value'], $result[0]['type']);
+                                return $this->wpsRequestManager->download($result[0]['value'], null);
+                            }
+                        case 'log':
+                            $job = $this->getJobs($userid, $jobid, array(), false);
+                            if (isset($job[0]['log'])) {
+                                $module = $this->context->modules[get_class($this)];
+                                $curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
+                                $content = Curl::Get($job[0]['log'], array(), $curlOpts);
+                                if ($content) {
+                                    return RestoLogUtil::success("WPS job  for user {$userid}", array ('data' => $content));
+                                }
                             }
                         default:
                             break;
@@ -763,7 +776,7 @@ class WPS extends RestoModule {
                 null, 
                 array());
     }
-
+    
     /**
      * ************************************************************************
      * PROCESSING - RIGHTS
@@ -825,7 +838,8 @@ class WPS extends RestoModule {
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
                 array(
                         'userid' => $userid,
-                        'data' => $data
+                        'data' => $data,
+                        'context' => $this->context
                 ));
     }
     
@@ -834,10 +848,11 @@ class WPS extends RestoModule {
      * @param integer $userid
      * @param integer $jobid
      * @param array $filters
+     * @param bool $updateJobsStatus
      * @return multitype:|unknown
      */
-    private function getJobs($userid, $jobid=null, $filters=array()) {
-
+    private function getJobs($userid, $jobid=null, $filters=array(), $updateJobsStatus = true)
+    {
         $items = array();
 
         // ? User id not setted
@@ -866,7 +881,10 @@ class WPS extends RestoModule {
                 ));
         
         // Updates status's jobs.
-        $results = $this->updateStatusOfJobs($results);
+        if ($updateJobsStatus) {
+            $results = $this->updateStatusOfJobs($results);
+        }
+        
         return $results;        
     }
     
@@ -900,7 +918,8 @@ class WPS extends RestoModule {
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
                 array(
                         'userid' => $userid,
-                        'data' => $data
+                        'data' => $data,
+                        'context' => $this->context
                 ));
     }
 
@@ -1001,8 +1020,8 @@ class WPS extends RestoModule {
             $result = $this->getProcessingResults(
                     $this->user->profile['userid'],
                     null,
-                    array("uid=$data[$i]"),
-                    $this->externalOutputsUrl);
+                    array("uid=$data[$i]")/*,
+                    $this->externalOutputsUrl*/);
         
             if (count($result) > 0) 
             {

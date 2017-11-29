@@ -291,15 +291,17 @@ abstract class RestoModel {
                     'osKey' => 'maxRecords',
                     'minInclusive' => 1,
                     'maxInclusive' => 500,
-                    'title' => 'Number of results returned per page (default 50)' 
+                    'title' => 'Number of results returned per page (default 50, max 500)' 
             ),
             'startIndex' => array (
                     'osKey' => 'index',
-                    'minInclusive' => 1 
+                    'minInclusive' => 1,
+                    'title' => 'Index of the first result returned'
             ),
             'startPage' => array (
                     'osKey' => 'page',
-                    'minInclusive' => 1 
+                    'minInclusive' => 1,
+                    'title' => 'Results page to return'
             ),
             'language' => array (
                     'osKey' => 'lang',
@@ -372,19 +374,19 @@ abstract class RestoModel {
             'eo:parentIdentifier' => array (
                     'key' => 'parentIdentifier',
                     'osKey' => 'parentIdentifier',
-                    'operation' => '=' 
+                    'operation' => '='
             ),
             'eo:productType' => array (
                     'key' => 'productType',
                     'osKey' => 'productType',
                     'operation' => '=',
-                    'options' => 'auto' 
+                    'options' => 'auto'
             ),
             'eo:processingLevel' => array (
                     'key' => 'processingLevel',
                     'osKey' => 'processingLevel',
                     'operation' => '=',
-                    'options' => 'auto' 
+                    'options' => 'auto'
             ),
             'eo:platform' => array (
                     'key' => 'platform',
@@ -394,7 +396,8 @@ abstract class RestoModel {
                             'value' => '{:platform:}',
                             'type' => 'platform' 
                     ),
-                    'options' => 'auto' 
+                    'options' => 'auto',
+                    'title' => 'Mission/Satellite identifier (3 letters)'
             ),
             'eo:instrument' => array (
                     'key' => 'instrument',
@@ -404,7 +407,7 @@ abstract class RestoModel {
                             'value' => '{:instrument:}',
                             'type' => 'instrument' 
                     ),
-                    'options' => 'auto' 
+                    'options' => 'auto'
             ),
             'eo:resolution' => array (
                     'key' => 'resolution',
@@ -435,7 +438,7 @@ abstract class RestoModel {
                     'minInclusive' => 1,
                     'quantity' => array (
                             'value' => 'orbit' 
-                    ) 
+                    )
             ),
             'eo:sensorMode' => array (
                     'key' => 'sensorMode',
@@ -609,6 +612,7 @@ abstract class RestoModel {
                     'osKey' => 'relativeOrbitNumber',
                     'operation' => 'interval',
                     'minInclusive' => 1,
+                    'title' => 'Relative orbit number', 
                     'quantity' => array (
                             'value' => 'relativeorbit'
                     )

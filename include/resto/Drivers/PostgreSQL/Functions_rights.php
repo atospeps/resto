@@ -153,6 +153,7 @@ class Functions_rights {
                 isset($rights['canpost']) ? $rights['canpost'] : 'NULL',
                 isset($rights['canput']) ? $rights['canput'] : 'NULL',
                 isset($rights['candelete']) ? $rights['candelete'] : 'NULL',
+
                 isset($rights['filters']) ? '\'' . pg_escape_string(json_encode($rights['filters'])) . '\'' : 'NULL'
             );
             $result = pg_query($this->dbh, 'INSERT INTO usermanagement.rights (collection,featureid,productidentifier,emailorgroup,search,visualize,download,canpost,canput,candelete,filters) VALUES (' . join(',', $values) . ')');    

@@ -49,3 +49,13 @@ SELECT f_drop_col('usermanagement.rights', 'wps');
 --
 ------------------------------------------------------------------------------------------- 
 SELECT f_add_col('usermanagement.wps_results', 'userinfo', 'json');
+
+-- ----------------------------------------------------------------------------------------
+--
+-- Table 'resto.keywords'
+--                       ajout mots clés L1C, L2A
+--
+------------------------------------------------------------------------------------------- 
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'l1c', '**', 'processingLevel');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'l2a', '**', 'processingLevel');
+

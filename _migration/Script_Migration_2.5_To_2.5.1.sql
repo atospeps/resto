@@ -58,4 +58,3 @@ SELECT f_add_col('usermanagement.wps_results', 'userinfo', 'json');
 ------------------------------------------------------------------------------------------- 
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'level1c', '**', 'processingLevel');
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '**', 'processingLevel');
-

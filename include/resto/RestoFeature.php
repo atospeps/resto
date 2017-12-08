@@ -296,7 +296,9 @@ class RestoFeature {
         }
         else {
             $this->identifier = $this->featureArray['id'];
-            $this->featureArray['properties']['storage'] = $this->getStorageInfo($this->featureArray['properties']['hpssResource']);
+            if (isset($this->featureArray['properties']['hpssResource'])) {
+                $this->featureArray['properties']['storage'] = $this->getStorageInfo($this->featureArray['properties']['hpssResource']);
+            }
             $this->setCollection($this->featureArray['properties']['collection']);
         }
         

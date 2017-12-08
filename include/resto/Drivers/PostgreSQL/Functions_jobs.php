@@ -91,7 +91,8 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function add($userid, $data, $context){
+    public function add($userid, $data, $context)
+    {
         if (!isset($data['identifier'])) {
             return false;
         }
@@ -114,6 +115,10 @@ class Functions_jobs {
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
+            
+            // get wps id from status location url
+            preg_match('/pywps-(.*).xml/', $statusLocation, $matches);
+            $wpsId = $this->dbDriver->quote($matches[1], 'NULL');
 
             $values = array (
                     $userid,
@@ -121,11 +126,11 @@ class Functions_jobs {
                     $method,
                     $title,
                     $data,
-                    $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
+                    $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs), $wpsId
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults, wpsid) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $jobid = $this->dbDriver->query($query);
             
@@ -215,7 +220,8 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function update($userid, $data, $context){
+    public function update($userid, $data, $context)
+    {
         if (!isset($userid) || !isset($data['gid'])) {
             return false;
         }
@@ -245,14 +251,28 @@ class Functions_jobs {
             $this->dbDriver->query($query);
 
             // Save result
+            $wps = new WPS_RequestManager( $context->modules['WPS']['pywps'], $context->modules['WPS']['curlOpts'] );
             foreach ($outputs as $output) {
                 if (isset($output['value']) && isset($output['identifier'])) {
-                    $userInfo   = $this->getReportUserInfo($context->modules['WPS'], $output['value']);
-                    $resultfile = isset($userInfo['result_0']) ? $userInfo['result_0'] : null;
-                    $userJson   = isset($userInfo) ? json_encode($userInfo) : null;
+                    // update status and get report infos
+                    $status = $wps->Get(array(
+                        'request'    => WPS_RequestManager::EXECUTE,
+                        'service'    => 'WPS',
+                        'version'    => '1.0.0',
+                        'identifier' => 'STATUS',
+                        'datainputs' => 'wps_id=' . $data['wpsid'] . '&status=false&storeExecuteResponse=false'
+                    ));
                     
-                    $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, value, userinfo)'
-                            . " VALUES ($gid, $userid, '${output['identifier']}', '$resultfile', '$userJson')";
+                    // @TODO: ...
+                    
+                    $report     = ''; //@TODO
+                    $identifier = "'" . $data['identifier'] . "'";
+                    $value      = 'NULL'; //@TODO            isset($report['results'][0]) ? $report['results'][0] : 'NULL';
+                    $userinfo   = 'NULL'; //@TODO            "'" . json_encode($report) . "'";
+                    
+                    $query = "INSERT INTO usermanagement.wps_results (jobid, userid, identifier, value, userinfo) "
+                           . "VALUES ($gid, $userid, $identifier, $value, $userinfo)";
+                    
                     $this->dbDriver->query($query);
                 }
             }
@@ -295,21 +315,21 @@ class Functions_jobs {
      * @param string $filename WPS report filename to read
      * @return string JSON representation of USER_INFO
      */
-    private function getReportUserInfo($conf, $filename)
+    private function getReport($conf, $filename)
     {
-        $userInfo = null;
+        $reportInfo = null;
         
         try {
             $report = json_decode(Curl::Get($conf['pywps']['outputsUrl'] . $filename, array(), $conf['curlOpts']), true);
             if ($report !== null) {
-                $userInfo = $report['USER_INFO'];
+                $reportInfo = $report['USER_INFO'];
             }
         }
         catch (Exception $e) {
             return null;
         }
         
-        return $userInfo;
+        return $reportInfo;
     }
     
 }

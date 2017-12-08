@@ -268,7 +268,7 @@ class WPS extends RestoModule {
     }
 
     /**
-     * HTTP/GET wps?
+     * HTTP/GET wps
      * @param array $segments route elements
      * @return unknown
      */

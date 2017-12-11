@@ -298,34 +298,20 @@ return array(
          * Alerts
          */
         'Alerts' => array(
-               'activate' => true,
-               'route' => 'alerts',
-               'options' => array(
-                   'notification' => array(
-                           'fr' => array(
-                                   'subject' => 'PEPS : les résultats de votre abonnement « {a:1} »',
-                                   'message' => 'Bonjour,<br><br>' 
-                                    . 'Vous trouverez ci-dessous un fichier meta4 qui contient la liste des nouveaux produits acquis par PEPS qui correspondent à votre recherche « {a:1} ».<br>'
-                                    . 'Pour visualiser le contenu de votre recherche ou éventuellement modifier les critères de cette recherche rendez-vous <a href="https://peps.cnes.fr/rocket/#/account/alerts">ici</a>.<br><br>'
-                                    . 'Cordialement<br>'
-                                    . '<img src="https://peps.cnes.fr/rocket/assets/img/peps_logo_alert.jpg"><br>'
-                                    . 'L’équipe d’exploitation PEPS<br>'
-                                    . 'CNES<br>'
-                                    . '<a href="https://peps.cnes.fr">https://peps.cnes.fr</a>'
-                           ),
-                           'en' => array(
-                                   'subject' => 'PEPS : your « {a:1} » subscription results',
-                                   'message' => 'Dear PEPS user,<br><br>' 
-                                    . 'Please find below a meta4 file containing the list of new acquired PEPS products corresponding to your search « {a:1} ».<br>'
-                                    . 'To display your search content or to modify your search criteria, go <a href="https://peps.cnes.fr/rocket/#/account/alerts">there</a>.<br><br>'
-                                    . 'Regards<br>'
-                                    . '<img src="https://peps.cnes.fr/rocket/assets/img/peps_logo_alert.jpg"><br>'
-                                    . 'PEPS operation team<br>'
-                                    . 'CNES<br>'
-                                    . '<a href="https://peps.cnes.fr">https://peps.cnes.fr</a>'
-                           )
-                   )
-               )
+            'activate' => true,
+            'route' => 'alerts',
+            'options' => array(
+                'notification' => array(
+                    'fr' => array(
+                           'subject' => 'PEPS : les résultats de votre abonnement',
+                           'message' => "<font face='ARIAL' size='2'><span style='line-height:1.5em'><center><img src='https://peps.cnes.fr/rocket/resources/mail/header2.png'><br><br><span style='letter-spacing:0.2em'>CI-JOINT LE FICHIER META4 CONTENANT LA LISTE DES NOUVEAUX PRODUITS ACQUIS PAR PEPS QUI CORRESPONDENT A VOTRE RECHERCHE :<br>{a:1}<br>POUR VISUALISER OU MODIFIER VOTRE RECHERCHE, CLIQUER  <a href='https://peps.cnes.fr/rocket/#/account/alerts'>ICI</a> </span><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>POUR DEMARRER SUR PEPS <br> RENDEZ-VOUS SUR LA PAGE D'ACCUEIL <br> POUR TELECHARGER DES PRODUITS</span> <br><br><a href='https://peps.cnes.fr'><img src='https://peps.cnes.fr/rocket/resources/mail/accueil2.png'></a><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>VOUS RECHERCHEZ DE LA DOCUMENTATION <br>SUR LES PRODUITS OU DES EXPLICATIONS SUR L’UTILISATION DE PEPS <br>RENDEZ-VOUS SUR LA PAGE PLUS</span> <br><br> <a href='https://peps.cnes.fr/rocket/plus/plus.htm'><img src='https://peps.cnes.fr/rocket/resources/mail/page_plus2.png'></a><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><br><img src='https://peps.cnes.fr/rocket/resources/mail/signature.png'><br><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>SUIVEZ NOUS - CONTACTEZ NOUS </span><br><a href='https://peps-mission.cnes.fr/fr/news-events/news/feed'><img src='https://peps.cnes.fr/rocket/resources/mail/fluxRSS.png'></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp<a href='mailto:exppeps@cnes.fr'><img src='https://peps.cnes.fr/rocket/resources/mail/contact.jpg'></a><br><br><br><i><small><a href='https://peps-q.cst.cnes.fr/rocket/assets/pdf/Sentinel_Data_Terms_and_Conditions.pdf' style='text-decoration:none'><font color='black'>Licence d'utilisation des produits Sentinel</font></a></small></i></center></span></font>"
+                    ),
+                    'en' => array(
+                           'subject' => 'PEPS: results for your subscription',
+                           'message' => "<font face='ARIAL' size='2'><span style='line-height:1.5em'><center><img src='https://peps.cnes.fr/rocket/resources/mail/header2.png'><br><br><span style='letter-spacing:0.2em'>ATTACHED FILE CONTAINING THE LIST OF NEW ACQUIRED PEPS PRODUCTS CORRESPONDING TO YOUR SEARCH:<br>{a:1}<br>TO DISPLAY OR MODIFY YOUR SEARCH, CLICK  <a href='https://peps.cnes.fr/rocket/#/account/alerts'>HERE</a></span>><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>TO START ON PEPS <br> GO TO THE HOMEPAGE <br> TO DOWNLOAD PRODUCTS</span> <br><br><a href='https://peps.cnes.fr'><img src='https://peps.cnes.fr/rocket/resources/mail/accueil2.png'></a><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>YOU ARE LOOKING FOR DOCUMENTATION <br>ON THE PRODUCTS OR EXPLANATIONS ON THE USE OF PEPS <br>CLICK MORE</span> <br><br> <a href='https://peps.cnes.fr/rocket/plus/plus.htm'><img src='https://peps.cnes.fr/rocket/resources/mail/page_plus2.png'></a><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><br><img src='https://peps.cnes.fr/rocket/resources/mail/signature_en.png'><br><br><span style='letter-spacing:0.2em'>-----------------------------</span><br><span style='letter-spacing:0.2em'>FOLLOW US - CONTACT US </span><br><a href='https://peps-mission.cnes.fr/fr/news-events/news/feed'><img src='https://peps.cnes.fr/rocket/resources/mail/fluxRSS.png'></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp<a href='mailto:exppeps@cnes.fr'><img src='https://peps.cnes.fr/rocket/resources/mail/contact.jpg'></a><br><br><br><i><small><a href='https://peps-q.cst.cnes.fr/rocket/assets/pdf/Sentinel_Data_Terms_and_Conditions.pdf' style='text-decoration:none'><font color='black'>Legal notice on the use of Copernicus Sentinel Data</font></a></small></i></center></span></font>"
+                    )
+                )
+            )
         ),
             
     	/*

@@ -19,7 +19,7 @@ class WPS_DescribeProcessResponse extends WPS_Response {
      * @param string $pXml
     */
     function __construct($pXml) { 
-        
+
         $dom = new DOMDocument;
         $dom->loadXML($pXml);
 
@@ -71,12 +71,7 @@ class WPS_DescribeProcessResponse extends WPS_Response {
 
             $item = $description->item(0);
             
-            $descriptionText = $item->textContent;            
-            if ($item->hasChildNodes())
-            {
-                $descriptionText = $item->firstChild->C14N();
-            }
-            
+            $descriptionText = $item->C14N();            
             $process->setDescription($descriptionText);
         }
         

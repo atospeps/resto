@@ -318,6 +318,10 @@ class WPS extends RestoModule {
                             'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
                             'data'      => $query
                     ));
+            // TODO ? si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
+            $data['percentcompleted'] = empty($data['statusLocation']) ? $data['percentcompleted'] : 0;
+            $data['status'] = empty($data['statusLocation']) ? $data['statusLocation'] : 'ProcessAccepted';
+
             // Store job into database
             $this->storeJob($this->user->profile['userid'], $data);
         }
@@ -362,7 +366,7 @@ class WPS extends RestoModule {
         
         if (count($result) > 0) 
         {
-            return $this->wpsRequestManager->download($result[0]['value'], null);
+            return $this->wpsRequestManager->download($result[0]['value']);
         }
         
         // HTTP 404
@@ -776,8 +780,7 @@ class WPS extends RestoModule {
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
                 array(
                         'userid' => $userid,
-                        'data' => $data,
-                        'context' => $this->context
+                        'data' => $data
                 ));
     }
     
@@ -856,8 +859,7 @@ class WPS extends RestoModule {
                 RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
                 array(
                         'userid' => $userid,
-                        'data' => $data,
-                        'context' => $this->context
+                        'data' => $data
                 ));
     }
 
@@ -873,28 +875,68 @@ class WPS extends RestoModule {
             {                
                 if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
                 {
-                    continue;    
+                    continue;
                 }
-                if (($executeResponse = $this->wpsRequestManager->getExecuteResponse($job['statuslocation'])) != false) 
+
+                preg_match('/pywps-(.*).xml/', $job['statuslocation'], $matches);
+                if (isset($matches[1])) 
                 {
-                    if ($job['status'] != $executeResponse->getStatus() 
-                            || $job['statusmessage'] != $executeResponse->getStatusMessage()
-                            || $job['percentcompleted'] != $executeResponse->getPercentCompleted()) 
+                    $jobId = $matches[1];
+                }
+                else {
+                    continue;
+                }
+                
+                if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false) 
+                {
+                    error_log(print_r($statusReport, true));
+                    if ($job['status'] != $statusReport['job_status'] 
+                            || $job['percentcompleted'] != $statusReport['percentCompleted']) 
                     {
-                        $job['status'] = $executeResponse->getStatus();
-                        $job['statusTime'] = $executeResponse->getStatusTime();
-                        $job['statusmessage'] = $executeResponse->getStatusMessage();
-                        $job['percentcompleted'] = $executeResponse->getPercentCompleted();
-                        $job['outputs'] = $executeResponse->getOutputs();
+                        $job['status'] = $this->toWpsStatus($statusReport['job_status']);
+                        $job['percentcompleted'] = $statusReport['percentCompleted'];
+                        $job['outputs'] = $statusReport['results'];
                         $job['nbresults'] = count($job['outputs']);
                         $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
-                        
+
                         $this->updateJob($job['userid'], $job);
                     }
                 }
             }
         }
         return $jobs;
+    }
+    
+    /**
+     * 
+     * @param unknown $proactiveStatus
+     * @return string|unknown
+     */
+    private function toWpsStatus($proactiveStatus) {
+        switch ($proactiveStatus) 
+        {
+            case ProactiveStatus::PENDING:
+                return 'ProcessAccepted';
+                
+            case ProactiveStatus::RUNNING:
+            case ProactiveStatus::STALLED:
+                return 'ProcessStarted';
+                
+            case ProactiveStatus::FINISHED:
+                return 'ProcessSucceeded';
+                
+            case ProactiveStatus::PAUSED:
+                return 'ProcessPaused';
+                
+            case ProactiveStatus::CANCELED:            
+            case ProactiveStatus::KILLED:
+            case ProactiveStatus::FAILED:
+            case ProactiveStatus::IN_ERROR:
+                return 'ProcessFailed'; 
+                
+            default:
+                return $proactiveStatus;
+        }
     }
     
     /**
@@ -1139,4 +1181,16 @@ abstract class HttpRequestMethod {
     const HEAD      = 'HEAD';
     const TRACE     = 'TRACE';
     const CONNECT   = 'CONNECT';
+}
+
+abstract class ProactiveStatus {
+    const PENDING   = 'PENDING';
+    const RUNNING   = 'RUNNING';
+    const STALLED   = 'STALLED';
+    const FINISHED  = 'FINISHED';
+    const PAUSED    = 'PAUSED';
+    const CANCELED  = 'CANCELED';            
+    const KILLED    = 'KILLED';
+    const FAILED    = 'FAILED';
+    const IN_ERROR  = 'IN_ERROR';
 }

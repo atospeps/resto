@@ -66,6 +66,7 @@ class WPS_ExecuteResponse extends WPS_Response {
      * @param unknown $pXml
     */
     function __construct($pXml) {
+        error_log($pXml);
         parent::__construct($pXml);
         libxml_use_internal_errors(true);
         $sxe = new SimpleXMLElement($this->xml);
@@ -200,24 +201,62 @@ class WPS_ExecuteResponse extends WPS_Response {
         $output = array();
 
         // Ignores Outputs 'wps:Data'
-        // $data = $wps_Output->xpath('.//wps:LiteralData');
-
+        $data = $wps_Output->xpath('.//wps:LiteralData');
+        if ($data && count($data)>0) {
+            $output = $this->parseLiteralOutput($data[0]);
+        }
+        
         $data = $wps_Output->xpath('.//wps:Reference');
         if ($data && count($data)>0) {
-            $attributes = $data[0]->attributes();
-            $output['type'] = isset($attributes['mimeType']) ? $attributes['mimeType']->__toString() : 'application/octet-stream';
-            $output['value'] = isset($attributes['href']) ? basename($attributes['href']->__toString()) : null;
-            
-            $identifier = $wps_Output->xpath('.//ows:Identifier');
-            if ($identifier && count($identifier)>0){
-                $output['identifier'] = $identifier[0]->__toString();
-            }
-
-            $title = $wps_Output->xpath('.//ows:Title');
-            if ($title && count($title)>0) {
-                $output['title'] = $title[0]->__toString();
-            }
+            $output = $this->parseReferenceOutput($data[0]);
         }
+        
+        $identifier = $wps_Output->xpath('.//ows:Identifier');
+        if ($identifier && count($identifier)>0){
+            $output['identifier'] = $identifier[0]->__toString();
+        }
+        
+        $title = $wps_Output->xpath('.//ows:Title');
+        if ($title && count($title)>0) {
+            $output['title'] = $title[0]->__toString();
+        }
+
+        return $output;
+    }
+    
+    /**
+     * 
+     * @param SimpleXMLElement $wps_Output
+     * @return string
+     */
+    public function parseLiteralOutput(SimpleXMLElement $wps_Output) {
+        $attributes = $wps_Output->attributes();
+        $output['type'] = isset($attributes['dataType']) ? $attributes['dataType']->__toString() : 'string';
+        $output['value'] = $wps_Output->__toString();
+
+        return $output;
+    }
+    
+    /**
+     * 
+     * @param SimpleXMLElement $wps_Output
+     * @return string
+     */
+    public function parseReferenceOutput(SimpleXMLElement $wps_Output) {
+        $attributes = $wps_Output->attributes();
+        $output['type'] = isset($attributes['mimeType']) ? $attributes['mimeType']->__toString() : 'application/octet-stream';
+        $output['value'] = isset($attributes['href']) ? basename($attributes['href']->__toString()) : null;
+        
+        $identifier = $wps_Output->xpath('.//ows:Identifier');
+        if ($identifier && count($identifier)>0){
+            $output['identifier'] = $identifier[0]->__toString();
+        }
+        
+        $title = $wps_Output->xpath('.//ows:Title');
+        if ($title && count($title)>0) {
+            $output['title'] = $title[0]->__toString();
+        }
+        
         return $output;
     }
 
@@ -266,6 +305,25 @@ class WPS_ExecuteResponse extends WPS_Response {
     
     public function getStatusTime(){
         return $this->statusTime;
+    }
+    
+    /**
+     * 
+     * @return boolean
+     */
+    public function getProactiveReport(){
+        
+        error_log(print_r($this->processOutputs[0], true));
+        try {
+            if (count($this->processOutputs)> 0) {
+                $result = $this->processOutputs[0];
+                if (isset($result['value']) && isset($result['identifier']) && strtolower($result['identifier']) == 'report') {
+                    return json_decode($result['value'], true);
+                }
+            }
+        } catch (Exception $e) {}
+        
+        return false;
     }
     
     /**

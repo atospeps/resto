@@ -21,6 +21,8 @@ class WPS_RequestManager {
     const DESCRIBE_PROCESS = 'describeprocess';
     const EXECUTE = 'execute';
     const WSDL = 'wsdl';
+    const WPS_VERSION = '1.0.0';
+    const WPS_SERVICE = 'WPS';
 
     private $serverAddress = null;
     private $outputsUrl = null;
@@ -226,6 +228,30 @@ class WPS_RequestManager {
         } 
         catch (Exception $e) { }
 
+        return false;
+    }
+    /**
+     * 
+     * @param unknown $jobId
+     * @return WPS_ExecuteResponse|boolean
+     */
+    public function getStatusReport($jobId) {
+        try
+        {
+            // Prevent proxy cache issues
+            $url = $this->getServerAddress() . '?service=WPS&request=execute&version=1.0.0&identifier=PROCESSING_STATUS&DataInputs=[wps_id=' . $jobId . ']';
+            
+            $data = Curl::Get($url, array(), $this->curlOpts);
+            $response = new WPS_Response($data);
+        
+            if ($response->isExecuteResponse())
+            {
+                $response = new WPS_ExecuteResponse($response->toXML());
+                return $response->getProactiveReport();
+            }
+        }
+        catch (Exception $e) { }
+        
         return false;
     }
     

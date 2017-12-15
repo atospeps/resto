@@ -26,11 +26,7 @@ class Curl {
         }
 
         $data['_t'] = time();
-        $_url = $url . (
-                count($data) > 0 
-                ? ((substr($url, -1) == '?' ? '' : '?') . http_build_query($data)) 
-                : ''
-                );
+        $_url = $url . (strpos($url, '?') == false ? '?' : '&') . http_build_query($data);
         return self::exec($_url, $opts);
     }
 
@@ -88,7 +84,7 @@ class Curl {
      * @param unknown $curl_options
      */
     public static function Download($url, $type=null, $options=array()) {
-
+error_log($url);
         set_time_limit(0);
         $context_options = array (
                 'http' => array ('method' => 'GET'),

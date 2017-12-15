@@ -183,4 +183,14 @@ abstract class RestoDatabaseDriver {
     public function quote($input, $default=null){
         return isset($input) ? '\'' . pg_escape_string($input) . '\'' : $default;
     }
+    
+    /**
+     * Quotes a string for use in a query.
+     * Places quotes around the input string (if required) and escapes special characters
+     *
+     * @param string $string
+     */
+    public function quote2($array, $key, $default=null){
+        return isset($array[$key]) ? '\'' . pg_escape_string($array[$key]) . '\'' : $default;
+    }
 }

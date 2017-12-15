@@ -79,7 +79,7 @@ class RestoModel_sentinel1 extends RestoModel {
             'osKey' => 'polarisation',
             'operation' => '=',
             'options' => 'auto',
-            'title' => ''
+            'title' => 'Polarisation'
         );
 
         $this->searchFilters['eo:swath'] = array (
@@ -98,7 +98,7 @@ class RestoModel_sentinel1 extends RestoModel {
             'quantity' => array (
                     'value' => 'cyclenumber'
             ),
-            'title' => ''
+            'title' => 'Cycle number'
         );
         
         

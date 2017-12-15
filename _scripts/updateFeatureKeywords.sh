@@ -16,16 +16,21 @@ RESTO_DB_NAME=resto
 #####################################
 # SQL Query of products to update
 #####################################
-QUERY='select identifier, productidentifier from resto.features;'
+QUERY='select identifier from resto.features;'
 
 #####################################
 # Fichier de logs
 #####################################
 REPORT_FILE="$PRG_DIR/updateFeatureKeywords.log"
+JOBLOG_FILE="$PRG_DIR/updateFeatureKeywordsJob.log"
 
 if [ -f "$REPORT_FILE" ]
 then
     rm "$REPORT_FILE"
+fi
+if [ -f "$JOBLOG_FILE" ]
+then
+    rm "$JOBLOG_FILE"
 fi
 
 #####################################
@@ -75,10 +80,11 @@ fi
 
 if [ "$RESTO_CURL_PROXY" = "1" ]
 	then
-		CURL_PROXY="${RESTO_HOST}";
+		CURL_PROXY='--noproxy "${RESTO_HOST}"';
 	else
-		CURL_PROXY="";
+		CURL_PROXY='';
 fi
+logMessage ${CURL_PROXY}
 
 #####################################
 # RESTo : database connection string
@@ -87,34 +93,27 @@ DB_RESTO_STRING_CONNECTION=postgresql://${RESTO_DB_AUTH}\@${RESTO_DB_HOST}/${RES
 
 #####################################
 # RESTo database : récupération de la liste des produits à mettre à jour
+#                  (ignore les espaces et les lignes vide)
 #####################################
 logMessage "Récupération de la liste des produits à mettre a jour"
-psql -t $DB_RESTO_STRING_CONNECTION -c "${QUERY}" > "$PRG_DIR/products.txt"
+psql -t $DB_RESTO_STRING_CONNECTION -c "${QUERY}" | sed -e 's/^[ \t]*//' | sed '/^$/d' > "$PRG_DIR/products.txt"
 
 #####################################
 # Mise à jour des produits
 #####################################
-while read line
-do
-	if [ ! -z "$line" ]; then
-		identifier=`echo $line | cut -d\  -f 1`
-	    title=`echo $line | cut -d\  -f 3`
-	    echo $line;
-	
-		logMessage "Mise a jour du produit $title"
-	    if [ "$HTTPS" = "1" ]
-		then
-		    state=$(curl -s -k -X PUT --noproxy "${CURL_PROXY}" https://${WEBS_AUTH}@${RESTO_HOST}/resto/api/tag/${identifier}/refresh);
-		else
-		    state=$(curl -s -X PUT --noproxy "${CURL_PROXY}" http://${WEBS_AUTH}@${RESTO_HOST}/resto/api/tag/${identifier}/refresh);
-		fi
-	    logMessage "    ==> $state";
-	fi
+logMessage "Mise a jour des produits en cours...";
+if [ "$HTTPS" = "1" ]
+then
+    state=$(parallel -j10 --eta --joblog ${JOBLOG_FILE} -a products.txt curl -s -k -X PUT ${CURL_PROXY} https://${WEBS_AUTH}@${RESTO_HOST}/resto/api/tag/{1}/refresh);
+else
+    state=$(parallel -j10 --eta --joblog ${JOBLOG_FILE} -a products.txt curl -s -X PUT ${CURL_PROXY} http://${WEBS_AUTH}@${RESTO_HOST}/resto/api/tag/{1}/refresh);
+fi
+logMessage "$state";
 
-done <  "$PRG_DIR/products.txt"
-
+#####################################
+# Nettoyage
+#####################################
 if [ -f "$PRG_DIR/products.txt" ]
 then
     rm "$PRG_DIR/products.txt"
 fi
-

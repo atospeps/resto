@@ -91,7 +91,7 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function add($userid, $data){
+    public function add($userid, $data) {
         if (!isset($data['identifier'])) {
             return false;
         }
@@ -215,7 +215,7 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function update($userid, $data){
+    public function update($userid, $data) {
         if (!isset($userid) || !isset($data['gid'])) {
             return false;
         }

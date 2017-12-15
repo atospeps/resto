@@ -307,6 +307,21 @@ class WPS_ExecuteResponse extends WPS_Response {
         return $this->statusTime;
     }
     
+    public function getProactiveReport(){
+        
+        error_log(print_r($this->processOutputs[0], true));
+        try {
+            if (count($this->processOutputs)> 0) {
+                $result = $this->processOutputs[0];
+                if (isset($result['value']) && isset($result['identifier']) && strtolower($result['identifier']) == 'report') {
+                    return json_decode($result['value'], true);
+                }
+            }
+        } catch (Exception $e) {}
+        
+        return false;
+    }
+    
     /**
      * 
      * @return boolean

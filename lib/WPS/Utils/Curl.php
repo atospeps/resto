@@ -84,7 +84,7 @@ class Curl {
      * @param unknown $curl_options
      */
     public static function Download($url, $type=null, $options=array()) {
-error_log($url);
+
         set_time_limit(0);
         $context_options = array (
                 'http' => array ('method' => 'GET'),

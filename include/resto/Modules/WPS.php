@@ -318,10 +318,10 @@ class WPS extends RestoModule {
                             'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
                             'data'      => $query
                     ));
-            // TODO ? si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
-            $data['percentcompleted'] = empty($data['statusLocation']) ? $data['percentcompleted'] : 0;
-            $data['status'] = empty($data['statusLocation']) ? $data['statusLocation'] : 'ProcessAccepted';
-
+            
+            // si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
+            $data['percentcompleted'] = (empty($data['statusLocation'])) ?  $data['percentcompleted'] : 0;
+            $data['status'] = (empty($data['statusLocation'])) ? $data['status'] : 'ProcessAccepted';
             // Store job into database
             $this->storeJob($this->user->profile['userid'], $data);
         }
@@ -878,10 +878,10 @@ class WPS extends RestoModule {
                     continue;
                 }
 
-                preg_match('/pywps-(.*).xml/', $job['statuslocation'], $matches);
-                if (isset($matches[1])) 
+                preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
+                if (isset($matches[2])) 
                 {
-                    $jobId = $matches[1];
+                    $jobId = $matches[2];
                 }
                 else {
                     continue;
@@ -889,7 +889,6 @@ class WPS extends RestoModule {
                 
                 if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false) 
                 {
-                    error_log(print_r($statusReport, true));
                     if ($job['status'] != $statusReport['job_status'] 
                             || $job['percentcompleted'] != $statusReport['percentCompleted']) 
                     {

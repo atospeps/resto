@@ -44,19 +44,16 @@ class Functions_jobs {
 
         // ? Job id is setted
         if (isset($jobid)) {
-            $filters[] = 'jobs.gid=' . $this->dbDriver->quote($jobid);
+            $filters[] = 'gid=' . $this->dbDriver->quote($jobid);
         }
 
-        $filters[] = 'jobs.userid=' . $this->dbDriver->quote($userid);
-        $filters[] = 'jobs.visible=TRUE';
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid);
+        $filters[] = 'visible=TRUE';
         $oFilter = implode(' AND ', $filters);
 
         // Query
-        $query = 'SELECT jobs.*, results.userinfo::json->>\'job_status\' as job_status, results.userinfo::json->>\'log_0\' as log'
-               . ' FROM usermanagement.jobs AS jobs'
-               . ' LEFT JOIN usermanagement.wps_results AS results ON jobs.gid = results.jobid' 
-               . ' WHERE ' . $oFilter
-               . ' ORDER BY jobs.querytime DESC';
+        $query = 'SELECT * FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
+
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
 
@@ -220,8 +217,6 @@ class Functions_jobs {
             return false;
         }
         try {
-            error_log(print_r($data, true));
-            
             /*
              * Start transaction
              */
@@ -286,29 +281,4 @@ class Functions_jobs {
         }
         return true;
     }
-    
-    /**
-     * Get report content and returns USER_INFO
-     * 
-     * @param object $conf WPS config
-     * @param string $filename WPS report filename to read
-     * @return string JSON representation of USER_INFO
-     */
-    private function getReport($conf, $filename)
-    {
-        $reportInfo = null;
-        
-        try {
-            $report = json_decode(Curl::Get($conf['pywps']['outputsUrl'] . $filename, array(), $conf['curlOpts']), true);
-            if ($report !== null) {
-                $reportInfo = $report['USER_INFO'];
-            }
-        }
-        catch (Exception $e) {
-            return null;
-        }
-        
-        return $reportInfo;
-    }
-    
 }

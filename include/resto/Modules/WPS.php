@@ -897,10 +897,14 @@ class WPS extends RestoModule {
                         $job['outputs'] = $statusReport['results'];
                         $job['nbresults'] = count($job['outputs']);
                         $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
+                        $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
 
                         $this->updateJob($job['userid'], $job);
                     }
                 }
+            }
+            if (isset($job['logs'])) {
+                $job['logs'] = $this->replaceTerms($job['logs']);
             }
         }
         return $jobs;
@@ -1150,7 +1154,22 @@ class WPS extends RestoModule {
         }
         return true;
     }
-
+   
+    /**
+     * 
+     * @param unknown $replacements
+     * @return unknown
+     */
+    public function replaceTerms($in){
+        $res = $in;
+        if (isset($replacements) && is_array($replacements)){
+            foreach ($replacements as $search => $replace){
+                str_replace($search, $replace, $res);
+            }            
+        }
+        return $res;
+        
+    }
 }
 
 /**

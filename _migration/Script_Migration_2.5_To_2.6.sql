@@ -42,6 +42,9 @@ $func$  LANGUAGE plpgsql;
 SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
 SELECT f_drop_col('usermanagement.jobs', 'email');
 
+DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
+CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
+
 -- ----------------------------------------------------------------------------------------
 --
 -- Table 'rights'

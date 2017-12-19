@@ -230,10 +230,11 @@ class Functions_jobs {
             $gid                = $this->dbDriver->quote($data['gid']);
             $nbResults          = count($outputs);
             $last_dispatch      = $this->dbDriver->quote2($data, 'last_dispatch', 'now()');
+            $logs               = $this->dbDriver->quote2($data, 'logs', 'NULL');
         
             // update properties
             $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}"
+                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, logs=${logs}"
                     . " WHERE gid=${gid}";
             
             $this->dbDriver->query($query);

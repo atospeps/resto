@@ -33,6 +33,14 @@ BEGIN
 END
 $func$  LANGUAGE plpgsql;
 
+----------
+---
+--- Table 'jobs'
+---                       ajout colonne 'userinfo'
+---
+-------------------------------------------------------------------------------------------- 
+SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
+SELECT f_drop_col('usermanagement.jobs', 'email');
 
 -- ----------------------------------------------------------------------------------------
 --

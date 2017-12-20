@@ -900,6 +900,7 @@ class WPS extends RestoModule {
                         $job['nbresults'] = count($job['outputs']);
                         $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
                         $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
+                        $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
 
                         $this->updateJob($job['userid'], $job);
                     }

@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', '1');
 /*
  * Copyright 2014 Jérôme Gasperi
  *

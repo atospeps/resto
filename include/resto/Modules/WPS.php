@@ -77,6 +77,8 @@ class WPS extends RestoModule {
     private $externalOutputsUrl;
     
     private $replacements = array();
+    
+    private $curlOpts = array();
 
     /*
      * WPS module route.
@@ -118,8 +120,8 @@ class WPS extends RestoModule {
         $this->externalOutputsUrl = $module['outputsUrl'];
         
         $wpsConf = isset($module['pywps']) ? $module['pywps'] : array() ;
-        $curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
-        $this->wpsRequestManager = new WPS_RequestManager($wpsConf, $curlOpts);
+        $this->curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
+        $this->wpsRequestManager = new WPS_RequestManager($wpsConf, $this->curlOpts);
         
         // wps response replacements
         $this->replacements[$this->wpsRequestManager->getResponseServerAddress()] = $this->externalServerAddress;
@@ -318,10 +320,10 @@ class WPS extends RestoModule {
                             'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
                             'data'      => $query
                     ));
-            // TODO ? si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
-            $data['percentcompleted'] = empty($data['statusLocation']) ? $data['percentcompleted'] : 0;
-            $data['status'] = empty($data['statusLocation']) ? $data['statusLocation'] : 'ProcessAccepted';
-
+            
+            // si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
+            $data['percentcompleted'] = (empty($data['statusLocation'])) ?  $data['percentcompleted'] : 0;
+            $data['status'] = (empty($data['statusLocation'])) ? $data['status'] : 'ProcessAccepted';
             // Store job into database
             $this->storeJob($this->user->profile['userid'], $data);
         }
@@ -463,11 +465,11 @@ class WPS extends RestoModule {
                             }
                         case 'log':
                             $job = $this->getJobs($userid, $jobid, array(), false);
-                            if (isset($job[0]['log'])) {
-                                $module = $this->context->modules[get_class($this)];
-                                $curlOpts = isset($module['curlOpts']) ? $module['curlOpts'] : array() ;
-                                $content = Curl::Get($job[0]['log'], array(), $curlOpts);
-                                if ($content) {
+                            if (isset($job[0]['logs'])) 
+                            {
+                                $content = Curl::Get($job[0]['logs'], array(), $this->curlOpts);
+                                if ($content)
+                                {
                                     return RestoLogUtil::success("WPS job  for user {$userid}", array ('data' => $content));
                                 }
                             }
@@ -878,10 +880,10 @@ class WPS extends RestoModule {
                     continue;
                 }
 
-                preg_match('/pywps-(.*).xml/', $job['statuslocation'], $matches);
-                if (isset($matches[1])) 
+                preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
+                if (isset($matches[2])) 
                 {
-                    $jobId = $matches[1];
+                    $jobId = $matches[2];
                 }
                 else {
                     continue;
@@ -889,7 +891,6 @@ class WPS extends RestoModule {
                 
                 if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false) 
                 {
-                    error_log(print_r($statusReport, true));
                     if ($job['status'] != $statusReport['job_status'] 
                             || $job['percentcompleted'] != $statusReport['percentCompleted']) 
                     {
@@ -898,10 +899,16 @@ class WPS extends RestoModule {
                         $job['outputs'] = $statusReport['results'];
                         $job['nbresults'] = count($job['outputs']);
                         $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
+                        $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
+                        $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
 
                         $this->updateJob($job['userid'], $job);
                     }
                 }
+            }
+            if (!empty($job['logs'])) 
+            {
+                $job['logs'] = true;
             }
         }
         return $jobs;
@@ -1151,7 +1158,22 @@ class WPS extends RestoModule {
         }
         return true;
     }
-
+   
+    /**
+     * 
+     * @param unknown $replacements
+     * @return unknown
+     */
+    public function replaceTerms($in){
+        $res = $in;
+        if (isset($replacements) && is_array($replacements)){
+            foreach ($replacements as $search => $replace){
+                str_replace($search, $replace, $res);
+            }            
+        }
+        return $res;
+        
+    }
 }
 
 /**

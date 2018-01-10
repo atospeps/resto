@@ -33,10 +33,12 @@ BEGIN
 END
 $func$  LANGUAGE plpgsql;
 
-----------
+
+
+-- ----------------------------------------------------------------------------------------
 ---
 --- Table 'jobs'
----                       ajout colonne 'userinfo'
+---                       
 ---
 -------------------------------------------------------------------------------------------- 
 SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
@@ -48,7 +50,7 @@ CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
 -- ----------------------------------------------------------------------------------------
 --
 -- Table 'rights'
---                       suppression colonne 'wps'
+--                      
 --
 ------------------------------------------------------------------------------------------- 
 SELECT f_drop_col('usermanagement.rights', 'wps');
@@ -57,8 +59,17 @@ SELECT f_drop_col('usermanagement.rights', 'wps');
 -- ----------------------------------------------------------------------------------------
 --
 -- Table 'resto.keywords'
---                       ajout mots clés L1C, L2A
+--                       
 --
 ------------------------------------------------------------------------------------------- 
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'level1c', '**', 'processingLevel');
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '**', 'processingLevel');
+
+-- ----------------------------------------------------------------------------------------
+--
+-- Table 'resto.osdescriptions'
+--                                  FT-489
+--
+-------------------------------------------------------------------------------------------
+UPDATE resto.osdescriptions SET developper = 'CNES'
+

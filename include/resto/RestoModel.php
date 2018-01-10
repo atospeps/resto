@@ -291,7 +291,7 @@ abstract class RestoModel {
                     'osKey' => 'maxRecords',
                     'minInclusive' => 1,
                     'maxInclusive' => 500,
-                    'title' => 'Number of results returned per page (default 50, max 500)' 
+                    'title' => 'Number of results returned per page (default 20, max 500)' 
             ),
             'startIndex' => array (
                     'osKey' => 'index',

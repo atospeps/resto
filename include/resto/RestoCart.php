@@ -46,8 +46,15 @@ class RestoCart{
         $this->user = $user;
         $this->context = $context;
         $this->items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array(
-                'email' => $this->user->profile['email']
+            'email' => $this->user->profile['email']
         ));
+        // get storage info
+        foreach ($this->items as $id => $item) {
+            $feature = new RestoFeature($context, $this->user, array (
+                'featureArray' => $item
+            ));
+            $this->items[$id] = $feature->toArray();
+        }
     }
 
     /**

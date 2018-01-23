@@ -33,6 +33,7 @@ function autoload($className) {
         'lib/iTag/',
         'lib/WPS/',
         'lib/WPS/Utils/',
+        'lib/ShapeFile/',
         'lib/JWT/') as $current_dir) {
         $path = $current_dir . sprintf('%s.php', $className);
         if (file_exists($path)) {

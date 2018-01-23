@@ -103,6 +103,9 @@ class RestoRoutePOST extends RestoRoute {
                 RestoLogUtil::httpError(404);
             }
             
+                    error_log(serialize($data));
+                    error_log($this->context->uploadDirectory);
+                    
             /*
              * api/upload/area
              */
@@ -114,16 +117,15 @@ class RestoRoutePOST extends RestoRoute {
                     return $data;
                 }
                 // SHP
-                /*elseif () {
-                    
+                else {
                 }
                 // KML
-                elseif () {
-                        
+                /*elseif () {
+                    
                 }*/
-                else {
+                /*else {
                     RestoLogUtil::httpError(415);
-                }
+                }*/
             }
         }
     }

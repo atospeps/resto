@@ -62,9 +62,9 @@ class RestoRoutePUT extends RestoRoute {
                 return $this->PUT_groups($segments, $data);
             case 'wpsrights':
                 return $this->PUT_wpsRights($segments, $data);
-                case 'proactive':
+            case 'proactive':
                 return $this->PUT_proactive($segments, $data);
-                case 'users':
+            case 'users':
                 return $this->PUT_users($segments, $data);
             default:
                 return $this->processModuleRoute($segments, $data);

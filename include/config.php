@@ -119,6 +119,11 @@ return array(
         'uploadDirectory' => '/tmp/resto_uploads',
         
         /*
+         * Working directory (ex: zip extract)
+         */
+        'workingDirectory' => '/tmp/resto_tmp',
+        
+        /*
          * Set how the products are streamed to user :
          *   - 'php' : stream through PHP process (slowest but works on all platforms)
          *   - 'apache' : stream through Apache (needs the XSendfile module to be installed and configured)

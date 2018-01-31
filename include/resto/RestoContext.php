@@ -96,6 +96,11 @@ class RestoContext {
     public $uploadDirectory = '/tmp/resto_uploads';
     
     /*
+     * Working directory
+     */
+    public $workingDirectory = '/tmp/resto_tmp';
+    
+    /*
      * Stream method 
      */
     public $streamMethod = 'php';
@@ -390,6 +395,13 @@ class RestoContext {
          */
         if (isset($config['general']['uploadDirectory'])) {
             $this->uploadDirectory = $config['general']['uploadDirectory'];
+        }
+        
+        /*
+         * Working directory
+         */
+        if (isset($config['general']['workingDirectory'])) {
+            $this->workingDirectory = $config['general']['workingDirectory'];
         }
         
         /*

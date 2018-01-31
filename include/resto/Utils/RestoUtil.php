@@ -569,10 +569,42 @@ class RestoUtil {
      * 
      * @param string $uploadDirectory
      * @param boolean deleteAfterRead
-     * @return type
+     * 
+     * @return array|json
      * @throws Exception
      */
-    private static function readFile($uploadDirectory, $deleteAfterRead = true) {
+    private static function readFile($uploadDirectory, $deleteAfterRead = true)
+    {
+        $filename = $lthis->uploadFile($uploadDirectory);
+        if (!$filename) {
+            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+        }
+        
+        try {
+            $lines = file($fileName);
+            if ($deleteAfterRead) {
+                unlink($fileName);
+            }
+        } catch (Exception $e) {
+            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+        }
+
+        // assume that input data format is JSON by default
+        $json = json_decode(join('', $lines), true);
+        return ($json === null) ? $lines : $json;
+    }
+    
+    /***
+     * Upload a file
+     * 
+     * @param string $uploadDirectory
+     * 
+     * @return string - uploaded file name
+     */
+    public static function uploadFile($uploadDirectory)
+    {
+        $fileName = null;
+        
         try {
             $fileToUpload = is_array($_FILES['file']['tmp_name']) ? $_FILES['file']['tmp_name'][0] : $_FILES['file']['tmp_name'];
             if (is_uploaded_file($fileToUpload)) {
@@ -581,23 +613,65 @@ class RestoUtil {
                 }
                 $fileName = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15));
                 move_uploaded_file($fileToUpload, $fileName);
-                $lines = file($fileName);
-                if ($deleteAfterRead) {
-                    unlink($fileName);
-                }
             }
+            
         } catch (Exception $e) {
             RestoLogUtil::httpError(500, 'Cannot upload file(s)');
         }
         
-        /*
-         * Assume that input data format is JSON by default
-         */
-        $json = json_decode(join('', $lines), true);
+        if (!$fileName) {
+            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+        }
         
-        return $json === null ? $lines : $json;
+        return $fileName;
+    }
+
+    /***
+     * Extract ZIP file
+     * 
+     * @param string $fileName
+     * @param string $extractDir
+     * 
+     * @return bool
+     */
+    public static function extractZip($fileName, $extractDir)
+    {
+        $zip = new ZipArchive;
+        if ($zip->open($fileName) === true) {
+            if (is_dir($extractDir)) {
+                RestoUtil::rrmdir($extractDir);
+            }
+            $result = $zip->extractTo($extractDir);
+            $zip->close();
+            return $result;
+        }
+        
+        return false;
     }
     
+    /***
+     * Recursive folder delete
+     * 
+     * @param string $src
+     */
+    public static function rrmdir($src)
+    {
+        $dir = opendir($src);
+        while(false !== ( $file = readdir($dir)) ) {
+            if (( $file != '.' ) && ( $file != '..' )) {
+                $full = $src . '/' . $file;
+                if ( is_dir($full) ) {
+                    self::rrmdir($full);
+                }
+                else {
+                    unlink($full);
+                }
+            }
+        }
+        closedir($dir);
+        rmdir($src);
+    }
+
     /**
      * Read file content within header body of POST request
      * 

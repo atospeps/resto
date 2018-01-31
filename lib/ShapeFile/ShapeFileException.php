@@ -7,7 +7,7 @@ ShapeFile - PHP library to read any ESRI Shapefile and its associated DBF into a
     Documentation   : https://gasparesganga.com/labs/php-shapefile/
 ****************************************************************************************************/
 
-namespace ShapeFile;
+//namespace ShapeFile;
 
 class ShapeFileException extends \Exception
 {

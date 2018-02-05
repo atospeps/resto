@@ -35,6 +35,7 @@ abstract class RestoDictionary {
     const REGION = 'region';
     const STATE = 'state';
     const NOLOCATION = 'nolocation';
+    const PRODUCT_IDENTIFIER = 'productIdentifier';
     
     /*
      * Reference to the dictionary language

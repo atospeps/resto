@@ -287,6 +287,12 @@ abstract class RestoModel {
                     'operation' => 'keywords',
                     'title' => 'Free text search' 
             ),
+            'productIdentifier' => array (
+                    'key' => 'productIdentifier',
+                    'osKey' => 'productIdentifier',
+                    'operation' => '=',
+                    'title' => 'Product identifier'
+            ),
             'count' => array (
                     'osKey' => 'maxRecords',
                     'minInclusive' => 1,

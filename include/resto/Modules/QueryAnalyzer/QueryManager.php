@@ -187,9 +187,10 @@ class QueryManager {
         // it's not a dictionary keyword,
         // check if it's a product title
         if ($keyword === null) {
-            if (/*S1*/ preg_match('/^S1[A-Z]_[0-9A-Z]{2}_[0-9A-Z]{4}_[0-9A-Z]{4}_\d{8}T\d{6}_\d{8}T\d{6}_\d{6}_[0-9A-Z]{6}_[0-9A-Z]{4}$/i', $name) === 1 ||
-                /*S2*/ preg_match('/^S2[A-Z]_[0-9A-Z]{6}_\d{8}T\d{6}_N\d{4}_R\d{3}_T[0-9A-Z]{5}_\d{8}T\d{6}$/i', $name) === 1 ||
-                /*S3*/ preg_match('/^S3[A-Z_]_[A-Z]{2}_[0-9_]_[A-Z_]{6}_\d{8}T\d{6}_\d{8}T\d{6}_\d{8}T\d{6}_[0-9A-Z_]{17}_[0-9A-Z]{3}_[A-Z]_[A-Z]{2}_\d{3}$/i', $name) === 1
+            if (/*S1*/   preg_match('/^S1[A-Z]_[0-9A-Z]{2}_[0-9A-Z_]{4}_[0-9A-Z]{4}_\d{8}T\d{6}_\d{8}T\d{6}_\d{6}_[0-9A-Z]{6}_[0-9A-Z]{4}$/i', $name) === 1 ||
+                /*S2*/   preg_match('/^S2[A-Z]_[0-9A-Z]{4}_[0-9A-Z]{3}_[0-9A-Z]{6}_[0-9A-Z]{4}_\d{8}T\d{6}_R\d{3}_V\d{8}T\d{6}_\d{8}T\d{6}$/i', $name) === 1 ||
+                /*S2ST*/ preg_match('/^S2[A-Z]_[0-9A-Z]{6}_\d{8}T\d{6}_N\d{4}_R\d{3}_T[0-9A-Z]{5}_\d{8}T\d{6}$/i', $name) === 1 ||
+                /*S3*/   preg_match('/^S3[A-Z_]_[A-Z]{2}_[0-9_]_[A-Z_]{6}_\d{8}T\d{6}_\d{8}T\d{6}_\d{8}T\d{6}_[0-9A-Z_]{17}_[0-9A-Z]{3}_[A-Z]_[A-Z]{2}_\d{3}$/i', $name) === 1
             ) {
                 $keyword = array('keyword' => $name, 'type' => RestoDictionary::PRODUCT_IDENTIFIER);
             }

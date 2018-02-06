@@ -76,7 +76,8 @@ class WhatProcessor {
      * @param boolean $with
      * 
      */
-    public function processFor($startPosition, $delta = 1, $with = true, $by = __METHOD__) {
+    public function processFor($startPosition, $delta = 1, $with = true, $by = __METHOD__)
+    {
         $keyword = $this->extractor->extractKeyword($startPosition + $delta);
         if (isset($keyword)) {
             $this->addToResult($this->toFilter($keyword, $with));
@@ -290,7 +291,6 @@ class WhatProcessor {
         if ($delta === 1 || !isset($error)) {
             $this->queryManager->discardPositionInterval(__METHOD__, $startPosition, $endPosition, isset($error) ? $error : null);
         }
-        
     }   
     
     /**
@@ -457,6 +457,8 @@ class WhatProcessor {
             case 'instrument':
             case 'platform':
                 return array('eo:'.$keyword['type'] => $sign . $keyword['keyword']);
+            case 'productIdentifier':
+                return array($keyword['type'] => $sign . $keyword['keyword']);
             default:
                 return array('searchTerms' => $sign . $keyword['type'] . ':' . $keyword['keyword']);
         }

@@ -198,7 +198,7 @@ class QueryAnalyzer extends RestoModule {
         if (!isset($query)) {
             RestoLogUtil::httpError(400, 'Missing mandatory searchTerms');
         }
-       
+        
         return array(
             'query' => $query,
             'language' => $this->context->dictionary->language,

@@ -82,6 +82,10 @@ class WhatExtractor {
             $word = (isset($word) ? $word . '-' : '') . $this->queryManager->words[$i]['word'];
             $keyword = $this->queryManager->getNonLocationKeyword($word);
             if (isset($keyword)) {
+                // special case: turns backs the lowercase made by "normalize" on product identifier to be able to search with "=" operator
+                if ($keyword['type'] === RestoDictionary::PRODUCT_IDENTIFIER) {
+                    $keyword['keyword'] = strtoupper($keyword['keyword']);
+                }
                 return array(
                     'startPosition' => $startPosition,
                     'endPosition' => $i,

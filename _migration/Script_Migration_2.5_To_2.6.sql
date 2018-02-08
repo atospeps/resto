@@ -1,8 +1,6 @@
 --
---
 -- VERSION 2.1 de PEPS
 --
-
 
 --
 -- ajout d'une colonne
@@ -24,30 +22,6 @@ END
 $func$  LANGUAGE plpgsql;
 
 --
--- renommage d'une colonne
---
-CREATE OR REPLACE function f_rename_col(_tbl regclass, _col1 text, _col2 text)
-  RETURNS bool AS
-$func$
-BEGIN
-      EXECUTE 'ALTER TABLE ' || _tbl || ' RENAME COLUMN ' || _col1 || ' TO ' || _col2;
-      RETURN TRUE;
-END
-$func$  LANGUAGE plpgsql;
-
---
--- changement du type d'une colonne
---
-CREATE OR REPLACE function f_change_type_col(_tbl regclass, _col text, _type text)
-  RETURNS bool AS
-$func$
-BEGIN
-      EXECUTE 'ALTER TABLE ' || _tbl || ' ALTER COLUMN ' || _col || ' TYPE ' || _type || ' USING CAST(' || _col || ' AS ' || _type || ')';
-      RETURN TRUE;
-END
-$func$  LANGUAGE plpgsql;
-
---
 -- suppression d'une colonne
 --
 CREATE OR REPLACE function f_drop_col(_tbl regclass, _col  text)
@@ -60,34 +34,42 @@ END
 $func$  LANGUAGE plpgsql;
 
 
--- ---------------------------------------------------------------------------------
---
--- correctif anomalie rights.wps
---
--- ---------------------------------------------------------------------------------
 
+-- ----------------------------------------------------------------------------------------
+---
+--- Table 'jobs'
+---                       
+---
+-------------------------------------------------------------------------------------------- 
+SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
+SELECT f_drop_col('usermanagement.jobs', 'email');
+
+DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
+CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
+
+-- ----------------------------------------------------------------------------------------
+--
+-- Table 'rights'
+--                      
+--
+------------------------------------------------------------------------------------------- 
 SELECT f_drop_col('usermanagement.rights', 'wps');
 
--- ---------------------------------------------------------------------------------
+
+-- ----------------------------------------------------------------------------------------
 --
--- PEPS-FT-511
+-- Table 'resto.keywords'
+--                       
 --
--- ---------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------- 
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'level1c', '**', 'processingLevel');
+INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '**', 'processingLevel');
 
--- renommage des anciennes colonnes d'options
-SELECT f_rename_col('usermanagement.users', 'instantdownloadvolume', 'instantdownload');
-SELECT f_rename_col('usermanagement.users', 'weeklydownloadvolume', 'weeklydownload');
-
--- on change toutes les anciennes valeurs à NULL pour prendre, par défaut, les limites définies dans config.php
-UPDATE usermanagement.users SET instantdownload = NULL WHERE TRUE;
-UPDATE usermanagement.users SET weeklydownload = NULL WHERE TRUE;
-
--- modifie le type de la colonne weeklydownload de text -> integer
-SELECT f_change_type_col('usermanagement.users', 'weeklydownload', 'integer');
-
--- ajout d'une colonne pour obtenir directement le nb de produits dans une commande
-SELECT f_add_col('usermanagement.orders', 'nbitems', 'integer');
-
--- ajout d'une colonne userid à la table orders
-SELECT f_add_col('usermanagement.orders', 'userid', 'integer');
+-- ----------------------------------------------------------------------------------------
+--
+-- Table 'resto.osdescriptions'
+--                                  FT-489
+--
+-------------------------------------------------------------------------------------------
+UPDATE resto.osdescriptions SET developper = 'CNES'
 

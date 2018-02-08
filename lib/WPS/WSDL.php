@@ -101,7 +101,6 @@ class WSDL {
                     {
                         
                         $name = $element->item(0)->getAttribute('name');
-                        error_log($name, 0);
                         if (preg_match(self::PATTERN_WSDL_MESSAGE, $name, $matches)
                                 && (count($matches) === 5 || count($matches) === 4))
                         {

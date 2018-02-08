@@ -114,16 +114,11 @@ class RestoMetalink extends RestoXML {
      */
     private function addChecksum($item) {
         if (!empty($item['properties']['services']['download']['checksum'])) {
-
-            $integrity = explode('=', $item['properties']['services']['download']['checksum'], 2);
-            
-            if (count($integrity) == 2) {
-                list($type, $checksum) = $integrity;
-                $this->startElement('hash');
-                $this->writeAttribute('type', $type);
-                $this->text($checksum);
-                $this->endElement(); // End hash
-            }
+            @list($type, $checksum) = explode('=', $item['properties']['services']['download']['checksum'], 2);
+            $this->startElement('hash');
+            $this->writeAttribute('type', $type);
+            $this->text($checksum);
+            $this->endElement(); // End hash
         }
     }
     

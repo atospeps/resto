@@ -297,7 +297,7 @@ abstract class RestoModel {
                     'osKey' => 'maxRecords',
                     'minInclusive' => 1,
                     'maxInclusive' => 500,
-                    'title' => 'Number of results returned per page (default 50, max 500)' 
+                    'title' => 'Number of results returned per page (default 20, max 500)' 
             ),
             'startIndex' => array (
                     'osKey' => 'index',
@@ -380,19 +380,22 @@ abstract class RestoModel {
             'eo:parentIdentifier' => array (
                     'key' => 'parentIdentifier',
                     'osKey' => 'parentIdentifier',
-                    'operation' => '='
+                    'operation' => '=',
+                    'title' => 'Parent identifier'
             ),
             'eo:productType' => array (
                     'key' => 'productType',
                     'osKey' => 'productType',
                     'operation' => '=',
-                    'options' => 'auto'
+                    'options' => 'auto',
+                    'title' => 'Product type'
             ),
             'eo:processingLevel' => array (
                     'key' => 'processingLevel',
                     'osKey' => 'processingLevel',
                     'operation' => '=',
-                    'options' => 'auto'
+                    'options' => 'auto',
+                    'title' => 'Processing level'
             ),
             'eo:platform' => array (
                     'key' => 'platform',
@@ -413,7 +416,8 @@ abstract class RestoModel {
                             'value' => '{:instrument:}',
                             'type' => 'instrument' 
                     ),
-                    'options' => 'auto'
+                    'options' => 'auto',
+                    'title' => 'Instrument'
             ),
             'eo:resolution' => array (
                     'key' => 'resolution',
@@ -429,13 +433,15 @@ abstract class RestoModel {
             'eo:organisationName' => array (
                     'key' => 'organisationName',
                     'osKey' => 'organisationName',
-                    'operation' => '=' 
+                    'operation' => '=',
+                    'title' => 'Organisation name'
             ),
             'eo:orbitDirection' => array (
                 'key' => 'orbitDirection',
                 'osKey' => 'orbitDirection',
                 'operation' => '=',
-                'options' => 'auto'
+                'options' => 'auto',
+                'title' => 'Orbit direction'
             ),
             'eo:orbitNumber' => array (
                     'key' => 'orbitNumber',
@@ -444,13 +450,15 @@ abstract class RestoModel {
                     'minInclusive' => 1,
                     'quantity' => array (
                             'value' => 'orbit' 
-                    )
+                    ),
+                    'title' => 'Orbit number'
             ),
             'eo:sensorMode' => array (
                     'key' => 'sensorMode',
                     'osKey' => 'sensorMode',
                     'operation' => '=',
-                    'options' => 'auto' 
+                    'options' => 'auto',
+                    'title' => 'Sensor mode'
             ),
             'eo:cloudCover' => array (
                     'key' => 'cloudCover',
@@ -586,7 +594,8 @@ abstract class RestoModel {
                     'key' => 'updated',
                     'osKey' => 'updated',
                     'operation' => '>=',
-                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$'
+                    'pattern' => '^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(|Z|[\+\-][0-9]{2}:[0-9]{2}))?$',
+                    'title' => 'Last update of the product within database'
             ),
             'resto:publishedBegin' => array (
                     'key' => 'published',

@@ -44,19 +44,16 @@ class Functions_jobs {
 
         // ? Job id is setted
         if (isset($jobid)) {
-            $filters[] = 'jobs.gid=' . $this->dbDriver->quote($jobid);
+            $filters[] = 'gid=' . $this->dbDriver->quote($jobid);
         }
 
-        $filters[] = 'jobs.userid=' . $this->dbDriver->quote($userid);
-        $filters[] = 'jobs.visible=TRUE';
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid);
+        $filters[] = 'visible=TRUE';
         $oFilter = implode(' AND ', $filters);
 
         // Query
-        $query = 'SELECT jobs.*, results.userinfo::json->>\'job_status\' as job_status, results.userinfo::json->>\'log_0\' as log'
-               . ' FROM usermanagement.jobs AS jobs'
-               . ' LEFT JOIN usermanagement.wps_results AS results ON jobs.gid = results.jobid' 
-               . ' WHERE ' . $oFilter
-               . ' ORDER BY jobs.querytime DESC';
+        $query = 'SELECT * FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
+
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
 
@@ -91,7 +88,7 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function add($userid, $data, $context){
+    public function add($userid, $data) {
         if (!isset($data['identifier'])) {
             return false;
         }
@@ -215,7 +212,7 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function update($userid, $data, $context){
+    public function update($userid, $data) {
         if (!isset($userid) || !isset($data['gid'])) {
             return false;
         }
@@ -225,19 +222,19 @@ class Functions_jobs {
              */
             pg_query($this->dbh, 'BEGIN');
 
-            $status             = $this->dbDriver->quote($data['status'], 'NULL');
-            $statusMessage      = $this->dbDriver->quote(isset($data['statusmessage']) ? $data['statusmessage'] : null, 'NULL');
-            $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
-            $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
+            $status             = $this->dbDriver->quote2($data, 'status', 'NULL');
+            $statusMessage      = $this->dbDriver->quote2($data, 'statusmessage', 'NULL');
+            $statusTime         = $this->dbDriver->quote2($data, 'statusTime', 'NULL');
+            $percentCompleted   = $this->dbDriver->quote2($data, 'percentcompleted', 0);
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
             $gid                = $this->dbDriver->quote($data['gid']);
             $nbResults          = count($outputs);
-            $last_dispatch      = $this->dbDriver->quote(isset($data['last_dispatch']) ? $data['last_dispatch'] : null, 'now()');
-            $title              = $this->dbDriver->quote(isset($data['title']) ? $data['title'] : null, 'NULL');
+            $last_dispatch      = $this->dbDriver->quote2($data, 'last_dispatch', 'now()');
+            $logs               = $this->dbDriver->quote2($data, 'logs', 'NULL');
         
             // update properties
             $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, title=${title}"
+                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, logs=${logs}"
                     . " WHERE gid=${gid}";
             
             $this->dbDriver->query($query);
@@ -246,16 +243,13 @@ class Functions_jobs {
             $this->dbDriver->query($query);
 
             // Save result
-            foreach ($outputs as $output) {
-                if (isset($output['value']) && isset($output['identifier'])) {
-                    $userInfo   = $this->getReportUserInfo($context->modules['WPS'], $output['value']);
-                    $resultfile = isset($userInfo['result_0']) ? $userInfo['result_0'] : null;
-                    $userJson   = isset($userInfo) ? json_encode($userInfo) : null;
-                    
-                    $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, value, userinfo)'
-                            . " VALUES ($gid, $userid, '${output['identifier']}', '$resultfile', '$userJson')";
-                    $this->dbDriver->query($query);
-                }
+            foreach ($outputs as $output) 
+            {
+                $identifier = basename($output);
+                $type = 'application/octet-stream';
+                $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, type, value)'
+                        . " VALUES ($gid, $userid, '${identifier}', '${type}', '${output}')";
+                $this->dbDriver->query($query);
             }
             pg_query($this->dbh, 'COMMIT');
         } 
@@ -288,29 +282,4 @@ class Functions_jobs {
         }
         return true;
     }
-    
-    /**
-     * Get report content and returns USER_INFO
-     * 
-     * @param object $conf WPS config
-     * @param string $filename WPS report filename to read
-     * @return string JSON representation of USER_INFO
-     */
-    private function getReportUserInfo($conf, $filename)
-    {
-        $userInfo = null;
-        
-        try {
-            $report = json_decode(Curl::Get($conf['pywps']['outputsUrl'] . $filename, array(), $conf['curlOpts']), true);
-            if ($report !== null) {
-                $userInfo = $report['USER_INFO'];
-            }
-        }
-        catch (Exception $e) {
-            return null;
-        }
-        
-        return $userInfo;
-    }
-    
 }

@@ -26,11 +26,7 @@ class Curl {
         }
 
         $data['_t'] = time();
-        $_url = $url . (
-                count($data) > 0 
-                ? ((substr($url, -1) == '?' ? '' : '?') . http_build_query($data)) 
-                : ''
-                );
+        $_url = $url . (strpos($url, '?') == false ? '?' : '&') . http_build_query($data);
         return self::exec($_url, $opts);
     }
 

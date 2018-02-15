@@ -25,20 +25,20 @@ HOST="localhost"
 # Usage
 #####################################
 usage() { 
-	echo "Usage: $0 -u <username:password> [-H <host> (default localhost) -n (use --noproxy curl options)]" 1>&2; 
+	echo "Usage: $0 -u <username:password> [-H <host> (default localhost) -n (use --noproxy curl options) -s (returns current status)]" 1>&2; 
 	exit 1; 
 }
 
 #####################################
-# OPTIONS
+# Options
 #####################################
 while getopts "snu:H:" options; do
     case $options in
         u ) AUTH=`echo $OPTARG`;;
         H ) HOST=`echo $OPTARG`;;
-        n) CURL_NOPROXY=1 ;;
+        n ) CURL_NOPROXY=1 ;;
         s ) RETURN_STATUS=1;;
-        \? ) echo -e $usage
+        \?) echo -e $usage
             exit 1;;
         * ) echo -e $usage
             exit 1;;
@@ -51,7 +51,7 @@ then
 fi
 
 #####################################
-# CALL RESTO
+# RESTo
 #####################################
 if [ "$CURL_NOPROXY" = "1" ]
 then
@@ -59,4 +59,12 @@ then
 else
     curl -s -X PUT https://$AUTH@$HOST/resto/wps/check
 fi
+
+#####################################
+# Retourne le status
+#####################################
+#if [ "$RETURN_STATUS" = "1" ]
+#then
+    
+#fi
 

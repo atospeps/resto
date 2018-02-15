@@ -346,11 +346,8 @@ class WPS extends RestoModule {
         $jobs = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_CHECK, array(
             'filters' => array("identifier = 'CHECK'")
         ));
-        if (!isset($jobs[0])) {
-            return RestoLogUtil::httpError(404);
-        }
         
-        if ($jobs[0]['percentcompleted'] < 100) {
+        if (count($jobs) && $jobs[0]['percentcompleted'] < 100) {
             /*
              * still running check: update job status
              */ 
@@ -369,6 +366,8 @@ class WPS extends RestoModule {
                 'storeExecuteResponse' => 'true'
             );
             $response  = $this->wpsRequestManager->Perform(HttpRequestMethod::GET, $params, array('all'));
+            
+            
             if ($response->isExecuteResponse()) {
                 $executeResponse = new WPS_ExecuteResponse($response->toXML());
                 $data = array_merge(
@@ -381,6 +380,7 @@ class WPS extends RestoModule {
                             'last_dispatch' => date("Y-m-d\TH:i:s", time()),
                             'title'         => $jobs[0]['status']       // store the current VIZO status before restart a new check
                         ));
+                error_log(serialize($data));
                 $this->updateJob(-1, $data);
             }
         }

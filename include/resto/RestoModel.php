@@ -1038,8 +1038,19 @@ abstract class RestoModel {
         return true;
     }
     
-    protected function getElementByName($dom, $tagName) {
-        return isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
+    protected function getElementByName($dom, $tagName, $type = NULL) {
+        $value = NULL;
+        
+        switch ($type) {
+            case 'NUMERIC':
+            case 'INTEGER':
+              $value = empty($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? NULL : $dom->getElementsByTagName($tagName)->item(0)->nodeValue;
+              break;  
+            default:
+                $value = isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
+        }
+        return $value;
+        
     }
     
     /**

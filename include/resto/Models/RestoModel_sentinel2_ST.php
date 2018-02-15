@@ -167,13 +167,13 @@ class RestoModel_sentinel2_ST extends RestoModel {
                 'realtime' => $this->getElementByName($dom, 'realtime'),
                 'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
                 'mgrs' => $this->getMGRSLocation($this->getElementByName($dom, 'title')),
-                'bareSoil' => $this->getElementByName($dom, 'bareSoilPercentage'),
-                'highProbaClouds' => $this->getElementByName($dom, 'highProbaCloudsPercentage'),
-                'mediumProbaClouds' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage'),
-                'lowProbaClouds' => $this->getElementByName($dom, 'lowProbaCloudsPercentage'),
-                'snowIce' => $this->getElementByName($dom, 'snowIcePercentage'),
-                'vegetation' => $this->getElementByName($dom, 'vegetationPercentage'),
-                'water' => $this->getElementByName($dom, 'waterPercentage')
+                'bareSoil' => $this->getElementByName($dom, 'bareSoilPercentage', 'NUMERIC'),
+                'highProbaClouds' => $this->getElementByName($dom, 'highProbaCloudsPercentage', 'NUMERIC'),
+                'mediumProbaClouds' => $this->getElementByName($dom, 'mediumProbaCloudsPercentage', 'NUMERIC'),
+                'lowProbaClouds' => $this->getElementByName($dom, 'lowProbaCloudsPercentage', 'NUMERIC'),
+                'snowIce' => $this->getElementByName($dom, 'snowIcePercentage', 'NUMERIC'),
+                'vegetation' => $this->getElementByName($dom, 'vegetationPercentage', 'NUMERIC'),
+                'water' => $this->getElementByName($dom, 'waterPercentage', 'NUMERIC')
             )
       );
         

@@ -322,7 +322,7 @@ class Functions_filters {
         if (isset($requestParams['geo:lon']) && isset($requestParams['geo:lat'])) {
             $radius = RestoGeometryUtil::radiusInDegrees(isset($requestParams['geo:radius']) ? floatval($requestParams['geo:radius']) : 10000, $requestParams['geo:lat']);
             if ($use_distance) {
-                return 'ST_distance(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ', ST_GeomFromText(\'' . pg_escape_string('POINT(' . $requestParams['geo:lon'] . ' ' . $lat = $requestParams['geo:lat'] . ')') . '\', 4326)) < ' . $radius;
+                return 'ST_distance(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ', ST_GeomFromText(\'' . pg_escape_string('POINT(' . $requestParams['geo:lon'] . ' ' . $requestParams['geo:lat'] . ')') . '\', 4326)) < ' . $radius;
             }
             else {
                 $lonmin = $requestParams['geo:lon'] - $radius;

@@ -875,7 +875,7 @@ class WPS extends RestoModule {
         // Processings life time
         if ($this->timeLifeOfProcessings > 0) 
         {
-            $filters[] = 'querytime < now() + (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+            $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
         
         $results = $this->context->dbDriver->get(

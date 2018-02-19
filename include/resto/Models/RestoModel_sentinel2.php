@@ -52,16 +52,6 @@ class RestoModel_sentinel2 extends RestoModel {
             'type' => 'TEXT'
         )
     );
-
-    /**
-     * Constructor
-     * 
-     * @param RestoContext $context : Resto context
-     * @param RestoContext $user : Resto user
-     */
-    public function __construct() {
-        parent::__construct();
-    }
     
     /**
      * Add feature to the {collection}.features table following the class model
@@ -129,7 +119,7 @@ class RestoModel_sentinel2 extends RestoModel {
         /*
          * Initialize feature
          */
-        $feature = array(
+        return array(
                 'type' => 'Feature',
                 'geometry' => array(
                         'type' => 'Polygon',
@@ -160,8 +150,6 @@ class RestoModel_sentinel2 extends RestoModel {
                     'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
       );
-
-      return $feature;
     }
 
     

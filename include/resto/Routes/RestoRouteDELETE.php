@@ -19,14 +19,7 @@
  * RESTo REST router for DELETE requests
  */
 class RestoRouteDELETE extends RestoRoute {
-    
-    /**
-     * Constructor
-     */
-    public function __construct($context, $user) {
-        parent::__construct($context, $user);
-    }
-   
+       
     /**
      * 
      * Process HTTP DELETE request

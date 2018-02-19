@@ -222,8 +222,7 @@ class WPS_RequestManager {
 
             if ($response->isExecuteResponse()) 
             {
-                $response = new WPS_ExecuteResponse($response->toXML());
-                return $response;
+                return new WPS_ExecuteResponse($response->toXML());
             }
         } 
         catch (Exception $e) { }

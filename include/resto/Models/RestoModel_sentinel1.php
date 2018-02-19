@@ -203,7 +203,7 @@ class RestoModel_sentinel1 extends RestoModel {
         /*
          * Initialize feature
          */
-        $feature = array(
+        return array(
                 'type' => 'Feature',
                 'geometry' => array(
                         'type' => 'Polygon',
@@ -237,7 +237,6 @@ class RestoModel_sentinel1 extends RestoModel {
                 )
         );
 
-        return $feature;
     }
 
     /**
@@ -289,7 +288,7 @@ class RestoModel_sentinel1 extends RestoModel {
         /*
          * Initialize feature
         */
-        $feature = array(
+        return array(
                 'type' => 'Feature',
                 'geometry' => array(
                         'type' => 'Polygon',
@@ -317,7 +316,6 @@ class RestoModel_sentinel1 extends RestoModel {
                         'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
                 )
         );
-        return $feature;
     }
 
     function getLocation($dom) {

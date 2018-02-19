@@ -28,10 +28,11 @@ class GetCapabilities {
                 // on parcours les process de la reponse et on supprime les process non autorisés
                 foreach ($processes as $process) {
                     $identifier = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier');                    
-                    if ($identifier && $identifier->length > 0) {
-                        if (!in_array($identifier->item(0)->nodeValue, $processes_enabled)) {
-                            $processesToRemove[] = $process;
-                        }
+                    if ($identifier 
+                            && $identifier->length > 0
+                            && !in_array($identifier->item(0)->nodeValue, $processes_enabled)) 
+                    {
+                        $processesToRemove[] = $process;
                     }
                 }
                 foreach($processesToRemove as $process) {
@@ -72,10 +73,11 @@ class GetCapabilities {
                 // on parcours les process de la reponse et on supprime les process non autorisés
                 foreach ($processes as $process){
                     $identifier = $process->xpath('.//ows:Identifier');
-                    if ($identifier && count($identifier) > 0){
-                        if (!in_array($identifier[0]->__toString(), $processes_enabled)){
-                            unset($process[0]);
-                        }
+                    if ($identifier 
+                            && count($identifier) > 0
+                            && !in_array($identifier[0]->__toString(), $processes_enabled)) 
+                    {
+                        unset($process[0]);
                     }
                 }
             }
@@ -113,10 +115,11 @@ class GetCapabilities {
                 // on parcours les process de la reponse et on supprime les process non autorisés
                 foreach ($processes as $process) {
                     $identifier = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier');                    
-                    if ($identifier && $identifier->length > 0) {
-                        if (!in_array($identifier->item(0)->nodeValue, $processes_enabled)) {
-                            $processesToRemove[] = $process;
-                        }
+                    if ($identifier 
+                            && $identifier->length > 0
+                            && !in_array($identifier->item(0)->nodeValue, $processes_enabled)) 
+                    {
+                        $processesToRemove[] = $process;
                     }
                 }
                 foreach($processesToRemove as $process) {

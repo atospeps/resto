@@ -449,7 +449,7 @@ class Resto {
         /*
          * JSON-P case
          */
-        $pretty = isset($this->context->query['_pretty']) ? filter_var($this->context->query['_pretty'], FILTER_VALIDATE_BOOLEAN) : false;
+        $pretty = isset($this->context->query['_pretty']) && filter_var($this->context->query['_pretty'], FILTER_VALIDATE_BOOLEAN);
         if (isset($this->context->query['callback'])) {
             return $this->context->query['callback'] . '(' . json_encode($array, $pretty) . ')';
         }
@@ -472,7 +472,7 @@ class Resto {
              * JSON-P case
              */
             if ($this->context->outputFormat === 'json') {
-                $pretty = isset($this->context->query['_pretty']) ? filter_var($this->context->query['_pretty'], FILTER_VALIDATE_BOOLEAN) : false;
+                $pretty = isset($this->context->query['_pretty']) && filter_var($this->context->query['_pretty'], FILTER_VALIDATE_BOOLEAN);
                 if (isset($this->context->query['callback'])) {
                     return $this->context->query['callback'] . '(' . $object->$methodName($pretty) . ')';
                 }

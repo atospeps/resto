@@ -81,8 +81,7 @@ class SentinelUtil {
             $ul = $lr_;
             $ur = $ll_;
         }
-        $polygon = array($ll, $lr, $ur, $ul, $ll);
-        return $polygon;
+        return array($ll, $lr, $ur, $ul, $ll);
     }
 
     /**
@@ -135,7 +134,6 @@ class SentinelUtil {
             $ur = $footprint[3];
         }
 
-        $flippedFootprint = array($ll, $lr, $ur, $ul, $ll);
-        return $flippedFootprint;
+        return array($ll, $lr, $ur, $ul, $ll);
     }
 }

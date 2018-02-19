@@ -805,18 +805,17 @@ abstract class RestoModel {
          * For S1 collection and $context->obsolescenceS1useDhusIngestDate == false
          *    Check if we get multiples products version with the same realtime
          */
-        if ($collection->name === 'S1' &&
-            $collection->context->obsolescenceS1useDhusIngestDate === false &&
-            !empty($properties['productIdentifier']) &&
-            !empty($properties['realtime'])
-        ) {
-            if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
-                'collectionName' => 'S1',
-                'realtime' => $properties['realtime'],
-                'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], 'S1')
-            ))) {
-                RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['productIdentifier'] . ')');
-            }
+        if ($collection->name === 'S1' 
+                && $collection->context->obsolescenceS1useDhusIngestDate === false 
+                && !empty($properties['productIdentifier']) 
+                && !empty($properties['realtime'])
+                && $collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
+                        'collectionName' => 'S1',
+                        'realtime' => $properties['realtime'],
+                        'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], 'S1')
+                ))) 
+        {
+            RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['productIdentifier'] . ')');
         }
         
         /*

@@ -68,7 +68,7 @@ class RestoFeature {
      * Return true if Feature is valid, false otherwise
      */
     public function isValid() {
-        return isset($this->identifier) ? true : false;
+        return isset($this->identifier);
     }
     
     /*

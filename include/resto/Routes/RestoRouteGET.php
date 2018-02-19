@@ -21,13 +21,6 @@
 class RestoRouteGET extends RestoRoute {
 
     /**
-     * Constructor
-     */
-    public function __construct($context, $user) {
-        parent::__construct($context, $user);
-    }
-
-    /**
      * 
      * Process HTTP GET request
      * 
@@ -268,7 +261,7 @@ class RestoRouteGET extends RestoRoute {
             $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => strtolower($this->user->profile['email'])));
 
             // Refresh token
-            $isadmin = $profile['groupname'] === 'admin' ? true : false;
+            $isadmin = ($profile['groupname'] === 'admin');
             $this->user->token = $this->context->createToken($profile['userid'], $profile,  $isadmin);
 
             // Returns token
@@ -736,13 +729,12 @@ class RestoRouteGET extends RestoRoute {
         
         $downloadLimits = $user->getDownloadLimits();
         
-        $result = array(
+        return array(
             "instantLimitDownload" => $downloadLimits['instantLimitDownload'],
             "weeklyLimitDownload"  => $downloadLimits['weeklyLimitDownload'],
             "weeklyDownloaded"     => $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_WEEKLY, array('identifier' => $user->profile['email']))
         );
         
-        return $result;
     }
 
     /**

@@ -19,14 +19,7 @@
  * RESTo REST router for PUT requests
  */
 class RestoRoutePUT extends RestoRoute {
-    
-    /**
-     * Constructor
-     */
-    public function __construct($context, $user) {
-        parent::__construct($context, $user);
-    }
-   
+      
     /**
      * 
      * Process HTTP PUT request

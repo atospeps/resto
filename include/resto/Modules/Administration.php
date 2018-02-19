@@ -164,12 +164,10 @@ class Administration extends RestoModule {
         /*
          * Switch on url segments
          */ 
-        switch ($this->segments[0]) {
-            case 'users':
-                return $this->processPutUsers($data);
-            default:
-                RestoLogUtil::httpError(404);
-        }
+        if ($this->segments[0] === 'users') {
+            return $this->processPutUsers($data);
+        }              
+        return RestoLogUtil::httpError(404);
     }
 
     /**
@@ -316,9 +314,7 @@ class Administration extends RestoModule {
 
             /*
              * Process get on /administration/users/{userid}/rights
-             * 
-             * Get rights on all collections and features for user associated to {userid}
-             * 
+             * Get rights on all collections and features for user associated to {userid}.
              */
             $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $this->segments[1])), $this->context);
 
@@ -849,7 +845,7 @@ class Administration extends RestoModule {
             if (!$user) {
                 return $usersProfile;
             }
-            $user['activated'] = $user['activated'] === "1" ? true : false;
+            $user['activated'] = ($user['activated'] === "1");
             $user['registrationdate'] = substr(str_replace(' ', 'T', $user['registrationdate']), 0, 19) . 'Z';
 
             $usersProfile[] = $user;

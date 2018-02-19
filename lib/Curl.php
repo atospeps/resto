@@ -38,8 +38,6 @@ class Curl {
      * @return unknown
      */
     public static function Post($url, $data, $options=array()){
-        // Call the WPS Server
-        $ch = curl_init($url);
 
         $opts = array (
                 CURLOPT_RETURNTRANSFER => 1,
@@ -70,9 +68,9 @@ class Curl {
         switch ($method)
         {
             case 'GET':
-                return $this->Get($url, $data, $options);
+                return Curl::Get($url, $data, $options);
             case 'POST';
-                return $this->Post($url, $data, $options);
+                return Curl::Post($url, $data, $options);
             default:
                 RestoLogUtil::httpError(404);
         }

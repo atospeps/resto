@@ -373,11 +373,8 @@ class Alerts extends RestoModule {
                 $countAlerts++;
                 // We validate if the expiration is set. Then we compare with the current date
                 // If it's not the case we launch mails
-                if (!empty($row['expiration'])) {
-                    $execute = ($row['expiration'] > $date) ? true : false;
-                } else {
-                    $execute = true;
-                }
+                $execute = (!empty($row['expiration'])) ? ($row['expiration'] > $date) : true;
+
                 // If execution is ok, we can start the mail process
                 if ($execute === true) {
 
@@ -402,8 +399,6 @@ class Alerts extends RestoModule {
                         // We create the content for a meta4 file from the products
                         $content = $this->alertsToMETA4($answer['features'], $row['email']);
                         if ($content !== FALSE) {
-                            
-                            $criterias = isset($row['criterias']) ? json_decode($row['criterias'], true) : array();
 
                             // We established all the parameters used on the mail
                             $params['filename'] = date("Y-m-d H:i:s", $now) . '.meta4';
@@ -457,7 +452,7 @@ class Alerts extends RestoModule {
             $last = count($segments) - 1;
             if ($last > 2) {
                 list ($modifier) = explode('.', $segments[$last], 1);
-                if ($modifier !== 'download' || !$this->canAlertsDownload('download', $segments[$last - 2], $segments[$last - 1], $email)) {
+                if ($modifier !== 'download' || !$this->canAlertsDownload('download', $email, $segments[$last - 2], $segments[$last - 1])) {
                     continue;
                 }
             }
@@ -476,7 +471,7 @@ class Alerts extends RestoModule {
      * @param string $featureIdentifier
      * @return If user has the rights to download a product
      */
-    private function canAlertsDownload($action, $collectionName = null, $featureIdentifier = null, $email) {
+    private function canAlertsDownload($action, $email, $collectionName = null, $featureIdentifier = null) {
         // We need to establish the user group
         $result = pg_query($this->dbh, "SELECT groupname FROM usermanagement.users WHERE email='" . $email . "'");
         $group = pg_fetch_assoc($result);
@@ -619,12 +614,10 @@ class Alerts extends RestoModule {
         
         $tcriterias = $this->getTranslatedCriterias($row['criterias'], $langage);
         
-        $body = $this->context->dictionary->translate(
+        return $this->context->dictionary->translate(
             $this->options['notification'][$langage]['message'],
             $tcriterias
         );
-        
-        return $body;
     }
     
     /**
@@ -637,9 +630,7 @@ class Alerts extends RestoModule {
     {
         $langage = (isset($row['country']) && strtolower($row['country'])==='fr') ? 'fr' : 'en';
         
-        $subject = $this->options['notification'][$langage]['subject'] . ($row['title'] ? (' « ' . $row['title'] . ' »') : '');
-        
-        return $subject;
+        return $this->options['notification'][$langage]['subject'] . ($row['title'] ? (' « ' . $row['title'] . ' »') : '');
     }
     
     /**

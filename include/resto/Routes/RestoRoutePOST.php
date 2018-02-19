@@ -19,14 +19,7 @@
  * RESTo REST router for POST requests
  */
 class RestoRoutePOST extends RestoRoute {
-    
-    /**
-     * Constructor
-     */
-    public function __construct($context, $user) {
-        parent::__construct($context, $user);
-    }
-   
+      
     /**
      *
      * Process HTTP POST request

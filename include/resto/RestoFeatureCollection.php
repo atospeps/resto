@@ -315,10 +315,11 @@ class RestoFeatureCollection {
         /*
          * Convert productIdentifier to identifier if needed
          */
-        if (isset($params['geo:uid']) && !RestoUtil::isValidUUID($params['geo:uid'])) {
-            if (isset($this->defaultCollection)) {
-                $params['geo:uid'] = RestoUtil::UUIDv5($this->defaultCollection->name . ':' . strtoupper($params['geo:uid']));
-            }
+        if (isset($params['geo:uid']) 
+                && !RestoUtil::isValidUUID($params['geo:uid']) 
+                && isset($this->defaultCollection)) 
+        {
+            $params['geo:uid'] = RestoUtil::UUIDv5($this->defaultCollection->name . ':' . strtoupper($params['geo:uid']));
         }
         
         /*

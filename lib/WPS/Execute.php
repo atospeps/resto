@@ -15,7 +15,6 @@ class Execute {
          */
         if (isset($data['identifier'])) 
         {
-            $identifiers = array();
             $identifier = $data['identifier'];
 
             // Is allowed to perform all processes ?
@@ -71,8 +70,6 @@ class Execute {
          */
         if (!empty($identifier)) 
         {
-            $identifiers = array();
-
             // Is allowed to perform all processes ?
             $full_wps_rights = in_array('all', $processes_enabled);
 

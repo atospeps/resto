@@ -72,7 +72,6 @@ abstract class RestoDatabaseDriver {
     const PROCESSING_JOBS_ITEMS = 47;
     const PROCESSING_JOBS_STATS = 48;
     const PROCESSING_JOBS_DATA = 49;
-    const PROCESSING_JOBS_CHECK = 50;
     const PROACTIVE = 51;
     const PROACTIVE_ACCOUNTS = 52;
     const PROACTIVE_ACCOUNT = 53;

@@ -22,7 +22,7 @@
  *    | HTTP/GET        wps/processings                                 | List of all processings (admin only)
  *    | HTTP/GET        wps/processings/{identifier}/describe           | Get the description of processing {identifier}
  *    |
- *    | HTTP/GET        wps/check                                       | Check VIZO status
+ *    | HTTP/GET        wps/status                                       | Check VIZO status
  *    
  */
 class WPS extends RestoModule {
@@ -257,10 +257,10 @@ class WPS extends RestoModule {
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
                 /*
-                 * HTTP/GET wps/check
+                 * HTTP/GET wps/status
                  */
-                case 'check':
-                    return $this->GET_wps_check($this->segments);
+                case 'status':
+                    return $this->GET_wps_status($this->segments);
                 /*
                  * HTTP/GET wps/processings (admin only)
                  * HTTP/GET wps/processings/{identifier}/describe
@@ -338,57 +338,18 @@ class WPS extends RestoModule {
     }
     
     /**
+     * Returns current VIZO status
      * 
      */
-    private function GET_wps_check()
+    private function GET_wps_status()
     {
-        // get the current check job
-        $jobs = $this->context->dbDriver->get(RestoDatabaseDriver::PROCESSING_JOBS_CHECK, array(
-            'filters' => array("identifier = 'CHECK'")
-        ));
+        $query  = 'SELECT * FROM usermanagement.wps_status WHERE TRUE';
+        $result = $this->context->dbDriver->query($query);
+        $row    = $this->context->dbDriver->fetch_assoc($result);
         
-        if (count($jobs) && $jobs[0]['percentcompleted'] < 100) {
-            /*
-             * still running check: update job status
-             */ 
-            $jobs = $this->updateStatusOfJobs($jobs);
-        }
-        else {
-            /*
-             * last check finished: start a new vizo check
-             */
-            $params = array(
-                'request' => WPS_RequestManager::EXECUTE,
-                'service' => 'WPS',
-                'version' => '1.0.0',
-                'identifier' => 'CHECK',
-                'status' => 'true',
-                'storeExecuteResponse' => 'true'
-            );
-            $response  = $this->wpsRequestManager->Perform(HttpRequestMethod::GET, $params, array('all'));
-            
-            
-            if ($response->isExecuteResponse()) {
-                $executeResponse = new WPS_ExecuteResponse($response->toXML());
-                $data = array_merge(
-                        $executeResponse->toArray(),
-                        array(
-                            'gid'           => $jobs[0]['gid'],
-                            'querytime'     => date("Y-m-d H:i:s"),
-                            'method'        => HttpRequestMethod::GET,
-                            'data'          => $params,
-                            'last_dispatch' => date("Y-m-d\TH:i:s", time()),
-                            'title'         => $jobs[0]['status']       // store the current VIZO status before restart a new check
-                        ));
-                error_log(serialize($data));
-                $this->updateJob(-1, $data);
-            }
-        }
-        
-        $status = ($jobs[0]['percentcompleted'] < 100 ? ($jobs[0]['title'] === 'ProcessSucceeded') : $jobs[0]['status'] === 'ProcessSucceeded') ;
-        
-        return RestoLogUtil::success("vizo status: " . ($status ? 'ok' : 'ko'), array(
-            'status' => $status
+        return RestoLogUtil::success("vizo status: " . $row['status'], array(
+            'status' => $row['status'],
+            'last_dispatch' => $row['last_dispatch']
         ));
     }
     
@@ -617,11 +578,42 @@ class WPS extends RestoModule {
      */
     private function processPUT($data)
     {
-        if (isset($this->segments[0]) && $this->segments[0] === 'users') {
-            // HTTP/PUT wps/users/{userid}/jobs/acknowledges
-            return $this->PUT_users($this->segments);
+        switch ($this->segments[0]) {
+            /*
+             * HTTP/PUT wps/users/{userid}/jobs/acknowledges
+             */
+            case 'users':
+                return $this->PUT_users($this->segments);
+            /*
+             * HTTP/PUT wps/status/{status}
+             */
+            case 'check':
+                if (isset($this->segments[1]) && 
+                    in_array($this->segments[1], array('SUCCESS', 'FAILURE'))
+                ) {
+                    return $this->PUT_wps_status($this->segments[1]);
+                }
         }
-        RestoLogUtil::httpError(404);
+        
+        return RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * Store WPS status
+     * 
+     * @param string $status - SUCCESS | FAILURE
+     */
+    private function PUT_wps_status($status)
+    {
+        $query = "UPDATE usermanagement.wps_status"
+               . "SET status = '" . $status . "', last_dispatch = NOW()"
+               . "WHERE TRUE";
+        
+        $this->context->dbDriver->query($query);
+            
+        return RestoLogUtil::success('vizo status updated', array(
+            'status' => $status
+        ));
     }
     
     /**

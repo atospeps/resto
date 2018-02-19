@@ -112,13 +112,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
             /*
              * Get processing items
              */
-            case parent::PROCESSING_JOBS_CHECK:
-                $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->get(-1, null, $params['filters']);
-                
-            /*
-             * Get processing items
-             */
             case parent::PROCESSING_JOBS_STATS:
                 $jobsFunctions = new Functions_jobs($this);
                 return $jobsFunctions->getStats($params['userid']);

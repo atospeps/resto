@@ -74,12 +74,10 @@ class HPSS extends RestoModule {
         $this->segments = $segments;
         $method = $this->context->method;
 
-        switch ($method) {
-            case 'POST' :
-                return $this->processPOST($data);
-            default :
-                RestoLogUtil::httpError(404);
+        if ($method === 'POST') {
+            return $this->processPOST($data);
         }
+        return RestoLogUtil::httpError(404);
     }
 
     /**
@@ -90,9 +88,9 @@ class HPSS extends RestoModule {
      */
     private function processPOST($data) {
 
-        if (!isset($this->segments[0])) {            
+        if (!isset($this->segments[0])) {
             if (empty($this->context->query['file'])) {
-                RestoLogUtil::httpError(400);
+                return RestoLogUtil::httpError(400);
             }
             $path = $this->context->query['file'];
             return $this->staging($path);
@@ -100,9 +98,7 @@ class HPSS extends RestoModule {
         /*
          * Unknown route
          */
-        else {
-            RestoLogUtil::httpError(404);
-        }
+        return RestoLogUtil::httpError(404);
     }
 
     /**

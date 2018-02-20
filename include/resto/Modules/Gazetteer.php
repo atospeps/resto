@@ -159,7 +159,7 @@ class Gazetteer extends RestoModule {
         /*
          * Set output type - GeoJSON (default) or WKT
          */
-        $this->outputAsWKT = isset($params['wkt']) ? filter_var($params['wkt'], FILTER_VALIDATE_BOOLEAN) : false;
+        $this->outputAsWKT = isset($params['wkt']) && filter_var($params['wkt'], FILTER_VALIDATE_BOOLEAN);
         
         /*
          * Remove accents from query and split it into 'toponym' and 'modifier'

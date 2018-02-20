@@ -527,20 +527,17 @@ class WPS extends RestoModule {
         }
         else
         {
-            switch ($this->segments[0]) 
+            if ($this->segments[0] === 'users') 
             {
                 /*
                  * HTTP/GET wps/users/{userid}/results/download
                  */
-                case 'users':
-                    return $this->POST_users($this->segments, $data);
-                /*
-                 * Unknown route
-                 */
-                default:
-                    break;
+                return $this->POST_users($this->segments, $data);
             }
         }
+        /*
+         * Unknown route
+         */
         RestoLogUtil::httpError(404);
     }
     
@@ -564,11 +561,9 @@ class WPS extends RestoModule {
              RestoLogUtil::httpError(403);
         }
         
-        if (isset($segments[2])) {
-            // wps/users/{userid}/results
-            if (!isset($segments[3]) && $segments[2] === 'results') {
-                return $this->placeOrder($this->user->profile['email'], $data);
-            }
+        // wps/users/{userid}/results
+        if (isset($segments[2]) && $segments[2] === 'results' && !isset($segments[3]) ) {
+            return $this->placeOrder($this->user->profile['email'], $data);
         }
         return RestoLogUtil::httpError(404);
     }
@@ -578,22 +573,22 @@ class WPS extends RestoModule {
      */
     private function processPUT($data)
     {
-        switch ($this->segments[0]) {
             /*
-             * HTTP/PUT wps/users/{userid}/jobs/acknowledges
+             * HTTP/PUT wps/users/{userid}/jobs/acknowledges.
              */
-            case 'users':
+            if ($this->segments[0] === 'users') {
                 return $this->PUT_users($this->segments);
+            }
+
             /*
-             * HTTP/PUT wps/status/{status}
+             * HTTP/PUT wps/status/{status}.
              */
-            case 'check':
-                if (isset($this->segments[1]) && 
-                    in_array($this->segments[1], array('SUCCESS', 'FAILURE'))
-                ) {
-                    return $this->PUT_wps_status($this->segments[1]);
-                }
-        }
+            if ($this->segments[0] === 'check'
+                    && isset($this->segments[1])
+                    && in_array($this->segments[1], array('SUCCESS', 'FAILURE'))) {
+                return $this->PUT_wps_status($this->segments[1]);
+            }
+                
         
         return RestoLogUtil::httpError(404);
     }
@@ -622,48 +617,37 @@ class WPS extends RestoModule {
      */
     private function processDELETE($segments, $data)
     {
-        switch ($segments[0])
-        {
-            /*
-             * HTTP/GET wps/users/{userid}/results/download
-             */
-            case 'users':
-                if (!isset($segments[1])) {
-                    RestoLogUtil::httpError(404);
-                }
-                
-                $userid = $segments[1];
-                if (!is_numeric($userid)){
+        /*
+         * HTTP/GET wps/users/{userid}/results/download
+         */
+        if ($segments[0] === 'users') {
+            if (!isset($segments[1])) {
+                RestoLogUtil::httpError(404);
+            }
+            
+            $userid = $segments[1];
+            if (!is_numeric($userid)){
+                RestoLogUtil::httpError(400);
+            }
+            if ($this->checkUserAccess($userid) === false)
+            {
+                RestoLogUtil::httpError(403);
+            }
+            
+            if (isset($segments[2])
+                    && $segments[2] === 'jobs'
+                    && isset($segments[3]) 
+                    && !isset($segments[4])) {
+                // jobs
+                $jobid = $segments[3];
+                if (!is_numeric($jobid))
+                {
                     RestoLogUtil::httpError(400);
                 }
-                if ($this->checkUserAccess($userid) === false) 
-                {
-                     RestoLogUtil::httpError(403);
-                }
-                
-                if (isset($segments[2])) {
-                    // jobs
-                    if ($segments[2] === 'jobs') 
-                    {
-                        if (isset($segments[3]) && !isset($segments[4]))
-                        {
-                            $jobid = $segments[3];
-                            if (!is_numeric($jobid))
-                            {
-                                RestoLogUtil::httpError(400);
-                            }
-                            $this->removeJob($userid, $jobid);
-                            $jobs = $this->GET_userWPSJobs($userid);
-                            return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
-                        }
-                    }
-                }
-                
-                /*
-                 * Unknown route
-                */
-            default:
-                break;
+                $this->removeJob($userid, $jobid);
+                $jobs = $this->GET_userWPSJobs($userid);
+                return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
+            }
         }
         return RestoLogUtil::httpError(404);
     }
@@ -702,7 +686,7 @@ class WPS extends RestoModule {
                . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
                . "AND userid = '" . pg_escape_string($userid) . "' ";
         
-        $result = pg_query($this->dbh, $query);
+        pg_query($this->dbh, $query);
     }
     
     /**
@@ -803,12 +787,11 @@ class WPS extends RestoModule {
         );
         
         // get WPS rights
-        $wpsRights = $this->context->dbDriver->get(
+        return $this->context->dbDriver->get(
             RestoDatabaseDriver::WPS_GROUP_RIGHTS, 
             array('groupid' => $group['id'])
         );
         
-        return $wpsRights;
     }
     
     /**
@@ -943,21 +926,18 @@ class WPS extends RestoModule {
                     continue;
                 }
                 
-                if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false) 
+                if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false
+                        && ($job['status'] != $statusReport['job_status'] || $job['percentcompleted'] != $statusReport['percentCompleted']) ) 
                 {
-                    if ($job['status'] != $statusReport['job_status'] 
-                            || $job['percentcompleted'] != $statusReport['percentCompleted']) 
-                    {
-                        $job['status'] = $this->toWpsStatus($statusReport['job_status']);
-                        $job['percentcompleted'] = $statusReport['percentCompleted'];
-                        $job['outputs'] = $statusReport['results'];
-                        $job['nbresults'] = count($job['outputs']);
-                        $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
-                        $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
-                        $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
+                    $job['status'] = $this->toWpsStatus($statusReport['job_status']);
+                    $job['percentcompleted'] = $statusReport['percentCompleted'];
+                    $job['outputs'] = $statusReport['results'];
+                    $job['nbresults'] = count($job['outputs']);
+                    $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
+                    $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
+                    $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
 
-                        $this->updateJob($job['userid'], $job);
-                    }
+                    $this->updateJob($job['userid'], $job);
                 }
             }
             if (!empty($job['logs'])) 

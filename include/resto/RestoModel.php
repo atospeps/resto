@@ -874,9 +874,11 @@ abstract class RestoModel {
                         case 'NR': $realtime = 'NRT'; break;
                         case 'ST': $realtime = 'STC'; break;
                         case 'NT': $realtime = 'NTC'; break;
+                        default:
                     }
                 }
                 break;
+            default:
         }
         
         return $realtime;

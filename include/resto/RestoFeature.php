@@ -542,7 +542,7 @@ class RestoFeature {
                 CURLOPT_TIMEOUT => $timeout
         ));
 
-        $response = curl_exec($curl);
+        curl_exec($curl);
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
         // File is available

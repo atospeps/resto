@@ -208,10 +208,10 @@ abstract class RestoRoute {
      */
     protected function userid($emailOrId) {
         
-        if (!ctype_digit($emailOrId)) {
-            if (isset($this->user->profile['email']) && $this->user->profile['email'] === strtolower(base64_decode($emailOrId))) {
-                return $this->user->profile['userid'];
-            }
+        if (!ctype_digit($emailOrId)
+                && isset($this->user->profile['email']) 
+                && $this->user->profile['email'] === strtolower(base64_decode($emailOrId))) {
+                    return $this->user->profile['userid'];
         }
         
         return $emailOrId;

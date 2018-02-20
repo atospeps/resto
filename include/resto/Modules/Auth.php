@@ -132,13 +132,11 @@ class Auth extends RestoModule {
         /*
          * Authenticate from input protocol
          */
-        switch ($provider['protocol']) {
-            case 'oauth2':
-                return $this->oauth2($issuerId, $provider);
-            default:
-                RestoLogUtil::httpError(400, 'Unknown sso protocol for issuer "' . $issuerId . '"');
-          
+        if ($provider['protocol'] === 'oauth2') {
+            return $this->oauth2($issuerId, $provider);
         }
+        return RestoLogUtil::httpError(400, 'Unknown sso protocol for issuer "' . $issuerId . '"');
+          
     }
     
     /**
@@ -156,18 +154,14 @@ class Auth extends RestoModule {
         /*
          * Get profile from SSO issuer
          */
-        switch ($provider['protocol']) {
-            case 'oauth2':
-                $profile = $this->oauth2GetProfile($access_token, $provider);
-                break;
-            default:
-                RestoLogUtil::httpError(400, 'Unknown sso protocol for issuer "' . $issuerId . '"');
-        }
-        
-        /*
-         * Return resto profile token
-         */
-        return $this->token($profile[$this->getUidKey($provider)]);
+        if ($provider['protocol'] === 'oauth2') {
+            /*
+             * Return resto profile token
+             */
+            $profile = $this->oauth2GetProfile($access_token, $provider);
+            return $this->token($profile[$this->getUidKey($provider)]);
+        } 
+        return RestoLogUtil::httpError(400, 'Unknown sso protocol for issuer "' . $issuerId . '"');
         
     }
     

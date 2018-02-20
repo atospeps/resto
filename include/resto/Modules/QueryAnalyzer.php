@@ -296,6 +296,7 @@ class QueryAnalyzer extends RestoModule {
                     case 'where':
                         $this->whereProcessor->processIn($i, 0);
                         break;
+                    default:
                 }
             }
         }
@@ -319,6 +320,7 @@ class QueryAnalyzer extends RestoModule {
                     case 'where':
                         $this->processModifier($this->context->dictionary->get(RestoDictionary::LOCATION_MODIFIER, $this->queryManager->words[$i]['word']), $this->whereProcessor, $i);
                         break;
+                    default:
                 }
             }
         }

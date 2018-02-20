@@ -23,16 +23,6 @@ class Tagger_Generic extends Tagger {
     protected $columnsMapping = array();
     
     /**
-     * Constructor
-     * 
-     * @param DatabaseHandler $dbh
-     * @param array $config
-     */
-    public function __construct($dbh, $config) {
-        parent::__construct($dbh, $config);
-    }
-    
-    /**
      * Tag metadata
      * 
      * @param array $metadata

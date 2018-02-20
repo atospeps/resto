@@ -67,7 +67,6 @@ class GetCapabilities {
             $sxe->registerXPathNamespace('wps', 'http://www.opengis.net/wps/1.0.0');
     
             $processes = $sxe->xpath('//wps:Process');
-            $processesToRemove = array();
     
             if ($processes && count($processes) > 0){
                 // on parcours les process de la reponse et on supprime les process non autorisés

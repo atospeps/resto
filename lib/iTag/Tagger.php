@@ -70,7 +70,7 @@ abstract class Tagger {
      * @param float $area (in square kilometers)
      */
     protected function isValidArea($area) {
-        return $area > $this->config['areaLimit'] ? false : true;
+        return ($area <= $this->config['areaLimit']);
     }
     
     /**

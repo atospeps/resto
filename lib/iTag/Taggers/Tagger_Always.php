@@ -52,16 +52,6 @@ class Tagger_Always extends Tagger {
     );
     
     /**
-     * Constructor
-     * 
-     * @param DatabaseHandler $dbh
-     * @param array $config
-     */
-    public function __construct($dbh, $config) {
-        parent::__construct($dbh, $config);
-    }
-    
-    /**
      * TODO Tag metadata
      * 
      * @param array $metadata
@@ -168,17 +158,15 @@ class Tagger_Always extends Tagger {
             return $southern ? 'season:autumn' : 'season:spring';
         }
         
-        else if ($this->isSummer($month, $day)) {
+        if ($this->isSummer($month, $day)) {
             return $southern ? 'season:winter' : 'season:summer';
         }
         
-        else if ($this->isAutumn($month, $day)) {
+        if ($this->isAutumn($month, $day)) {
             return $southern ? 'season:spring' : 'season:autumn';
         }
         
-        else {
-            return $southern ? 'season:summer' : 'season:winter';
-        }
+        return $southern ? 'season:summer' : 'season:winter';
         
     }
     

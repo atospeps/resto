@@ -294,16 +294,4 @@ class WPS_RequestManager {
         return null;
     }
     
-    /**
-     *
-     * @param unknown $query
-     * @param unknown $data
-     * @param unknown $files
-     */
-    public function request($query, $data, $files) {
-    }
-    public function parseRequest() {
-    }
-    private function performRequest() {
-    }
 }

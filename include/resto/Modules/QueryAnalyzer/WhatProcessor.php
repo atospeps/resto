@@ -218,6 +218,7 @@ class WhatProcessor {
                     case WhatProcessor::LESSER:
                         $this->addToResult(array($valuedUnitQuantity['quantity']['key'] => $value . '['));
                         break;
+                    default:
                 }
             }
             $this->queryManager->discardPositionInterval(__METHOD__, $valuedUnitQuantity['startPosition'], $valuedUnitQuantity['endPosition'], isset($valuedUnitQuantity['error']) ? $valuedUnitQuantity['error'] : null);
@@ -420,14 +421,12 @@ class WhatProcessor {
             /*
              * Quantity with unit (e.g. "cloudCover")
              */
-            if (isset($quantity['unit'])) {
-                if (!isset($valuedUnit['unit']) || $valuedUnit['unit']['unit'] !== $quantity['unit']) {
-                    return array(
+            if (isset($quantity['unit']) && (!isset($valuedUnit['unit']) || $valuedUnit['unit']['unit'] !== $quantity['unit'])) {
+                        return array(
                         'startPosition' => $startPosition,
                         'endPosition' => $endPosition,
                         'error' => QueryAnalyzer::INVALID_UNIT
                     );
-                }
             }
             /*
              * Quantity without unit (e.g. "orbit")

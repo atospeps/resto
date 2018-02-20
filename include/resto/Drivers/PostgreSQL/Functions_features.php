@@ -248,6 +248,7 @@ class Functions_features {
                                .   " END,"
                                . " SUBSTRING (productidentifier, 49, 15) DESC"; // creation date
                 break;
+            default:
         }
 
         /*

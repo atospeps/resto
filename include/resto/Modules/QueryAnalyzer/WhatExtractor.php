@@ -196,13 +196,9 @@ class WhatExtractor {
         }
         
         $factor = 1.0;
-        switch ($unit) {
-            case 'km':
-                $unit = 'm';
-                $factor = 1000.0;
-                break;
-            default:
-                break;
+        if ($unit === 'km') {
+            $unit = 'm';
+            $factor = 1000.0;
         }
         
         return array(

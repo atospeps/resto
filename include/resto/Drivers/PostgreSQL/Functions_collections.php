@@ -242,10 +242,11 @@ class Functions_collections {
          */
         $table = array();
         foreach (array_keys($collection->model->extendedProperties) as $key) {
-            if (is_array($collection->model->extendedProperties[$key])) {
-                if (isset($collection->model->extendedProperties[$key]['name']) && isset($collection->model->extendedProperties[$key]['type'])) {
-                    $table[] = $collection->model->extendedProperties[$key]['name'] . ' ' . $collection->model->extendedProperties[$key]['type'] . (isset($collection->model->extendedProperties[$key]['constraint']) ? ' ' . $collection->model->extendedProperties[$key]['constraint'] : '');
-                }
+            if (is_array($collection->model->extendedProperties[$key])
+                    && isset($collection->model->extendedProperties[$key]['name']) 
+                    && isset($collection->model->extendedProperties[$key]['type'])) 
+            {
+                $table[] = $collection->model->extendedProperties[$key]['name'] . ' ' . $collection->model->extendedProperties[$key]['type'] . (isset($collection->model->extendedProperties[$key]['constraint']) ? ' ' . $collection->model->extendedProperties[$key]['constraint'] : '');
             }
         }
 

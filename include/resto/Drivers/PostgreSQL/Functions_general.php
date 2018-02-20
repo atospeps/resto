@@ -74,7 +74,7 @@ class Functions_general {
         $query = 'SELECT count(*) as count FROM ' . pg_escape_string($schema) . '.' . pg_escape_string($name) . '';
         $results = $this->dbDriver->query(($query));
         $result = pg_fetch_assoc($results);
-        return (integer) $result['count'] === 0 ? true : false;
+        return ((integer) $result['count'] === 0);
     }
     
     /**

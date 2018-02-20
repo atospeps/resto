@@ -176,10 +176,8 @@ class Functions_groups {
             return false;
         }
         
-        if (isset($groupname)) {
-            if($this->isGroupExists($groupname, $gid)) {
-                RestoLogUtil::httpError(5000, 'Cannot update groupname to: ' . $groupname . ', it already exists');
-            }
+        if (isset($groupname) && $this->isGroupExists($groupname, $gid)) {
+            RestoLogUtil::httpError(5000, 'Cannot update groupname to: ' . $groupname . ', it already exists');
         }
         
         $query = "UPDATE usermanagement.groups SET "

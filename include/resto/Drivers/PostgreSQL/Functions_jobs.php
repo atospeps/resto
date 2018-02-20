@@ -168,11 +168,8 @@ class Functions_jobs {
                 return false;
             }
             // If no update, return false
-            if (pg_num_rows($result) < 1) {
-                return false;
-            } else {
-                return true;
-            }
+            return (pg_num_rows($result) >= 1);
+
         } catch (Exception $e) {
             return false;
         }
@@ -195,11 +192,7 @@ class Functions_jobs {
             $result = $this->dbDriver->query($query);
     
             // If no deletion, return false
-            if (pg_num_rows($result) < 1) {
-                return false;
-            } else {
-                return true;
-            }
+            return (pg_num_rows($result) >= 1);
         } catch (Exception $e) {
             return false;
         }

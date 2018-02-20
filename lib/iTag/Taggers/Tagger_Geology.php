@@ -70,17 +70,7 @@ class Tagger_Geology extends Tagger_Generic {
             'name' => 'name'
         ),
     );
-    
-    /**
-     * Constructor
-     * 
-     * @param DatabaseHandler $dbh
-     * @param array $config
-     */
-    public function __construct($dbh, $config) {
-        parent::__construct($dbh, $config);
-    }
-    
+        
     /**
      * Tag metadata
      * 

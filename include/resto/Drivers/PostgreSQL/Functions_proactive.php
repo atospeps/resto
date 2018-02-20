@@ -154,11 +154,11 @@ class Functions_proactive {
         
         $results = $this->dbDriver->query($query);
 
-        if ($account = pg_fetch_assoc($results)) {
+        if (pg_fetch_assoc($results)) {
             return true;
-        } else {
-            return false;
         }
+        return false;
+
     }
     
     /**
@@ -176,11 +176,10 @@ class Functions_proactive {
        
         $results = $this->dbDriver->query('DELETE FROM usermanagement.proactive WHERE proactiveid = \'' . pg_escape_string($id) . '\' RETURNING login');
         
-        if ($account = pg_fetch_assoc($results)) {
+        if (pg_fetch_assoc($results)) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
     
 }

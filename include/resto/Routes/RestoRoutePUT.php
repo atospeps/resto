@@ -150,7 +150,7 @@ class RestoRoutePUT extends RestoRoute {
     private function PUT_groups($segments, $data)
     {
         if (isset($segments[1])) {
-            if ($this->user->profile['groupname'] !== 'admin') {
+            if (!$this->user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
         
@@ -191,7 +191,7 @@ class RestoRoutePUT extends RestoRoute {
     private function PUT_wpsRights($segments, $data) {
 
         if (isset($segments[1])) {
-            if ($this->user->profile['groupname'] !== 'admin') {
+            if (!$this->user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
         
@@ -227,7 +227,7 @@ class RestoRoutePUT extends RestoRoute {
     private function PUT_proactive($segments, $data)
     {
         if (isset($segments[1])) {
-            if ($this->user->profile['groupname'] !== 'admin') {
+            if (!$this->user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
         

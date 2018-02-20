@@ -55,7 +55,7 @@ class Tag extends RestoModule {
         /*
          * Only administrators can access to administration
          */
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
 

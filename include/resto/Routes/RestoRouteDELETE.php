@@ -129,7 +129,7 @@ class RestoRouteDELETE extends RestoRoute {
             /*
              * Groups can only be delete by admin
              */
-            if ($this->user->profile['groupname'] !== 'admin') {
+            if (!$this->user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
         
@@ -155,7 +155,7 @@ class RestoRouteDELETE extends RestoRoute {
     private function DELETE_proactiveAccount($segments)
     {
         if (isset($segments[1])) {
-            if ($this->user->profile['groupname'] !== 'admin') {
+            if (!$this->user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
         

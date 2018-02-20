@@ -315,8 +315,7 @@ class RestoRoutePOST extends RestoRoute {
                 throw new Exception();
             }
             
-            $isadmin = $this->user->profile['groupname'] === 'admin' ? true : false;
-            $this->user->token = $this->context->createToken($this->user->profile['userid'], $this->user->profile,  $isadmin);
+            $this->user->token = $this->context->createToken($this->user->profile['userid'], $this->user->profile,  $this->user->isAdmin());
 
             return array(
                 'token' => $this->user->token
@@ -397,7 +396,7 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * No feature allowed
          */
-        if (isset($segments[2]) ? $segments[2] : null) {
+        if (isset($segments[2])) {
             RestoLogUtil::httpError(404);
         }
         
@@ -408,11 +407,10 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Check credentials
          */
-        if ($segments[0] === 'search' &&
-            !$this->user->canSearch(isset($collection) ? $collection->name : null)
+        if ($segments[0] === 'search' 
+                && !$this->user->canSearch(isset($collection) ? $collection->name : null)
+                && !$this->user->canPost(isset($collection) ? $collection->name : null)
         ) {
-            RestoLogUtil::httpError(403);
-        } elseif (!$this->user->canPost(isset($collection) ? $collection->name : null)) {
             RestoLogUtil::httpError(403);
         }
 
@@ -478,7 +476,7 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Groups can only be create by admin
          */
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
 
@@ -509,7 +507,7 @@ class RestoRoutePOST extends RestoRoute {
      */
     private function POST_proactive($data)
     {
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
 
@@ -917,7 +915,7 @@ class RestoRoutePOST extends RestoRoute {
 
         // retrieve all order items
         $items = array();
-        $fromCart = isset($this->context->query['_fromCart']) ? filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN) : false;
+        $fromCart = isset($this->context->query['_fromCart']) && filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN);
         if($fromCart) {
             $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
         } else {

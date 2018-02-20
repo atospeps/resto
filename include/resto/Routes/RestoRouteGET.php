@@ -261,8 +261,7 @@ class RestoRouteGET extends RestoRoute {
             $profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => strtolower($this->user->profile['email'])));
 
             // Refresh token
-            $isadmin = ($profile['groupname'] === 'admin');
-            $this->user->token = $this->context->createToken($profile['userid'], $profile,  $isadmin);
+            $this->user->token = $this->context->createToken($profile['userid'], $profile,  ($profile['groupname'] === 'admin'));
 
             // Returns token
             return array(
@@ -510,7 +509,7 @@ class RestoRouteGET extends RestoRoute {
         /*
          * Groups can only be seen by admin
          */
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
         
@@ -534,7 +533,7 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_proactive($segments)
     {
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
     
@@ -554,7 +553,7 @@ class RestoRouteGET extends RestoRoute {
      */
     private function GET_wpsRights($segments)
     {
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
     

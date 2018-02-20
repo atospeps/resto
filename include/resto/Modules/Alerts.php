@@ -347,7 +347,7 @@ class Alerts extends RestoModule {
     private function alertExecute() {
         
         // Only admin users can notify users of the publication of new products
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
 

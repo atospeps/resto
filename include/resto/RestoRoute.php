@@ -227,7 +227,7 @@ abstract class RestoRoute {
         $user = $this->user;
         $userid = $this->userid($emailOrId);
         if ($user->profile['userid'] !== $userid) {
-            if ($user->profile['groupname'] !== 'admin') {
+            if (!$user->isAdmin()) {
                 RestoLogUtil::httpError(403);
             }
             else {

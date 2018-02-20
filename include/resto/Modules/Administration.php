@@ -97,7 +97,7 @@ class Administration extends RestoModule {
         /*
          * Only administrators can access to administration
          */
-        if ($this->user->profile['groupname'] !== 'admin') {
+        if (!$this->user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
         
@@ -984,7 +984,7 @@ class Administration extends RestoModule {
     private function PUT_userProfile($emailOrId, $data) {
         $profile = array();
         $user = $this->user;
-        if ($user->profile['groupname'] !== 'admin') {
+        if (!$user->isAdmin()) {
             RestoLogUtil::httpError(403);
         }
 

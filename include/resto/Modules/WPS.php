@@ -1087,7 +1087,7 @@ class WPS extends RestoModule {
      */
     function getProcessingDescription($identifier)
     {
-        if ($this->user->profile['groupname'] === 'admin') 
+        if ($this->user->isAdmin()) 
         {
             $wpsRights = array('all');
         } 
@@ -1124,7 +1124,7 @@ class WPS extends RestoModule {
     function getProcessingsList()
     {
         // get WPS rights
-        if ($this->user->profile['groupname'] === 'admin') {
+        if ($this->user->isAdmin()) {
             $wpsRights = array('all');
         } else {
             $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
@@ -1203,14 +1203,7 @@ class WPS extends RestoModule {
      */
     function checkUserAccess($userid) {
 
-        if ($this->user->profile['userid'] !== $userid)
-        {
-            if ($this->user->profile['groupname'] !== 'admin')
-            {
-                return false;
-            }
-        }
-        return true;
+        return $this->user->profile['userid'] === $userid || $this->user->isAdmin();
     }
    
     /**

@@ -63,18 +63,18 @@ class Functions_jobs {
      * @param string $email
      * @return number
      */
-    public function getStats($userid)
+    public function getStats($userid, $filters= array())
     {
         if (!isset($userid)) {
             return 0;
         }
+        $filters[] = "(status = 'ProcessSucceeded' OR status = 'ProcessFailed')";
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid);
+        $filters[] = 'visible=TRUE';
+        $filters[] = 'acknowledge = FALSE';
+        $oFilter = implode(' AND ', $filters);
         
-        $query = "SELECT count(status)"
-               . " FROM usermanagement.jobs"
-               . " WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed')"
-               . " AND userid = " . $this->dbDriver->quote($userid)
-               . " AND acknowledge = FALSE"
-               . " AND visible = TRUE";
+        $query = 'SELECT count(status) FROM usermanagement.jobs WHERE ' . $oFilter;
         
         $result = $this->dbDriver->query($query);
         $row = $this->dbDriver->fetch_assoc($result);

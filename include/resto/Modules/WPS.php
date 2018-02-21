@@ -697,12 +697,22 @@ class WPS extends RestoModule {
      */
     private function getCompletedJobsStats($userid)
     {        
+        $filters = array();
+
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0)
+        {
+            $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
+        
         return $this->context->dbDriver->get(
-            RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
-            array('userid' => $userid)
-        );
+                RestoDatabaseDriver::PROCESSING_JOBS_STATS,
+                array(
+                        'userid' => $userid,
+                        'filters' => $filters
+                ));
     }
-    
+
     /**
      * 
      * @param unknown $userid

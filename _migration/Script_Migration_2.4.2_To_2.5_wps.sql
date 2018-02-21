@@ -41,6 +41,7 @@ UPDATE usermanagement.groups SET canwps = TRUE WHERE groupname = 'admin';
 DROP TABLE IF EXISTS usermanagement.jobs CASCADE;
 DROP TABLE IF EXISTS usermanagement.wps_results CASCADE;
 DROP TABLE IF EXISTS usermanagement.processingcart CASCADE;
+DROP TABLE IF EXISTS usermanagement.wpsrights CASCADE;
 
 DROP SEQUENCE IF EXISTS usermanagement.processingcart_gid_seq CASCADE;
 DROP SEQUENCE IF EXISTS usermanagement.proactiveid_seq CASCADE;

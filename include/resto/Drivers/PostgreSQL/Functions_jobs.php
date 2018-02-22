@@ -100,7 +100,7 @@ class Functions_jobs {
             
             // Inserting the job into database
             $userid             = $this->dbDriver->quote($userid);
-            $querytime          = $this->dbDriver->quote($data['querytime'], date("Y-m-d H:i:s"));
+            $querytime          = $this->dbDriver->quote($data['querytime'], date('Y-m-d H:i:s'));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
             $title              = $this->dbDriver->quote($data['title'], 'NULL');
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
@@ -226,9 +226,15 @@ class Functions_jobs {
             $logs               = $this->dbDriver->quote2($data, 'logs', 'NULL');
         
             // update properties
-            $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, logs=${logs}"
-                    . " WHERE gid=${gid}";
+            $query = 'UPDATE usermanagement.jobs SET ' 
+                            . 'last_dispatch=' . $last_dispatch 
+                            . ', status=' . $status
+                            . ', percentcompleted=' . $percentCompleted 
+                            . ', statusmessage=' . $statusMessage
+                            . ', statustime=' . $statusTime
+                            . ', nbresults=' . $nbResults 
+                            . ', logs=' . $logs
+                    . ' WHERE gid=' . $gid;
             
             $this->dbDriver->query($query);
 

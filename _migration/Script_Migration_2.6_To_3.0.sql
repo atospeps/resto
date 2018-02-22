@@ -20,3 +20,6 @@ GRANT ALL ON TABLE usermanagement.wps_status TO resto;
 -- Default values
 INSERT INTO usermanagement.wps_status (last_dispatch, status) VALUES (NOW(), 'SUCCESS');
 
+DROP INDEX IF EXISTS _s1.features_polarisation_idx;
+CREATE INDEX features_polarisation_idx ON _s1.features (polarisation DESC);
+

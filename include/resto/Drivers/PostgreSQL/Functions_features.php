@@ -199,7 +199,7 @@ class Functions_features {
         /*
          * WHERE
          */
-        $whereClause = " WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'";
+        $whereClause = ' WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\'';
         
         /*
          * FROM
@@ -211,42 +211,39 @@ class Functions_features {
          */
         switch($schema) {
             case '_s1':
-                $orderByClause = " ORDER BY"
-                               .   " isnrt ASC,"
-                               .   " CASE realtime"
-                               .     " WHEN 'Reprocessing' THEN 1"
-                               .     " WHEN 'Off-line'     THEN 2"
-                               .     " WHEN 'Fast-24h'     THEN 3"
-                               .     " WHEN 'NRT-3h'       THEN 4"
-                               .     " WHEN 'NRT-1h'       THEN 5"
-                               .     " WHEN 'NRT-10m'      THEN 6"
-                               .     " ELSE 7"
-                               .   " END";
+                $orderByClause = ' ORDER BY isnrt ASC,'
+                               .   ' CASE realtime'
+                               .     ' WHEN \'Reprocessing\' THEN 1'
+                               .     ' WHEN \'Off-line\'     THEN 2'
+                               .     ' WHEN \'Fast-24h\'     THEN 3'
+                               .     ' WHEN \'NRT-3h\'       THEN 4'
+                               .     ' WHEN \'NRT-1h\'       THEN 5'
+                               .     ' WHEN \'NRT-10m\'      THEN 6'
+                               .     ' ELSE 7'
+                               .   ' END';
                 if ($context->obsolescenceS1useDhusIngestDate === true) {
                     $orderByClause .= ", dhusingestdate DESC";
                 }
                 break;
             case '_s2st':
-                $orderByClause = " ORDER BY"
-                               .   " isnrt ASC,"
-                               .   " CASE realtime"
-                               .     " WHEN 'Nominal' THEN 1"
-                               .     " WHEN 'NRT'     THEN 2"
-                               .     " WHEN 'RT'      THEN 3"
-                               .     " ELSE 4"
-                               .   " END,"
-                               .   " SUBSTRING (productidentifier, 29, 4) DESC"; // version number
+                $orderByClause = ' ORDER BY isnrt ASC,'
+                               .   ' CASE realtime'
+                               .     ' WHEN \'Nominal\' THEN 1'
+                               .     ' WHEN \'NRT\'     THEN 2'
+                               .     ' WHEN \'RT\'      THEN 3'
+                               .     ' ELSE 4'
+                               .   ' END,'
+                               .   ' SUBSTRING (productidentifier, 29, 4) DESC'; // version number
                 break;
             case '_s3':
-                $orderByClause = " ORDER BY"
-                               . " isnrt ASC,"
-                               .   " CASE realtime"
-                               .     " WHEN 'NTC' THEN 1"
-                               .     " WHEN 'STC' THEN 2"
-                               .     " WHEN 'NRT' THEN 3"
-                               .     " ELSE 4"
-                               .   " END,"
-                               . " SUBSTRING (productidentifier, 49, 15) DESC"; // creation date
+                $orderByClause = ' ORDER BY isnrt ASC,'
+                               .   ' CASE realtime'
+                               .     ' WHEN \'NTC\' THEN 1'
+                               .     ' WHEN \'STC\' THEN 2'
+                               .     ' WHEN \'NRT\' THEN 3'
+                               .     ' ELSE 4'
+                               .   ' END,'
+                               . ' SUBSTRING (productidentifier, 49, 15) DESC'; // creation date
                 break;
             default:
         }
@@ -277,10 +274,10 @@ class Functions_features {
     public function checkRealtimeExists($collectionName, $realtime, $pattern)
     {
         $schema = !empty($collectionName) ? '_' . strtolower($collectionName) : 'resto';
-        $query = "SELECT realtime"
-               . "  FROM " . $schema . ".features"
-               . "  WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'"
-               . "  AND realtime = '" . $realtime . "'";
+        $query = 'SELECT realtime'
+               . '  FROM ' . $schema . '.features'
+               . '  WHERE productidentifier LIKE \'' . pg_escape_string($pattern) . '\''
+               . '  AND realtime = \'' . $realtime . '\'';
         $results = $this->dbDriver->query($query);
         $rows = pg_num_rows($results);
         return ($rows > 0);

@@ -138,7 +138,8 @@ return array(
          * If the array is empty, then every http origin have CORS access
          */
         'corsWhiteList' => array(
-            'localhost'
+            'localhost',
+                '*'
         ),
             
         /*
@@ -308,7 +309,7 @@ return array(
                                  * Time life of processings (days)
                                  * Default value : 0 (0 => Infinite)
                                  */
-                                'timeLifeOfProcessings' => 30
+                                'timeLifeOfProcessings' => 5
                         ),
                         'curlOpts' => array(
                                 CURLOPT_PROXY => '193.56.47.8:8080',

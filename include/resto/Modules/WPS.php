@@ -130,19 +130,24 @@ class WPS extends RestoModule {
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
         
         // ? Minimum period between processing update (units: seconds)
-        $this->minPeriodBetweenProcessingsRefresh = 
-            (isset($module['users']['minPeriodBetweenProcessingsRefresh']) && ctype_digit($module['users']['minPeriodBetweenProcessingsRefresh'])) 
-            ? $module['users']['minPeriodBetweenProcessingsRefresh'] : $this->minPeriodBetweenProcessingsRefresh;
+        if (isset($module['users']['minPeriodBetweenProcessingsRefresh']) 
+                && is_int($module['users']['minPeriodBetweenProcessingsRefresh']))
+        {
+            $this->minPeriodBetweenProcessingsRefresh = $module['users']['minPeriodBetweenProcessingsRefresh'];
+        }
 
         // ? "Remove" also deletes processings from database
-        $this->timeLifeOfProcessings =
-        (isset($module['users']['timeLifeOfProcessings']) && ctype_digit($module['users']['timeLifeOfProcessings']))
-        ? $module['users']['timeLifeOfProcessings'] : $this->timeLifeOfProcessings;
+        if (isset($module['users']['timeLifeOfProcessings']) && is_int($module['users']['timeLifeOfProcessings']))
+        {
+            $this->timeLifeOfProcessings = $module['users']['timeLifeOfProcessings'];
+        }
 
         // ? "Remove" also deletes processings from database
-        $this->doesRemoveAlsoDeletesProcessingsFromDatabase =
-            (isset($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']) && is_bool($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']))
-            ? $module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase'] : $this->doesRemoveAlsoDeletesProcessingsFromDatabase;
+        if (isset($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']) 
+                && is_bool($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']))
+        {
+            $this->doesRemoveAlsoDeletesProcessingsFromDatabase = $module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase'];
+        }
 
         // WPS module route
         $this->route = isset($module['route']) ? $module['route'] : '' ;
@@ -704,7 +709,7 @@ class WPS extends RestoModule {
         {
             $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
-        
+
         return $this->context->dbDriver->get(
                 RestoDatabaseDriver::PROCESSING_JOBS_STATS,
                 array(
@@ -739,7 +744,7 @@ class WPS extends RestoModule {
         // Processings life time
         if ($this->timeLifeOfProcessings > 0) 
         {
-            $filters[] = 'usermanagement.jobs.querytime < now() + (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+            $filters[] = 'usermanagement.jobs.querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
 
         $oFilter = implode(' AND ', $filters);
@@ -921,7 +926,7 @@ class WPS extends RestoModule {
 
         foreach ($jobs as &$job) {
             if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
-            {                
+            {
                 if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
                 {
                     continue;

@@ -752,7 +752,7 @@ class RestoRoutePOST extends RestoRoute {
             // we validate all the possible elements to allow the product download
             $downloadState = $this->checkFeatureAvailability($feature);
             
-            if ($downloadState !== "OK") {
+            if (!$downloadState) {
                 if ($downloadState['error'] === self::ERROR_BADRIGTHS) {
                     $response["norights"]++;
                 } else {
@@ -855,7 +855,7 @@ class RestoRoutePOST extends RestoRoute {
         foreach($features as $feature) {
             $downloadState = $this->checkFeatureAvailability($feature);
             
-            if ($downloadState !== "OK") {
+            if ($downloadState !== true) {
                 if ($downloadState['error'] === self::ERROR_BADRIGTHS) {
                     $response["norights"]++;
                 } else {

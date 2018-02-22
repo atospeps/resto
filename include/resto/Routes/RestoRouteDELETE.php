@@ -48,7 +48,7 @@ class RestoRouteDELETE extends RestoRoute {
                 return $this->DELETE_groups($segments);
             case 'proactive':
                 return $this->DELETE_proactiveAccount($segments);
-                case 'users':
+            case 'users':
                 return $this->DELETE_users($segments);
             default:
                 return $this->processModuleRoute($segments);
@@ -181,10 +181,10 @@ class RestoRouteDELETE extends RestoRoute {
      */
     private function DELETE_users($segments) {
         
-        if ($segments[2] === 'cart') {
+        if (isset($segments[2]) && $segments[2] === 'cart') {
             return $this->DELETE_userCart($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
-        elseif ($segments[2] === 'processingcart') {
+        elseif (isset($segments[2]) && $segments[2] === 'processingcart') {
             return $this->DELETE_userProcessingCart($segments[1], isset($segments[3]) ? $segments[3] : null);
         }
         else {

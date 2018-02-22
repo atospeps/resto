@@ -131,12 +131,12 @@ class WPS extends RestoModule {
         
         // ? Minimum period between processing update (units: seconds)
         $this->minPeriodBetweenProcessingsRefresh = 
-            (isset($module['users']['minPeriodBetweenProcessingsRefresh']) && is_numeric($module['users']['minPeriodBetweenProcessingsRefresh'])) 
+            (isset($module['users']['minPeriodBetweenProcessingsRefresh']) && ctype_digit($module['users']['minPeriodBetweenProcessingsRefresh'])) 
             ? $module['users']['minPeriodBetweenProcessingsRefresh'] : $this->minPeriodBetweenProcessingsRefresh;
 
         // ? "Remove" also deletes processings from database
         $this->timeLifeOfProcessings =
-        (isset($module['users']['timeLifeOfProcessings']) && is_numeric($module['users']['timeLifeOfProcessings']))
+        (isset($module['users']['timeLifeOfProcessings']) && ctype_digit($module['users']['timeLifeOfProcessings']))
         ? $module['users']['timeLifeOfProcessings'] : $this->timeLifeOfProcessings;
 
         // ? "Remove" also deletes processings from database
@@ -424,7 +424,7 @@ class WPS extends RestoModule {
         $userid = $segments[1];
         
         // ? Is valid user id pattern
-        if (!is_numeric($userid))
+        if (!ctype_digit($userid))
         {
             RestoLogUtil::httpError(400);
         }
@@ -470,7 +470,7 @@ class WPS extends RestoModule {
                 }
                 else {
                     $jobid = $segments[3];
-                    if (!is_numeric($jobid)) {
+                    if (!ctype_digit($jobid)) {
                         RestoLogUtil::httpError(400);
                     }
                     switch ($segments[4]) {
@@ -626,7 +626,7 @@ class WPS extends RestoModule {
             }
             
             $userid = $segments[1];
-            if (!is_numeric($userid)){
+            if (!ctype_digit($userid)){
                 RestoLogUtil::httpError(400);
             }
             if ($this->checkUserAccess($userid) === false)
@@ -640,7 +640,7 @@ class WPS extends RestoModule {
                     && !isset($segments[4])) {
                 // jobs
                 $jobid = $segments[3];
-                if (!is_numeric($jobid))
+                if (!ctype_digit($jobid))
                 {
                     RestoLogUtil::httpError(400);
                 }
@@ -1043,7 +1043,7 @@ class WPS extends RestoModule {
         for ($i = count($data); $i--;) 
         {
             // ? Is numeric
-            if (!is_numeric($data[$i])) 
+            if (!ctype_digit($data[$i])) 
             {
                 RestoLogUtil::httpError(400);
             }

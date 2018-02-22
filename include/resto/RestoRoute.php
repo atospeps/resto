@@ -224,23 +224,17 @@ abstract class RestoRoute {
      */
     protected function getAuthorizedUser($emailOrId)
     {
-        $user = $this->user;
         $userid = $this->userid($emailOrId);
         if ($user->profile['userid'] !== $userid) {
             if (!$user->isAdmin()) {
-                RestoLogUtil::httpError(403);
+                return RestoLogUtil::httpError(403);
             }
-            else {
-                if (!ctype_digit($emailOrId)) {
-                    $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => strtolower(base64_decode($emailOrId)))), $this->context);
-                }
-                else {
-                    $user = new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('userid' => $userid)), $this->context);
-                }
-            }
+            
+            $credentials = ctype_digit($emailOrId) ? array('userid' => $userid) : array('email' => strtolower(base64_decode($emailOrId)));                       
+            return new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, $credentials, $this->context));
         }
         
-        return $user;
+        return $this->user;
         
     }
     
@@ -300,6 +294,6 @@ abstract class RestoRoute {
         /*
         * Existinf file + rights = OK
         */
-        return "OK";
+        return true;
     }
 }

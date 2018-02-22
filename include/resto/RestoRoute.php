@@ -225,8 +225,8 @@ abstract class RestoRoute {
     protected function getAuthorizedUser($emailOrId)
     {
         $userid = $this->userid($emailOrId);
-        if ($user->profile['userid'] !== $userid) {
-            if (!$user->isAdmin()) {
+        if ($this->user->profile['userid'] !== $userid) {
+            if (!$this->user->isAdmin()) {
                 return RestoLogUtil::httpError(403);
             }
             

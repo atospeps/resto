@@ -733,4 +733,18 @@ class RestoUtil {
         return $str;
     }
     
+    /**
+     * 
+     * @param unknown $title
+     */
+    public static function collection($title){
+        $collection = substr($title, 0, 2);
+        
+        if ($collection === 'S2' 
+                && strpos($title, 'MSI') !== false){
+            $collection = 'S2ST';
+        }
+        return $collection;
+    }
+    
 }

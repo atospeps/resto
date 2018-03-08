@@ -52,7 +52,7 @@ class Functions_jobs {
         $oFilter = implode(' AND ', $filters);
 
         // Query
-        $query = 'SELECT * FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
+        $query = 'SELECT *, SUBSTRING((data::json->>\'datainputs\')::text from 9) as product FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
 
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }

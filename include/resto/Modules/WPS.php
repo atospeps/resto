@@ -959,6 +959,16 @@ class WPS extends RestoModule {
             {
                 $job['logs'] = true;
             }
+            if ($job['nbresults'] == 1 && !empty($job['product'])) {
+                $product = $job['product'];
+                $collection = RestoUtil::collection($product);
+                $job['input'] = array(
+                        'collection' => $collection, 
+                        'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
+                );
+                unset($job['product']);
+            }
+            
         }
         return $jobs;
     }

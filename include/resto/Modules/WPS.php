@@ -878,6 +878,7 @@ class WPS extends RestoModule {
         // Updates status's jobs.
         if ($updateJobsStatus) {
             $results = $this->updateStatusOfJobs($results);
+            
         }
         
         return $results;        
@@ -923,9 +924,26 @@ class WPS extends RestoModule {
     private function updateStatusOfJobs($jobs) {
         
         $now = time();
-
+        $jobs_to_update = array();
+        $curl_arr = array();
+        $master = curl_multi_init();
+        $count = 0;
+        
         foreach ($jobs as &$job) {
-            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
+            $job['gid'] = (int)$job['gid'];
+            $job['logs'] = !empty($job['logs']);
+            
+            if (!empty($job['product'])) 
+            {
+                $product = $job['product'];
+                $job['input'] = array(
+                        'collection' => RestoUtil::collection($product),
+                        'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
+                );
+                unset($job['product']);
+            }
+            
+            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed')
             {
                 if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
                 {
@@ -933,43 +951,60 @@ class WPS extends RestoModule {
                 }
 
                 preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
-                if (isset($matches[2])) 
-                {
-                    $jobId = $matches[2];
+                if (isset($matches[2]))
+                {                  
+                    $curl_arr[$count] = Curl::Init(
+                            $this->wpsRequestManager->getStatusUrl($matches[2]),
+                             $this->wpsRequestManager->getCurlOptions());
+                    curl_multi_add_handle($master, $curl_arr[$count]);
+                    
+                    $jobs_to_update[$count] = &$job;
+                    $count++;
                 }
-                else {
-                    continue;
-                }
-                
-                if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false
-                        && ($job['status'] != $statusReport['job_status'] || $job['percentcompleted'] != $statusReport['percentCompleted']) ) 
-                {
-                    $job['status'] = $this->toWpsStatus($statusReport['job_status']);
-                    $job['percentcompleted'] = $statusReport['percentCompleted'];
-                    $job['outputs'] = $statusReport['results'];
-                    $job['nbresults'] = count($job['outputs']);
-                    $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
-                    $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
-                    $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
+                continue;
 
-                    $this->updateJob($job['userid'], $job);
-                }
             }
-            if (!empty($job['logs'])) 
-            {
-                $job['logs'] = true;
-            }
-            if ($job['nbresults'] == 1 && !empty($job['product'])) {
-                $product = $job['product'];
-                $collection = RestoUtil::collection($product);
-                $job['input'] = array(
-                        'collection' => $collection, 
-                        'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
-                );
-                unset($job['product']);
-            }
-            
         }
+
+        // ? jobs to update
+        if ($count > 0){
+            do
+            {
+                set_time_limit(0);
+                curl_multi_select($master);
+                curl_multi_exec($master, $running);
+            }
+            while ($running > 0);
+            
+            // updates jobs
+            for($i = 0; $i < $count; $i++)
+            {
+                $res = $curl_arr[$i];
+                $data = curl_multi_getcontent  ( $res  );
+                curl_multi_remove_handle($master, $res);
+                $update = &$jobs_to_update[$i];
+                
+                if (($statusReport = $this->wpsRequestManager->parseStatusReport($data)) !== false
+                        && ($update['status'] != $statusReport['job_status'] || $update['percentcompleted'] != $statusReport['percentCompleted']) )
+                {
+                    $update['status'] = $this->toWpsStatus($statusReport['job_status']);                    
+                    $update['percentcompleted'] = $statusReport['percentCompleted'];
+                    $update['outputs'] = $statusReport['results'];
+                    $update['nbresults'] = count($update['outputs']);
+                    $update['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
+                    $update['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
+                    $update['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
+
+                    if ($this->updateJob($update['userid'], $update) === false){
+                        continue;
+                    }
+                }
+                $update['logs'] = !empty($update['logs']);
+            }
+        }
+        curl_multi_close($master);
+        
+//         error_log("Memory usage ; " . print_r(memory_get_usage(), true));
         return $jobs;
     }
     

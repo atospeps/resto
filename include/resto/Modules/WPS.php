@@ -128,19 +128,24 @@ class WPS extends RestoModule {
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
         
         // ? Minimum period between processing update (units: seconds)
-        $this->minPeriodBetweenProcessingsRefresh = 
-            (isset($module['users']['minPeriodBetweenProcessingsRefresh']) && is_numeric($module['users']['minPeriodBetweenProcessingsRefresh'])) 
-            ? $module['users']['minPeriodBetweenProcessingsRefresh'] : $this->minPeriodBetweenProcessingsRefresh;
+        if (isset($module['users']['minPeriodBetweenProcessingsRefresh']) 
+                && is_int($module['users']['minPeriodBetweenProcessingsRefresh']))
+        {
+            $this->minPeriodBetweenProcessingsRefresh = $module['users']['minPeriodBetweenProcessingsRefresh'];
+        }
 
         // ? "Remove" also deletes processings from database
-        $this->timeLifeOfProcessings =
-        (isset($module['users']['timeLifeOfProcessings']) && is_numeric($module['users']['timeLifeOfProcessings']))
-        ? $module['users']['timeLifeOfProcessings'] : $this->timeLifeOfProcessings;
+        if (isset($module['users']['timeLifeOfProcessings']) && is_int($module['users']['timeLifeOfProcessings']))
+        {
+            $this->timeLifeOfProcessings = $module['users']['timeLifeOfProcessings'];
+        }
 
         // ? "Remove" also deletes processings from database
-        $this->doesRemoveAlsoDeletesProcessingsFromDatabase =
-            (isset($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']) && is_bool($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']))
-            ? $module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase'] : $this->doesRemoveAlsoDeletesProcessingsFromDatabase;
+        if (isset($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']) 
+                && is_bool($module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase']))
+        {
+            $this->doesRemoveAlsoDeletesProcessingsFromDatabase = $module['users']['doesRemoveAlsoDeletesProcessingsFromDatabase'];
+        }
 
         // WPS module route
         $this->route = isset($module['route']) ? $module['route'] : '' ;
@@ -295,8 +300,8 @@ class WPS extends RestoModule {
      * @param array $data request parameters
      * @return unknown
      */
-    private function perform_wps($segments, $method, $data) {
-
+    private function perform_wps($segments, $method, $data)
+    {
         $this->context->outputFormat =  'xml';
         
         // Gets wps rights
@@ -329,7 +334,7 @@ class WPS extends RestoModule {
         }
         return $response;
     }
-    
+
     /**
      * 
      * @param array $segments route elements
@@ -401,7 +406,7 @@ class WPS extends RestoModule {
         $userid = $segments[1];
         
         // ? Is valid user id pattern
-        if (!is_numeric($userid))
+        if (!ctype_digit($userid))
         {
             RestoLogUtil::httpError(400);
         }
@@ -447,7 +452,7 @@ class WPS extends RestoModule {
                 }
                 else {
                     $jobid = $segments[3];
-                    if (!is_numeric($jobid)) {
+                    if (!ctype_digit($jobid)) {
                         RestoLogUtil::httpError(400);
                     }
                     switch ($segments[4]) {
@@ -504,20 +509,17 @@ class WPS extends RestoModule {
         }
         else
         {
-            switch ($this->segments[0]) 
+            if ($this->segments[0] === 'users') 
             {
                 /*
                  * HTTP/GET wps/users/{userid}/results/download
                  */
-                case 'users':
-                    return $this->POST_users($this->segments, $data);
-                /*
-                 * Unknown route
-                 */
-                default:
-                    break;
+                return $this->POST_users($this->segments, $data);
             }
         }
+        /*
+         * Unknown route
+         */
         RestoLogUtil::httpError(404);
     }
     
@@ -541,11 +543,9 @@ class WPS extends RestoModule {
              RestoLogUtil::httpError(403);
         }
         
-        if (isset($segments[2])) {
-            // wps/users/{userid}/results
-            if (!isset($segments[3]) && $segments[2] === 'results') {
-                return $this->placeOrder($this->user->profile['email'], $data);
-            }
+        // wps/users/{userid}/results
+        if (isset($segments[2]) && $segments[2] === 'results' && !isset($segments[3]) ) {
+            return $this->placeOrder($this->user->profile['email'], $data);
         }
         return RestoLogUtil::httpError(404);
     }
@@ -555,11 +555,42 @@ class WPS extends RestoModule {
      */
     private function processPUT($data)
     {
-        if (isset($this->segments[0]) && $this->segments[0] === 'users') {
-            // HTTP/PUT wps/users/{userid}/jobs/acknowledges
-            return $this->PUT_users($this->segments);
-        }
-        RestoLogUtil::httpError(404);
+            /*
+             * HTTP/PUT wps/users/{userid}/jobs/acknowledges.
+             */
+            if ($this->segments[0] === 'users') {
+                return $this->PUT_users($this->segments);
+            }
+
+            /*
+             * HTTP/PUT wps/status/{status}.
+             */
+            if ($this->segments[0] === 'check'
+                    && isset($this->segments[1])
+                    && in_array($this->segments[1], array('SUCCESS', 'FAILURE'))) {
+                return $this->PUT_wps_status($this->segments[1]);
+            }
+                
+        
+        return RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * Store WPS status
+     * 
+     * @param string $status - SUCCESS | FAILURE
+     */
+    private function PUT_wps_status($status)
+    {
+        $query = "UPDATE usermanagement.wps_status"
+               . "SET status = '" . $status . "', last_dispatch = NOW()"
+               . "WHERE TRUE";
+        
+        $this->context->dbDriver->query($query);
+            
+        return RestoLogUtil::success('vizo status updated', array(
+            'status' => $status
+        ));
     }
     
     /**
@@ -568,48 +599,37 @@ class WPS extends RestoModule {
      */
     private function processDELETE($segments, $data)
     {
-        switch ($segments[0])
-        {
-            /*
-             * HTTP/GET wps/users/{userid}/results/download
-             */
-            case 'users':
-                if (!isset($segments[1])) {
-                    RestoLogUtil::httpError(404);
-                }
-                
-                $userid = $segments[1];
-                if (!is_numeric($userid)){
+        /*
+         * HTTP/GET wps/users/{userid}/results/download
+         */
+        if ($segments[0] === 'users') {
+            if (!isset($segments[1])) {
+                RestoLogUtil::httpError(404);
+            }
+            
+            $userid = $segments[1];
+            if (!ctype_digit($userid)){
+                RestoLogUtil::httpError(400);
+            }
+            if ($this->checkUserAccess($userid) === false)
+            {
+                RestoLogUtil::httpError(403);
+            }
+            
+            if (isset($segments[2])
+                    && $segments[2] === 'jobs'
+                    && isset($segments[3]) 
+                    && !isset($segments[4])) {
+                // jobs
+                $jobid = $segments[3];
+                if (!ctype_digit($jobid))
+                {
                     RestoLogUtil::httpError(400);
                 }
-                if ($this->checkUserAccess($userid) === false) 
-                {
-                     RestoLogUtil::httpError(403);
-                }
-                
-                if (isset($segments[2])) {
-                    // jobs
-                    if ($segments[2] === 'jobs') 
-                    {
-                        if (isset($segments[3]) && !isset($segments[4]))
-                        {
-                            $jobid = $segments[3];
-                            if (!is_numeric($jobid))
-                            {
-                                RestoLogUtil::httpError(400);
-                            }
-                            $this->removeJob($userid, $jobid);
-                            $jobs = $this->GET_userWPSJobs($userid);
-                            return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
-                        }
-                    }
-                }
-                
-                /*
-                 * Unknown route
-                */
-            default:
-                break;
+                $this->removeJob($userid, $jobid);
+                $jobs = $this->GET_userWPSJobs($userid);
+                return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
+            }
         }
         return RestoLogUtil::httpError(404);
     }
@@ -648,7 +668,7 @@ class WPS extends RestoModule {
                . "WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed') "
                . "AND userid = '" . pg_escape_string($userid) . "' ";
         
-        $result = pg_query($this->dbh, $query);
+        pg_query($this->dbh, $query);
     }
     
     /**
@@ -659,12 +679,22 @@ class WPS extends RestoModule {
      */
     private function getCompletedJobsStats($userid)
     {        
+        $filters = array();
+
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0)
+        {
+            $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
+
         return $this->context->dbDriver->get(
-            RestoDatabaseDriver::PROCESSING_JOBS_STATS, 
-            array('userid' => $userid)
-        );
+                RestoDatabaseDriver::PROCESSING_JOBS_STATS,
+                array(
+                        'userid' => $userid,
+                        'filters' => $filters
+                ));
     }
-    
+
     /**
      * 
      * @param unknown $userid
@@ -691,7 +721,7 @@ class WPS extends RestoModule {
         // Processings life time
         if ($this->timeLifeOfProcessings > 0) 
         {
-            $filters[] = 'usermanagement.jobs.querytime < now() + (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+            $filters[] = 'usermanagement.jobs.querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
 
         $oFilter = implode(' AND ', $filters);
@@ -749,12 +779,11 @@ class WPS extends RestoModule {
         );
         
         // get WPS rights
-        $wpsRights = $this->context->dbDriver->get(
+        return $this->context->dbDriver->get(
             RestoDatabaseDriver::WPS_GROUP_RIGHTS, 
             array('groupid' => $group['id'])
         );
         
-        return $wpsRights;
     }
     
     /**
@@ -826,6 +855,7 @@ class WPS extends RestoModule {
         // Updates status's jobs.
         if ($updateJobsStatus) {
             $results = $this->updateStatusOfJobs($results);
+            
         }
         
         return $results;        
@@ -871,46 +901,87 @@ class WPS extends RestoModule {
     private function updateStatusOfJobs($jobs) {
         
         $now = time();
-
+        $jobs_to_update = array();
+        $curl_arr = array();
+        $master = curl_multi_init();
+        $count = 0;
+        
         foreach ($jobs as &$job) {
-            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed') 
-            {                
+            $job['gid'] = (int)$job['gid'];
+            $job['logs'] = !empty($job['logs']);
+            
+            if (!empty($job['product'])) 
+            {
+                $product = $job['product'];
+                $job['input'] = array(
+                        'collection' => RestoUtil::collection($product),
+                        'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
+                );
+                unset($job['product']);
+            }
+            
+            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed')
+            {
                 if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
                 {
                     continue;
                 }
 
                 preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
-                if (isset($matches[2])) 
-                {
-                    $jobId = $matches[2];
+                if (isset($matches[2]))
+                {                  
+                    $curl_arr[$count] = Curl::Init(
+                            $this->wpsRequestManager->getStatusUrl($matches[2]),
+                             $this->wpsRequestManager->getCurlOptions());
+                    curl_multi_add_handle($master, $curl_arr[$count]);
+                    
+                    $jobs_to_update[$count] = &$job;
+                    $count++;
                 }
-                else {
-                    continue;
-                }
-                
-                if (($statusReport = $this->wpsRequestManager->getStatusReport($jobId)) != false) 
-                {
-                    if ($job['status'] != $statusReport['job_status'] 
-                            || $job['percentcompleted'] != $statusReport['percentCompleted']) 
-                    {
-                        $job['status'] = $this->toWpsStatus($statusReport['job_status']);
-                        $job['percentcompleted'] = $statusReport['percentCompleted'];
-                        $job['outputs'] = $statusReport['results'];
-                        $job['nbresults'] = count($job['outputs']);
-                        $job['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
-                        $job['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
-                        $job['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
+                continue;
 
-                        $this->updateJob($job['userid'], $job);
-                    }
-                }
-            }
-            if (!empty($job['logs'])) 
-            {
-                $job['logs'] = true;
             }
         }
+
+        // ? jobs to update
+        if ($count > 0){
+            do
+            {
+                set_time_limit(0);
+                curl_multi_select($master);
+                curl_multi_exec($master, $running);
+            }
+            while ($running > 0);
+            
+            // updates jobs
+            for($i = 0; $i < $count; $i++)
+            {
+                $res = $curl_arr[$i];
+                $data = curl_multi_getcontent  ( $res  );
+                curl_multi_remove_handle($master, $res);
+                $update = &$jobs_to_update[$i];
+                
+                if (($statusReport = $this->wpsRequestManager->parseStatusReport($data)) !== false
+                        && ($update['status'] != $statusReport['job_status'] || $update['percentcompleted'] != $statusReport['percentCompleted']) )
+                {
+                    $update['status'] = $this->toWpsStatus($statusReport['job_status']);                    
+                    $update['percentcompleted'] = $statusReport['percentCompleted'];
+                    $update['outputs'] = $statusReport['results'];
+                    $update['nbresults'] = count($update['outputs']);
+                    $update['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
+                    $update['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
+                    $update['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
+
+                    if ($this->updateJob($update['userid'], $update) === false){
+                        continue;
+                    }
+                }
+                $update['logs'] = !empty($update['logs']);
+            }
+        }
+        curl_multi_close($master);
+        
+//         error_log("Memory usage ; " . print_r(memory_get_usage(), true));
         return $jobs;
     }
     
@@ -999,7 +1070,7 @@ class WPS extends RestoModule {
         for ($i = count($data); $i--;) 
         {
             // ? Is numeric
-            if (!is_numeric($data[$i])) 
+            if (!ctype_digit($data[$i])) 
             {
                 RestoLogUtil::httpError(400);
             }
@@ -1033,7 +1104,7 @@ class WPS extends RestoModule {
      */
     function getProcessingDescription($identifier)
     {
-        if ($this->user->profile['groupname'] === 'admin') 
+        if ($this->user->isAdmin()) 
         {
             $wpsRights = array('all');
         } 
@@ -1070,7 +1141,7 @@ class WPS extends RestoModule {
     function getProcessingsList()
     {
         // get WPS rights
-        if ($this->user->profile['groupname'] === 'admin') {
+        if ($this->user->isAdmin()) {
             $wpsRights = array('all');
         } else {
             $wpsRights = $this->getEnabledProcessings($this->user->profile['groupname']);
@@ -1149,14 +1220,7 @@ class WPS extends RestoModule {
      */
     function checkUserAccess($userid) {
 
-        if ($this->user->profile['userid'] !== $userid)
-        {
-            if ($this->user->profile['groupname'] !== 'admin')
-            {
-                return false;
-            }
-        }
-        return true;
+        return $this->user->profile['userid'] === $userid || $this->user->isAdmin();
     }
    
     /**

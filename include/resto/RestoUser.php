@@ -144,6 +144,15 @@ class RestoUser {
     }
     
     /**
+     * Return true if user has administration rights, otherwise false.
+     *
+     * @return boolean
+     */
+    public function isAdmin() {
+        return $this->profile['groupname'] === 'admin';
+    }
+
+    /**
      * Can User download ? 
      * 
      * @param string $collectionName

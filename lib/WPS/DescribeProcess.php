@@ -71,12 +71,10 @@ class DescribeProcess {
                         // Removing not allowed processes
                         foreach ($processes as $process) {
                             $identifier = $process->getElementsByTagNameNS('http://www.opengis.net/ows/1.1', 'Identifier');
-                            if ($identifier && $identifier->length > 0) 
+                            if ($identifier && $identifier->length > 0
+                                    && !in_array($identifier->item(0)->nodeValue, $processes_enabled)) 
                             {
-                                if (!in_array($identifier->item(0)->nodeValue, $processes_enabled)) 
-                                {
-                                    $processesToRemove[] = $process;
-                                }
+                                $processesToRemove[] = $process;
                             }
                         }
                         foreach($processesToRemove as $process) 

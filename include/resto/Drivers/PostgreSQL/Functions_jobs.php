@@ -63,18 +63,18 @@ class Functions_jobs {
      * @param string $email
      * @return number
      */
-    public function getStats($userid)
+    public function getStats($userid, $filters= array())
     {
         if (!isset($userid)) {
             return 0;
         }
+        $filters[] = "(status = 'ProcessSucceeded' OR status = 'ProcessFailed')";
+        $filters[] = 'userid=' . $this->dbDriver->quote($userid);
+        $filters[] = 'visible=TRUE';
+        $filters[] = 'acknowledge = FALSE';
+        $oFilter = implode(' AND ', $filters);
         
-        $query = "SELECT count(status)"
-               . " FROM usermanagement.jobs"
-               . " WHERE (status = 'ProcessSucceeded' OR status = 'ProcessFailed')"
-               . " AND userid = " . $this->dbDriver->quote($userid)
-               . " AND acknowledge = FALSE"
-               . " AND visible = TRUE";
+        $query = 'SELECT count(status) FROM usermanagement.jobs WHERE ' . $oFilter;
         
         $result = $this->dbDriver->query($query);
         $row = $this->dbDriver->fetch_assoc($result);
@@ -100,7 +100,7 @@ class Functions_jobs {
             
             // Inserting the job into database
             $userid             = $this->dbDriver->quote($userid);
-            $querytime          = $this->dbDriver->quote($data['querytime'], date("Y-m-d H:i:s"));
+            $querytime          = $this->dbDriver->quote($data['querytime'], date('Y-m-d H:i:s'));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
             $title              = $this->dbDriver->quote($data['title'], 'NULL');
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
@@ -168,11 +168,8 @@ class Functions_jobs {
                 return false;
             }
             // If no update, return false
-            if (pg_num_rows($result) < 1) {
-                return false;
-            } else {
-                return true;
-            }
+            return (pg_num_rows($result) >= 1);
+
         } catch (Exception $e) {
             return false;
         }
@@ -195,11 +192,7 @@ class Functions_jobs {
             $result = $this->dbDriver->query($query);
     
             // If no deletion, return false
-            if (pg_num_rows($result) < 1) {
-                return false;
-            } else {
-                return true;
-            }
+            return (pg_num_rows($result) >= 1);
         } catch (Exception $e) {
             return false;
         }
@@ -233,9 +226,15 @@ class Functions_jobs {
             $logs               = $this->dbDriver->quote2($data, 'logs', 'NULL');
         
             // update properties
-            $query = 'UPDATE usermanagement.jobs'
-                    . " SET last_dispatch=${last_dispatch}, status=${status}, percentcompleted=${percentCompleted}, statusmessage=${statusMessage}, statustime=${statusTime}, nbresults=${nbResults}, logs=${logs}"
-                    . " WHERE gid=${gid}";
+            $query = 'UPDATE usermanagement.jobs SET ' 
+                            . 'last_dispatch=' . $last_dispatch 
+                            . ', status=' . $status
+                            . ', percentcompleted=' . $percentCompleted 
+                            . ', statusmessage=' . $statusMessage
+                            . ', statustime=' . $statusTime
+                            . ', nbresults=' . $nbResults 
+                            . ', logs=' . $logs
+                    . ' WHERE gid=' . $gid;
             
             $this->dbDriver->query($query);
 

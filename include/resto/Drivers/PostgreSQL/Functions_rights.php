@@ -147,12 +147,13 @@ class Functions_rights {
                 isset($featureIdentifier) ? '\'' . pg_escape_string($featureIdentifier) . '\'' : 'NULL',
                 isset($productIdentifier) ? '\'' . pg_escape_string($productIdentifier) . '\'' : 'NULL',
                 '\'' . pg_escape_string($identifier) . '\'',
-                $this->valueOrNull($rights['search']),
-                $this->valueOrNull($rights['visualize']),
-                $this->valueOrNull($rights['download']),
-                $this->valueOrNull($rights['canpost']),
-                $this->valueOrNull($rights['canput']),
-                $this->valueOrNull($rights['candelete']),
+                isset($rights['search']) ? $rights['search'] : 'NULL',
+                isset($rights['visualize']) ? $rights['visualize'] : 'NULL',
+                isset($rights['download']) ? $rights['download'] : 'NULL',
+                isset($rights['canpost']) ? $rights['canpost'] : 'NULL',
+                isset($rights['canput']) ? $rights['canput'] : 'NULL',
+                isset($rights['candelete']) ? $rights['candelete'] : 'NULL',
+
                 isset($rights['filters']) ? '\'' . pg_escape_string(json_encode($rights['filters'])) . '\'' : 'NULL'
             );
             $result = pg_query($this->dbh, 'INSERT INTO usermanagement.rights (collection,featureid,productidentifier,emailorgroup,search,visualize,download,canpost,canput,candelete,filters) VALUES (' . join(',', $values) . ')');    
@@ -226,13 +227,4 @@ class Functions_rights {
             RestoLogUtil::httpError(500, 'Cannot delete rights for ' . $identifier);
         }
     }
-    
-    /**
-     * Return $value or NULL
-     * @param string $value
-     */
-    private function valueOrNull($value) {
-        return isset($value) ? $value : 'NULL';
-    }
-   
 }

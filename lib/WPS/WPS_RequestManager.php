@@ -222,8 +222,7 @@ class WPS_RequestManager {
 
             if ($response->isExecuteResponse()) 
             {
-                $response = new WPS_ExecuteResponse($response->toXML());
-                return $response;
+                return new WPS_ExecuteResponse($response->toXML());
             }
         } 
         catch (Exception $e) { }
@@ -253,6 +252,36 @@ class WPS_RequestManager {
         catch (Exception $e) { }
         
         return false;
+    }
+    
+    /**
+     * 
+     * @param unknown $data
+     * @return boolean
+     */
+    public function parseStatusReport($data){
+        try
+        {
+            $response = new WPS_Response($data);
+            
+            if ($response->isExecuteResponse())
+            {
+                $response = new WPS_ExecuteResponse($response->toXML());
+                return $response->getProactiveReport();
+            }
+        }
+        catch (Exception $e) { }
+        
+        return false;
+    }
+    
+    /**
+     * 
+     * @param unknown $jobId
+     * @return string
+     */
+    public function getStatusUrl($jobId){
+        return $this->getServerAddress() . '?service=WPS&request=execute&version=1.0.0&identifier=PROCESSING_STATUS&DataInputs=[wps_id=' . $jobId . ']';
     }
     
     /**
@@ -295,16 +324,4 @@ class WPS_RequestManager {
         return null;
     }
     
-    /**
-     *
-     * @param unknown $query
-     * @param unknown $data
-     * @param unknown $files
-     */
-    public function request($query, $data, $files) {
-    }
-    public function parseRequest() {
-    }
-    private function performRequest() {
-    }
 }

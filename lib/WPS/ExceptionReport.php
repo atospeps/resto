@@ -31,7 +31,7 @@ class ExceptionReport {
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
         $dom->loadXML($xml);
-        $xml = $dom->saveXML();
-        return $xml;
+        
+        return $dom->saveXML();
     }
 }

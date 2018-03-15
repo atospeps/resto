@@ -6,12 +6,7 @@
  *
  */
 class WPS_Status {
-    
-    
-   public function __construct(){
-       
-   }
-    
+
     /*
      * WPS status events.
      */

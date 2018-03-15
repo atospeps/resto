@@ -119,6 +119,33 @@ class Curl {
         }
         return fclose($handle);
     }
+    
+    /**
+     * Initialize a cURL session
+     */
+    public static function Init($url, $options=array()){
+        $ch = curl_init($url);
+        
+        $opts = array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_VERBOSE => 0,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_FOLLOWLOCATION => 1,
+                CURLOPT_FAILONERROR => 1
+        );
+        
+        foreach ($options as $key => $value){
+            $opts[$key] = $value;
+        }
+        
+        /*
+         * Sets request options.
+         */
+        foreach ($opts as $option => $value){
+            @curl_setopt($ch, $option, $value);
+        }
+        return $ch;
+    }
 
     /**
      * 

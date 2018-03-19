@@ -1110,12 +1110,11 @@ abstract class RestoModel {
                 $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
                 break;
             case 'S3' :
-                // ignore product creation date + center code + timeliness
+                // ignore product creation date + timeliness
                 //      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
                 $regexFeatureVersions = substr($productIdentifier, 0, 48)  . '%'    // product creation date (YYYYMMDDTHHMMSS)
-                                      . substr($productIdentifier, 63, 19) . '%'    // center code (GGG)
-                                      . substr($productIdentifier, 85, 3)  . '%'    // timeliness (XX)
-                                      . substr($productIdentifier, 90);
+                . substr($productIdentifier, 63, 25) . '%'    // timeliness (XX)
+                . substr($productIdentifier, 90);
                 break;
             default :
                 break;

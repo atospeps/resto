@@ -196,19 +196,13 @@ class Functions_features {
         $schema = !empty($collection) ? '_' . strtolower($collection->name) : 'resto';
         $model = isset($collection) ? $collection->model : new RestoModel_default();
 
-        /*
-         * WHERE
-         */
-        $whereClause = " WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'";
+        // WHERE Clause
+        $whereClause = " WHERE product_version(title, '" . $collection->name . "')='" . pg_escape_string($pattern) . "'";
         
-        /*
-         * FROM
-         */ 
+        // FROM Clause
         $fromClause = ' FROM ' . pg_escape_string($schema) . '.features';
 
-        /*
-         * ORDER BY
-         */
+        // Order by Clause
         switch($schema) {
             case '_s1':
                 $orderByClause = " ORDER BY"
@@ -248,6 +242,8 @@ class Functions_features {
                                .   " END,"
                                . " SUBSTRING (productidentifier, 49, 15) DESC"; // creation date
                 break;
+             default:
+                 break;
         }
 
         /*
@@ -278,7 +274,7 @@ class Functions_features {
         $schema = !empty($collectionName) ? '_' . strtolower($collectionName) : 'resto';
         $query = "SELECT realtime"
                . "  FROM " . $schema . ".features"
-               . "  WHERE productidentifier LIKE '" . pg_escape_string($pattern) . "'"
+               . "  WHERE product_version(title, '$collectionName')='" . pg_escape_string($pattern) . "'"
                . "  AND realtime = '" . $realtime . "'";
         $results = $this->dbDriver->query($query);
         $rows = pg_num_rows($results);
@@ -356,13 +352,6 @@ class Functions_features {
      */
     public function storeFeature($collection, $featureArray) {
 
-        /*
-         * Check that resource does not already exist in database
-         */
-        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array('featureIdentifier' => $featureArray['id']))) {
-            RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' already in database');
-        }
-        
         /*
          * Get database columns array
          */

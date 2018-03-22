@@ -1050,26 +1050,38 @@ abstract class RestoModel {
         $regexFeatureVersions = null;
         switch ($collection) {
             case 'S1' :
-                // ignore checksum (CCCC)
-                //      MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC
-                $regexFeatureVersions = substr($productIdentifier, 0, $length - 4) . '%';
+                /* 
+                 * ignore checksum (CCCC)
+                 *      MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC
+                 *      pattern version ==> MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, $length - 5);
                 break;
             case 'S2' :
-                // ignore ... (yyyymmddThhmmss)
-                //      MMM_CCCC_TTTTTTTTTT_ssss_yyyymmddThhmmss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
-                $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                /* 
+                 * ignore ... (yyyymmddThhmmss)
+                 *    MMM_CCCC_TTTTTTTTTT_ssss_yyyymmddThhmmss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
+                 *    pattern version ==> MMM_CCCC_TTTTTTTTTT_ssss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 24) . substr($productIdentifier, 40);
                 break;
             case 'S2ST' :
-                // ignore processing baseline number (xxyy)
-                //      MMM_MSIL1C_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_YYYYMMDDTHHMMSS
-                $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
+                /* 
+                 * ignore processing baseline number (xxyy)
+                 *      MMM_MSIL1C_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_YYYYMMDDTHHMMSS
+                 *      pattern version==> MMM_MSIL1C_YYYYMMDDTHHMMSS_N_ROOO_Txxxxx_YYYYMMDDTHHMMSS
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 28) . substr($productIdentifier, 32);
                 break;
             case 'S3' :
-                // ignore product creation date + timeliness
-                //      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
-                $regexFeatureVersions = substr($productIdentifier, 0, 48)  . '%'    // product creation date (YYYYMMDDTHHMMSS)
-                . substr($productIdentifier, 63, 25) . '%'    // timeliness (XX)
-                . substr($productIdentifier, 90);
+                /* 
+                 * ignore product creation date + timeliness
+                 *      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
+                 *      pattern version => MMM_OL_L_TTTTTT_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_NNN
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 48)
+                . substr($productIdentifier, 64, 24)
+                . substr($productIdentifier, 91);
                 break;
             default :
                 break;

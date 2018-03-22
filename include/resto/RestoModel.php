@@ -760,6 +760,10 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not defined');
         }
 
+        if (empty($properties['realtime'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
+        }
+
         /*
          * Compute unique identifier
         */
@@ -778,13 +782,6 @@ abstract class RestoModel {
         ))) {
             RestoLogUtil::httpError(409, 'Feature ' . $featureIdentifier . ' already in database');
         }
-
-        /*
-         * Default realtime value
-         */
-        if (empty($properties['realtime'])) {
-            $properties['realtime'] = $this->getDefaultRealtime($collection->name, $properties);
-        }
         
         /*
          * For S1 collection and $context->obsolescenceS1useDhusIngestDate == false
@@ -792,16 +789,14 @@ abstract class RestoModel {
          */
         if ($collection->name === 'S1' &&
             $collection->context->obsolescenceS1useDhusIngestDate === false &&
-            !empty($properties['productIdentifier']) &&
-            !empty($properties['realtime'])
-        ) {
-            if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
-                'collectionName' => 'S1',
-                'realtime' => $properties['realtime'],
-                'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], 'S1')
-            ))) {
-                RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['productIdentifier'] . ')');
-            }
+            $collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
+                    'collectionName' => 'S1',
+                    'realtime' => $properties['realtime'],
+                    'pattern' => $this->getFeatureVersionPattern($properties['title'], 'S1')
+            ))
+        ) 
+        {
+                RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['title'] . ')');
         }
         
         /*
@@ -829,43 +824,6 @@ abstract class RestoModel {
         $this->updateFeatureVersions($feature);
 
         return $feature;
-    }
-    
-    /**
-     * Returns a default realtime value
-     * 
-     * @param string $collectionName
-     * @param object $properties
-     * @return string realtime value
-     */
-    private function getDefaultRealtime($collectionName, $properties)
-    {
-        $realtime = '';
-        
-        switch($collectionName) {
-            case 'S1':
-                // use property isnrt
-                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT-3h' : 'Reprocessing';  
-                break;
-            case 'S2ST':
-                // use property isnrt
-                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT' : 'Nominal';
-                break;
-            case 'S3':
-                // use title timeliness
-                $realtime = 'NTC';
-                if (isset($properties['productIdentifier'])) {
-                    $timeliness = substr($properties['productIdentifier'], 88, 2);
-                    switch($timeliness) {
-                        case 'NR': $realtime = 'NRT'; break;
-                        case 'ST': $realtime = 'STC'; break;
-                        case 'NT': $realtime = 'NTC'; break;
-                    }
-                }
-                break;
-        }
-        
-        return $realtime;
     }
     
     /**
@@ -957,11 +915,8 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
         }
 
-        /*
-         * Default realtime value
-         */
         if (empty($properties['realtime'])) {
-            $properties['realtime'] = $this->getDefaultRealtime($feature->collection->name, $properties);
+            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
         }
         
         /*
@@ -981,7 +936,7 @@ abstract class RestoModel {
                 )
         ));
 
-        if ($obsolescence == true){
+        if ($obsolescence === true){
             $this->updateFeatureVersions($feature);
         }
     }

@@ -1,5 +1,5 @@
 --
--- VERSION 2.0 de PEPS
+-- VERSION 2.2 de PEPS
 --
 -- NRT
 --

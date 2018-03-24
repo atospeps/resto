@@ -85,13 +85,19 @@ DROP INDEX IF EXISTS usermanagement.jobs_userid_idx;
 CREATE INDEX jobs_userid_idx ON usermanagement.jobs (userid DESC);
 
 DROP INDEX IF EXISTS usermanagement.jobs_querytime_idx;
-CREATE INDEX jobs_querytime_idx ON usermanagement.jobs (querytime DESC);
+--CREATE INDEX jobs_querytime_idx ON usermanagement.jobs (querytime DESC) where visible=true;
 
 DROP INDEX IF EXISTS usermanagement.jobs_last_dispatch_idx;
-CREATE INDEX jobs_last_dispatch_idx ON usermanagement.jobs (last_dispatch DESC);
+--CREATE INDEX jobs_last_dispatch_idx ON usermanagement.jobs (last_dispatch DESC);
 
 DROP INDEX IF EXISTS usermanagement.jobs_statuslocation_idx;
 CREATE INDEX jobs_statuslocation_idx ON usermanagement.jobs (statuslocation DESC);
+
+DROP INDEX IF EXISTS usermanagement._usermanagement_jobs_stats_idx;
+CREATE INDEX _usermanagement_jobs_stats_idx ON usermanagement.jobs USING btree (querytime DESC, userid) where visible=true and acknowledge = FALSE AND (status = 'ProcessSucceeded' OR status = 'ProcessFailed');
+
+DROP INDEX IF EXISTS usermanagement._usermanagement_jobs_list_idx;
+CREATE INDEX _usermanagement_jobs_list_idx ON usermanagement.jobs USING btree (querytime DESC, userid) where visible=true;
 
 -- ----------------------------------------------------------------------------------------
 --

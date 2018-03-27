@@ -44,8 +44,8 @@ $func$  LANGUAGE plpgsql;
 SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
 SELECT f_drop_col('usermanagement.jobs', 'email');
 
-DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
-CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
+--DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
+--CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
 
 -- ----------------------------------------------------------------------------------------
 --
@@ -72,4 +72,13 @@ INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '
 --
 -------------------------------------------------------------------------------------------
 UPDATE resto.osdescriptions SET developper = 'CNES'
+
+
+-- ----------------------------------------------------------------------------------------
+-- 
+-- PEPS-FT-638 
+-- Les datatakeID des produits S2 sont manquants
+--
+-- ----------------------------------------------------------------------------------------
+UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 15) || to_char(orbitnumber, '000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid IS NULL OR s2takeid='';
 

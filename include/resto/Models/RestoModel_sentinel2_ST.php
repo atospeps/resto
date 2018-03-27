@@ -176,7 +176,10 @@ class RestoModel_sentinel2_ST extends RestoModel {
                 'water' => $this->getElementByName($dom, 'waterPercentage', 'NUMERIC')
             )
       );
-        
+
+      if (empty($feature['properties']['s2takeid'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - s2takeid is not defined');
+      }
       return $feature;
     }
 

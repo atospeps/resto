@@ -124,18 +124,20 @@ class Functions_jobs {
             // Save job.
             $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
-            $jobid = $this->dbDriver->query($query);
+            $job = $this->dbDriver->fetch_assoc($this->dbDriver->query($query));
             
-            if (!$jobid)
-            {
+            if (empty($job['gid']))
+            {             
+                pg_query($this->dbh, 'ROLLBACK');
                 return false;
             }
+
             // Save results
             foreach ($outputs as $output){
-                if (isset($output['value']) && isset($output['type']) && isset($output['identifier'])) {
-                    
-                    $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, value)'
-                            . " VALUES ($jobid, $userid, '${output['identifier']}', '${output['value']}')";
+                if (isset($output['value']) && isset($output['type']) && isset($output['identifier'])) 
+                {
+                    $value = pg_escape_string($output['value']);
+                    $query = "INSERT INTO usermanagement.wps_results (jobid, userid, identifier, value) VALUES ({$job['gid']}, $userid, '{$output['identifier']}', '{$value}')";
                     $this->dbDriver->query($query);
                 }
             }

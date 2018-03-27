@@ -227,7 +227,9 @@ class WPS_ExecuteResponse extends WPS_Response {
         if ($data && count($data)>0) {
             $output = array_merge($output, $this->parseReferenceOutput($data[0]));
 
-            if (isset($output['identifier']) && strtolower($output['identifier']) == 'report' )
+            if (isset($output['identifier']) && 
+                    preg_match('/(report)-(.*).(xml|json)/', strtolower($output['identifier']), $matches) && 
+                    isset($matches[2]))
             {
                 $this->statusLocation = isset($output['value']) ? $output['value'] : $this->statusLocation;
                 $output = array();

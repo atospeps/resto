@@ -316,7 +316,7 @@ class WPS extends RestoModule {
         {
             $executeResponse = new WPS_ExecuteResponse($response->toXML());
         
-            $query = ($method == HttpRequestMethod::GET) 
+            $query = ($method === HttpRequestMethod::GET) 
                         ?  $this->context->query 
                         : (strlen ($data) > 2500 ? substr ($data, 0, 2500) . ' ... ' : $data);
             $data = array_merge(
@@ -332,6 +332,7 @@ class WPS extends RestoModule {
             $data['percentcompleted'] = (empty($data['statusLocation'])) ?  $data['percentcompleted'] : 0;
             $data['status'] = (empty($data['statusLocation'])) ? $data['status'] : 'ProcessAccepted';
             // Store job into database
+
             $this->storeJob($this->user->profile['userid'], $data);
         }
         return $response;
@@ -359,7 +360,7 @@ class WPS extends RestoModule {
         if (count($job) > 0) 
         {
             $response = $this->wpsRequestManager->getExecuteResponse($job[0]['statuslocation']);
-            if ($response == false){
+            if ($response === false){
                 return RestoLogUtil::httpError(404);
             }
             $response->replaceTerms($this->replacements);
@@ -376,7 +377,7 @@ class WPS extends RestoModule {
         
         if (count($result) > 0) 
         {
-            return $this->wpsRequestManager->download($result[0]['value']);
+            return $this->wpsRequestManager->download($result[0]['value'], null, $result[0]['identifier']);
         }
         
         // HTTP 404
@@ -488,7 +489,7 @@ class WPS extends RestoModule {
                     
                     if (count($result) > 0)
                     {
-                        return $this->wpsRequestManager->download($result[0]['value'], null);
+                        return $this->wpsRequestManager->download($result[0]['value'], null, $result[0]['identifier']);
                     }
                     break;
                 // wps/users/{userid}/jobs/{jobid}/logs
@@ -537,7 +538,7 @@ class WPS extends RestoModule {
             
             if (count($result) > 0)
             {
-                return $this->wpsRequestManager->download($result[0]['value'], null);
+                return $this->wpsRequestManager->download($result[0]['value'], null, $result[0]['identifier']);
             }
         }
         return RestoLogUtil::httpError(404);
@@ -989,7 +990,7 @@ class WPS extends RestoModule {
 
                 preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
                 if (isset($matches[2]))
-                {                  
+                {
                     $curl_arr[$count] = Curl::Init(
                             $this->wpsRequestManager->getStatusUrl($matches[2]),
                              $this->wpsRequestManager->getCurlOptions());

@@ -315,7 +315,11 @@ class WPS extends RestoModule {
         if ($response->isExecuteResponse())
         {
             $executeResponse = new WPS_ExecuteResponse($response->toXML());
-        
+            if ($executeResponse->getIdentifier() === WPS_RequestManager::WPS_STATUS_SERVICE)
+            {
+                return $response;
+            }
+            
             $query = ($method === HttpRequestMethod::GET) 
                         ?  $this->context->query 
                         : (strlen ($data) > 2500 ? substr ($data, 0, 2500) . ' ... ' : $data);

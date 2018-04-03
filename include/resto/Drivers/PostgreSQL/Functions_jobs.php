@@ -108,7 +108,7 @@ class Functions_jobs {
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
             $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
             $percentCompleted   = $this->dbDriver->quote($data['percentcompleted'], 0);
-            $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
+            $outputs            = (!empty($data['statusLocation']) && isset($data['outputs'])) ? $data['outputs'] :  array();
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
 

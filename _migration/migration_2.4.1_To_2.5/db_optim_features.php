@@ -19,7 +19,7 @@ $resto_db = array(
   'password' => isset($options['p']) ? $options['p'] : 'resto',
 );
 
-$db = verify_db($resto_db);
+$db = check_db($resto_db);
 
 /*************************************************/
 /*************************************************/
@@ -73,7 +73,7 @@ function output($s) {
 /**
  * We validate a data base
  */
-function verify_db($db)
+function check_db($db)
 {
     $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
     if (!$db_connection) {

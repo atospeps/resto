@@ -777,8 +777,10 @@ abstract class RestoModel {
          * First check if feature is already in database
          * (do this before getKeywords to avoid iTag process)
          */
+        $schemaName = '_' . strtolower($collection->name);
         if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array(
-                'featureIdentifier' => $featureIdentifier
+                'featureIdentifier' => $featureIdentifier,
+                'schema' => $schemaName
         ))) {
             RestoLogUtil::httpError(409, 'Feature ' . $featureIdentifier . ' already in database');
         }
@@ -815,7 +817,8 @@ abstract class RestoModel {
         ));
 
         $feature = new RestoFeature($collection->context, $collection->user, array (
-                'featureIdentifier' => $featureIdentifier
+                'featureIdentifier' => $featureIdentifier,
+                'collection' => $collection
         ));
 
         /*
@@ -844,15 +847,13 @@ abstract class RestoModel {
         // get all the product versions ordered by the newest first
         $allVersions = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURE_ALL_VERSIONS, array(
             'context' => $collection->context,
-            'user' => $collection->user,
-            'productIdentifier' => $properties['productIdentifier'],
-            'dhusIngestDate' => $properties['dhusIngestDate'],
-            'collection' => $feature->collection,
+            'collection' => $collection,
             'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
         ));
         
+        $count = count($allVersions);
         // if there is more than one version of the product
-        if (count($allVersions) > 1) {
+        if ($count > 1) {
             // in all cases, the newest version is set to visible
             $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                 'collection' => $collection,
@@ -862,8 +863,8 @@ abstract class RestoModel {
             ));
             // the other versions (NRT) become invisible
             $nrtVersions = array();
-            for ($i = 1/*ignore the newest version*/; $i < count($allVersions); $i++) {
-                if ($allVersions[$i]['properties']['isNrt'] == 1) {
+            for ($i = 1/*ignore the newest version*/; $i < $count; $i++) {
+                if ($allVersions[$i]['isnrt'] == 1) {
                     $nrtVersions[] = $allVersions[$i]; 
                 }
             }
@@ -872,7 +873,7 @@ abstract class RestoModel {
                     'collection' => $collection,
                     'featuresArray' => $nrtVersions,
                     'visible' => 0,
-                    'newVersion' => $allVersions[0]['id']
+                    'newVersion' => $allVersions[0]['identifier']
                 ));
             }
         }

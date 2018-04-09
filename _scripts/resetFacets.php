@@ -21,7 +21,7 @@ date_default_timezone_set('Europe/Paris');
 echo 'Debut : ' . date("Y-m-d H:i:s") . PHP_EOL;
 
 // Get the database connection
-$db = verify_db($resto_db);
+$db = check_db($resto_db);
 
 // Delete all facets
 deleteFacets($db);
@@ -91,7 +91,7 @@ function getFeatures($db, $number, $offset) {
 /*
  * Try to connect to the database
  */
-function verify_db($db){
+function check_db($db){
     echo '------- Database validation -------' . PHP_EOL;
     $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
     if (!$db_connection) {

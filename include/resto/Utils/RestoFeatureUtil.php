@@ -88,15 +88,12 @@ class RestoFeatureUtil {
         /*
          * Initialize featureArray
          */
-        $featureArray = array(
+        return array(
             'type' => 'Feature',
             'id' => $rawFeatureArray['identifier'],
             'geometry' => isset($rawCorrectedArray['geometry']) ? $rawCorrectedArray['geometry'] : null,
             'properties' => $this->toProperties($rawCorrectedArray)
         );
-        
-        return $featureArray;
-        
     }
     
     /**

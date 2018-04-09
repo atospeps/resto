@@ -147,6 +147,7 @@ class Functions_features {
      * @throws Exception
      */
     public function getFeatureDescription($context, $user, $identifier, $collection = null, $filters = array()) {
+        
         $model = isset($collection) ? $collection->model : new RestoModel_default();
         $filtersUtils = new Functions_filters();
         $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model)) . ' FROM ' . (isset($collection) ? '_' . strtolower($collection->name) : 'resto') . '.features WHERE ' . $model->getDbKey('identifier') . "='" . pg_escape_string($identifier) . "'" . (count($filters) > 0 ? ' AND ' . join(' AND ', $filters) : '');
@@ -189,7 +190,7 @@ class Functions_features {
      * @param string $pattern
      * @return array|null
      */
-    public function getAllVersions($context, $user, $productIdentifier, $dhusIngestDate, $collection, $pattern)
+    public function getAllVersions($context, $collection, $pattern)
     {
         $filtersUtils = new Functions_filters();
         
@@ -249,16 +250,12 @@ class Functions_features {
         /*
          * Query
          */ 
-        $query = 'SELECT ' . implode(',', $filtersUtils->getSQLFields($model));
-        $query .= $fromClause;
-        $query .= $whereClause;
-        $query .= $orderByClause;
-        
+        $query = 'SELECT identifier, realtime, isnrt' .  $fromClause . $whereClause . $orderByClause;
+
         /*
          * Results
          */
-        $results = $this->dbDriver->query($query);
-        return $this->toFeatureArray($context, $user, $collection, $results);
+        return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
 
     /**
@@ -272,12 +269,13 @@ class Functions_features {
     public function checkRealtimeExists($collectionName, $realtime, $pattern)
     {
         $schema = !empty($collectionName) ? '_' . strtolower($collectionName) : 'resto';
-        $query = "SELECT realtime"
-               . "  FROM " . $schema . ".features"
-               . "  WHERE product_version(title, '$collectionName')='" . pg_escape_string($pattern) . "'"
-               . "  AND realtime = '" . $realtime . "'";
-        $results = $this->dbDriver->query($query);
-        $rows = pg_num_rows($results);
+        
+        $fromClause =   '  FROM ' . $schema . '.features';
+        $whereClause =  "  WHERE product_version(title, '$collectionName')='" . pg_escape_string($pattern) . "'"
+                . "  AND realtime = '" . $realtime . "'";
+        
+        $query = 'SELECT realtime' . $fromClause . $whereClause;
+        $rows = pg_num_rows($this->dbDriver->query($query));
         return ($rows > 0);
     }
     
@@ -302,7 +300,7 @@ class Functions_features {
         $values = implode(', ', array_map(function ($v, $k) { return $k . '=' . $v; }, $columnsAndValues, array_keys($columnsAndValues)));
 
         // List of product (by id) to update
-        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($feature) { return "'{$feature['id']}'"; }, $featuresArray)));
+        $oldFeaturesIdList = implode(', ', array_values(array_map(function ($feature) { return "'{$feature['identifier']}'"; }, $featuresArray)));
 
         // Database schema
         $schema = isset($collection) ? ('_' . strtolower($collection->name)) : 'resto';

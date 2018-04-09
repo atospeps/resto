@@ -857,7 +857,7 @@ abstract class RestoModel {
             // in all cases, the newest version is set to visible
             $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                 'collection' => $collection,
-                'featuresArray' => $allVersions[0],
+                'featuresArray' => array($allVersions[0]),
                 'visible' => 1,
                 'newVersion' => ''
             ));

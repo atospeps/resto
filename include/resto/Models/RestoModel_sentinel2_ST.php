@@ -177,11 +177,7 @@ class RestoModel_sentinel2_ST extends RestoModel {
             )
       );
 
-<<<<<<< HEAD
       if (empty($feature['properties']['s2TakeId'])) {
-=======
-      if (empty($feature['properties']['s2Takeid'])) {
->>>>>>> branch '2.1' of https://github.com/atospeps/resto.git
             RestoLogUtil::httpError(500, 'Invalid feature description - s2takeid is not defined');
       }
       return $feature;

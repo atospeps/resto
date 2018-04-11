@@ -97,7 +97,7 @@ function setVisibleNewVersion($collectionName)
             }
         }        
     } 
-    output("Finished : $count products updated.");
+    output("End to updating collection $collectionName ( $count products updated ).");
 }
 
 /**

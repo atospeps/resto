@@ -34,7 +34,24 @@ DROP INDEX IF EXISTS _s3._s3_features_version_idx;
 CREATE INDEX _s3_features_version_idx ON _s3.features (product_version(title, 'S3'));
 
 
------------------------------------------------------------------------
+--------------------------------------------------------------------------
+--
+-- UPDATE realtime S1
+--
+--------------------------------------------------------------------------
+UPDATE _s1.features   SET realtime = 'Reprocessing' WHERE isnrt = 0;
+UPDATE _s1.features   SET realtime = 'NRT-3h'       WHERE isnrt = 1;
+
+--------------------------------------------------------------------------
+--
+-- UPDATE realtime S2ST
+--
+--------------------------------------------------------------------------
+UPDATE _s2st.features SET realtime = 'Nominal'      WHERE isnrt = 0;
+UPDATE _s2st.features SET realtime = 'NRT'          WHERE isnrt = 1;
+
+
+--------------------------------------------------------------------------
 --
 -- UPDATE realtime/ISNRT S3
 --

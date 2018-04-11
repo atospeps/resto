@@ -39,7 +39,7 @@ CREATE INDEX _s3_features_version_idx ON _s3.features (product_version(title, 'S
 -- UPDATE realtime S1
 --
 --------------------------------------------------------------------------
-UPDATE _s1.features   SET realtime = 'Reprocessing' WHERE isnrt = 0;
+UPDATE _s1.features   SET realtime = 'Fast-24h' WHERE isnrt = 0;
 UPDATE _s1.features   SET realtime = 'NRT-3h'       WHERE isnrt = 1;
 
 --------------------------------------------------------------------------

@@ -69,7 +69,7 @@ function setVisibleNewVersion($collectionName)
     // for all the NRT products...
     $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
     if (!$r) {
-        output("Une erreur est survenue");
+        output("An error has occurred");
         exit;
     }
     while ($nrtProduct = pg_fetch_assoc($r)) {

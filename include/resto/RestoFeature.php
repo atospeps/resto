@@ -110,7 +110,7 @@ class RestoFeature {
                 fclose($handle);
 
                 $response = $this->callStagingWS($path, $this->context->hpssTimeout);
-                if ($response == false){
+                if ($response === false){
                     // file is unavailable
                     header('HTTP/1.1 202 You should retry the request');
                     header('X-regards-retry: ' . $this->context->hpssRetryAfter);
@@ -542,7 +542,7 @@ class RestoFeature {
                 CURLOPT_TIMEOUT => $timeout
         ));
 
-        $response = curl_exec($curl);
+        curl_exec($curl);
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
         // File is available

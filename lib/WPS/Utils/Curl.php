@@ -154,7 +154,7 @@ class Curl {
      * @throws Exception
      * @return unknown
      */
-    private function exec($url, $curl_options) {
+    private static function exec($url, $curl_options) {
         $ch = curl_init($url);
         /*
          * Sets request options.

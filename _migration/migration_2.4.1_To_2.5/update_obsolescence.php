@@ -130,7 +130,7 @@ function getAllVersions($collectionName, $productIdentifier)
                     .     " WHEN 'NRT-10m'      THEN 6"
                     .     " ELSE 7"
                     .   " END";
-            if (obsolescenceS1useDhusIngestDate === true) {
+            if ($obsolescenceS1useDhusIngestDate === true) {
                 $orderByClause .= ", dhusingestdate DESC";
             }
             break;

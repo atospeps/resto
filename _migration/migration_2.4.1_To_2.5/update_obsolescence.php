@@ -237,7 +237,8 @@ function output($s) {
  */
 function check_db($db)
 {
-    $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
+    $connectionString = "host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . (!empty($db['password']) ? (" password=" . $db['password']) : "");
+    $db_connection = pg_connect( $connectionString );
     if (!$db_connection) {
         echo "Error connecting to the " . $db['db'] .' data base' . PHP_EOL;
         exit();

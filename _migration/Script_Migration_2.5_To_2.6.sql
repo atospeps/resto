@@ -1,5 +1,5 @@
 --
--- VERSION 2.1 de PEPS
+-- VERSION 2.2 de PEPS
 --
 
 --
@@ -62,7 +62,10 @@ SELECT f_drop_col('usermanagement.rights', 'wps');
 --                       
 --
 ------------------------------------------------------------------------------------------- 
+DELETE FROM resto.keywords WHERE name='L1C' and value='level1c' and lang='**' and type='processingLevel';
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'level1c', '**', 'processingLevel');
+
+DELETE FROM resto.keywords WHERE name='L2A' and value='level2a' and lang='**' and type='processingLevel';
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '**', 'processingLevel');
 
 -- ----------------------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 date_default_timezone_set('UTC');
 error_reporting(E_ALL);
 
-$options = getopt('d:u:p:');
+$options = getopt('d:u:p:c:');
 
 /*************************************************/
 /*************************************************/
@@ -21,6 +21,8 @@ $resto_db = array(
   'user'     => isset($options['u']) ? $options['u'] : 'resto',
   'password' => isset($options['p']) ? $options['p'] : 'resto',
 );
+
+$collections = empty($options['c']) ? array('S1', 'S2ST', 'S3') : explode(';', $options['c']);
 
 $db = check_db($resto_db);
 
@@ -42,9 +44,11 @@ output('*** OBSOLESCENCE UPDATE FINISHED ***');
  */
 function update_obsolescence()
 {    
-    setVisibleNewVersion('S1');
-    setVisibleNewVersion('S2ST');
-    setVisibleNewVersion('S3');
+    global $collections;
+    foreach ($collections as $c)
+    {
+        setVisibleNewVersion($c);
+    }
 
 }
 
@@ -55,6 +59,10 @@ function update_obsolescence()
  */
 function setVisibleNewVersion($collectionName)
 {
+    if ($collectionName != 'S1' && $collectionName != 'S2ST' && $collectionName != 'S3'){
+        return;
+    }
+    
     $schema = '_' . strtolower($collectionName);
     
     output('Updating collection '.$collectionName . '...');

@@ -212,13 +212,14 @@ class Functions_users {
             return true;   
 		}
 		
-        if(isset($profile['email'])) {
+        if(isset($profile['email'])) 
+        {
             $query = 'UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE email=\'' . pg_escape_string(trim(strtolower($profile['email']))) .'\' RETURNING userid';
-            $results = $this->dbDriver->fetch($this->dbDriver->query($query));
-        } else {
+        } 
+        else {
             $query = 'UPDATE usermanagement.users SET ' . join(',', $values) . ' WHERE userid=\'' . pg_escape_string(trim(strtolower($profile['id']))) .'\' RETURNING userid';
-            $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         }
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         return count($results) === 1 ? $results[0]['userid'] : null;
         

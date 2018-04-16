@@ -30,10 +30,6 @@ class HPSS extends RestoModule {
      */
     public $segments;
     
-    /*
-     * Database handler
-     */
-    private $dbh;
     
     /**
      * Constructor
@@ -49,9 +45,9 @@ class HPSS extends RestoModule {
         
         // Set context
         $this->context = $context;
-        
-        // Database handler
-        $this->dbh = $this->getDatabaseHandler();
+        if (isset($this->context->dbDriver)){
+            $this->context->dbDriver->closeDbh();
+        }
     }
     
     /**
@@ -74,7 +70,8 @@ class HPSS extends RestoModule {
         $this->segments = $segments;
         $method = $this->context->method;
 
-        if ($method === 'POST') {
+        if ($method === 'POST') 
+        {
             return $this->processPOST($data);
         }
         return RestoLogUtil::httpError(404);

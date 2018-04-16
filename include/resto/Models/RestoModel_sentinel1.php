@@ -123,8 +123,8 @@ class RestoModel_sentinel1 extends RestoModel {
      * @param RestoCollection $collection
      *
      */
-    public function updateFeature($feature, $data) {
-        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection));
+    public function updateFeature($feature, $data, $obsolescence = true) {
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection), $obsolescence);
     }
 
     /**

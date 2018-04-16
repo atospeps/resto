@@ -409,7 +409,6 @@ class RestoRoutePOST extends RestoRoute {
          */
         if ($segments[0] === 'search' 
                 && !$this->user->canSearch(isset($collection) ? $collection->name : null)
-                && !$this->user->canPost(isset($collection) ? $collection->name : null)
         ) {
             RestoLogUtil::httpError(403);
         }

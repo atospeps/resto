@@ -110,7 +110,7 @@ then
 else
     state=$(parallel -j${MAX_JOBS} --eta --joblog ${JOBLOG_FILE} -a products.txt curl -s -X PUT ${CURL_PROXY} http://${WEBS_AUTH}@${RESTO_HOST}/resto/api/tag/{1}/refresh);
 fi
-logMessage "$state";
+#logMessage "$state";
 
 #####################################
 # Nettoyage

@@ -20,7 +20,7 @@ $resto_db = array(
 $table = 'usermanagement.alerts';
 
 // Get the database connection
-$db = verify_db($resto_db);
+$db = check_db($resto_db);
 
 echo "Updating data base..." . PHP_EOL;
 
@@ -112,7 +112,7 @@ function deleteAlert($aid)
 /*
  * We validate a data base
  */
-function verify_db($db)
+function check_db($db)
 {
     $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
     if (!$db_connection) {

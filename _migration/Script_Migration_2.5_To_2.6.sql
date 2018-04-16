@@ -1,5 +1,5 @@
 --
--- VERSION 2.1 de PEPS
+-- VERSION 2.2 de PEPS
 --
 
 --
@@ -44,8 +44,8 @@ $func$  LANGUAGE plpgsql;
 SELECT f_add_col('usermanagement.jobs', 'logs', 'text');
 SELECT f_drop_col('usermanagement.jobs', 'email');
 
-DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
-CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
+--DROP INDEX IF EXISTS usermanagement.idx_jobs_querytime;
+--CREATE INDEX idx_jobs_querytime ON usermanagement.jobs (querytime DESC);
 
 -- ----------------------------------------------------------------------------------------
 --
@@ -62,7 +62,10 @@ SELECT f_drop_col('usermanagement.rights', 'wps');
 --                       
 --
 ------------------------------------------------------------------------------------------- 
+DELETE FROM resto.keywords WHERE name='L1C' and value='level1c' and lang='**' and type='processingLevel';
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L1C', 'level1c', '**', 'processingLevel');
+
+DELETE FROM resto.keywords WHERE name='L2A' and value='level2a' and lang='**' and type='processingLevel';
 INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '**', 'processingLevel');
 
 -- ----------------------------------------------------------------------------------------
@@ -72,4 +75,13 @@ INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '
 --
 -------------------------------------------------------------------------------------------
 UPDATE resto.osdescriptions SET developper = 'CNES'
+
+
+-- ----------------------------------------------------------------------------------------
+-- 
+-- PEPS-FT-638 
+-- Les datatakeID des produits S2 sont manquants
+--
+-- ----------------------------------------------------------------------------------------
+UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 15) || to_char(orbitnumber, '000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid IS NULL OR s2takeid='';
 

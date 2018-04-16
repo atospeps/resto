@@ -110,7 +110,7 @@ class RestoFeature {
                 fclose($handle);
 
                 $response = $this->callStagingWS($path, $this->context->hpssTimeout);
-                if ($response == false){
+                if ($response === false){
                     // file is unavailable
                     header('HTTP/1.1 202 You should retry the request');
                     header('X-regards-retry: ' . $this->context->hpssRetryAfter);

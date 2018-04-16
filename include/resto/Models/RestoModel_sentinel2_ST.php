@@ -89,8 +89,8 @@ class RestoModel_sentinel2_ST extends RestoModel {
      * @param RestoCollection $collection
      *
      */
-    public function updateFeature($feature, $data) {
-        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection));
+    public function updateFeature($feature, $data, $obsolescence = true) {
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection), $obsolescence);
     }
     
     /**
@@ -137,7 +137,7 @@ class RestoModel_sentinel2_ST extends RestoModel {
         /*
          * Initialize feature
          */
-        return array(
+        $feature = array(
             'type' => 'Feature',
             'geometry' => array(
                     'type' => 'Polygon',
@@ -176,7 +176,11 @@ class RestoModel_sentinel2_ST extends RestoModel {
                 'water' => $this->getElementByName($dom, 'waterPercentage', 'NUMERIC')
             )
       );
-        
+
+      if (empty($feature['properties']['s2TakeId'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - s2takeid is not defined');
+      }
+      return $feature;
     }
 
     /**

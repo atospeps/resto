@@ -31,7 +31,7 @@ $collection_features = '_s1';
 // Array to store all the results
 $facets_status = array();
 // Get the database connection
-$db = verify_db($resto_db);
+$db = check_db($resto_db);
 // We get the current 
 $status = verify_facets($db, $verify, $collection_features);
 // update values in databasel
@@ -203,7 +203,7 @@ function getDistinct($db, $type, $collection){
 /*
  * We validate a data base
  */
-function verify_db($db){
+function check_db($db){
     echo '------- Data base validation -------' . PHP_EOL;
     $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
     if (!$db_connection) {

@@ -194,6 +194,9 @@ class RestoCollection {
      * Return license in the current language
      */
     public function getLicense() {
+        if (!isset($this->license)) {
+            return null;
+        }
         if (!isset($this->license[$this->context->dictionary->language])) {
             if (isset($this->license['en'])) {
                 return $this->license['en'];

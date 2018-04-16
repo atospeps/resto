@@ -23,6 +23,7 @@ class WPS_RequestManager {
     const WSDL = 'wsdl';
     const WPS_VERSION = '1.0.0';
     const WPS_SERVICE = 'WPS';
+    const WPS_STATUS_SERVICE = 'PROCESSING_STATUS';
 
     private $serverAddress = null;
     private $outputsUrl = null;
@@ -202,8 +203,19 @@ class WPS_RequestManager {
      * 
      * @param unknown $resource
      */
-    public function download($url, $type=null) {
-        Curl::Download($url, $type, $this->getCurlOptions());
+    public function download($url, $type=null, $filename='download') {
+        if (filter_var($url, FILTER_VALIDATE_URL)) 
+        {
+            Curl::Download($url, $type, $this->getCurlOptions());
+        } 
+        else 
+        {
+            header('HTTP/1.1 200 OK');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Type: ' . isset($type) ? $type : 'application/unknown');
+            echo $url;
+            flush();
+        }
         return null;
     }
     
@@ -238,7 +250,7 @@ class WPS_RequestManager {
         try
         {
             // Prevent proxy cache issues
-            $url = $this->getServerAddress() . '?service=WPS&request=execute&version=1.0.0&identifier=PROCESSING_STATUS&DataInputs=[wps_id=' . $jobId . ']';
+            $url = $this->getServerAddress() . '?service=WPS&request=execute&version=1.0.0&identifier=' . self::WPS_STATUS_SERVICE . '&DataInputs=[wps_id=' . $jobId . ']';
             
             $data = Curl::Get($url, array(), $this->curlOpts);
             $response = new WPS_Response($data);

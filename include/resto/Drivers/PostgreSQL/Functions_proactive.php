@@ -158,7 +158,6 @@ class Functions_proactive {
             return true;
         }
         return false;
-
     }
     
     /**

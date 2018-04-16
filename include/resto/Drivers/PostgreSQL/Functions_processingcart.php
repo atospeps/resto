@@ -54,7 +54,7 @@ class Functions_processingcart
             return $items;
         }
         
-        $query = "SELECT p.itemid "
+        $query = "SELECT p.itemid, f.collection "
                . "FROM usermanagement.processingcart AS p "
                . "INNER JOIN resto.features AS f ON p.itemid = f.identifier "                 //-> the row is ignored if the feature does not exists
                . "WHERE p.userid = '" . pg_escape_string($user->profile['userid']) . "'";

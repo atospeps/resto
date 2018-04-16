@@ -138,8 +138,7 @@ return array(
          * If the array is empty, then every http origin have CORS access
          */
         'corsWhiteList' => array(
-            'localhost',
-                '*'
+            'localhost'
         ),
             
         /*
@@ -158,7 +157,7 @@ return array(
                          * Returns storage information
                          * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
                          */
-                        //'getStorageInfo' => 'http://pepsvfs:8081/hpss'
+                        'getStorageInfo' => 'http://pepsvfs:8081/hpss'
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
@@ -286,11 +285,11 @@ return array(
                         'outputsUrl' => 'http://192.168.56.102/resto/wps/outputs/',
                         // pywps configuration
                         'pywps' => array(
-                                'serverAddress' => "http://132.149.129.4:8081/cgi-bin/pywps.cgi", // VIZO TEST
-                                'outputsUrl' => 'http://132.149.129.4:8081/wps/outputs/',
+                                'serverAddress' => "http://localhost:8081/cgi-bin/pywps.cgi", // VIZO TEST
+                                'outputsUrl' => 'http://localhost:8081/wps/outputs/',
                                 'conf' => array(
-                                    'serverAddress' => 'http://peps-vizo.cnes.fr:8081/cgi-bin/pywps.cgi',
-                                    'outputsUrl' => 'http://peps-vizo.cnes.fr:8081/wps/outputs/'
+                                        'serverAddress' => 'http://localhost:8081/cgi-bin/pywps.cgi',
+                                        'outputsUrl' => 'http://localhost:8081/wps/outputs/'
                                 )
                         ),
                         'users' => array(

@@ -72,13 +72,13 @@ abstract class RestoDatabaseDriver {
     const PROCESSING_JOBS_ITEMS = 47;
     const PROCESSING_JOBS_STATS = 48;
     const PROCESSING_JOBS_DATA = 49;
-    const PROACTIVE = 51;
-    const PROACTIVE_ACCOUNTS = 52;
-    const PROACTIVE_ACCOUNT = 53;
-    const WPS_RIGHTS = 54;
-    const WPS_GROUP_RIGHTS = 55;
-    const WPS_GROUPS = 56;
-    const GROUP = 57;
+    const PROACTIVE = 50;
+    const PROACTIVE_ACCOUNTS = 51;
+    const PROACTIVE_ACCOUNT = 52;
+    const WPS_RIGHTS = 53;
+    const WPS_GROUP_RIGHTS = 54;
+    const WPS_GROUPS = 55;
+    const GROUP = 56;
     
     
     /*

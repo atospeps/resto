@@ -42,7 +42,7 @@ $verify = array(
 
 
 // Get the database connection
-$db = verify_db($resto_db);
+$db = check_db($resto_db);
 //Total of products
 $total_products = get_total_products($db, $collection);
 echo " Updating data base (can take several minutes)....". PHP_EOL;
@@ -259,7 +259,7 @@ function get_total_products($db, $collection){
 /*
  * We validate a data base
  */
-function verify_db($db){
+function check_db($db){
     echo '------- Data base validation -------' . PHP_EOL;
     $db_connection = pg_connect("host=" . $db['host'] . " dbname=" . $db['db'] . " user=" . $db['user'] . " password=" . $db['password'] );
     if (!$db_connection) {

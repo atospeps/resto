@@ -775,6 +775,10 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not defined');
         }
 
+        if (empty($properties['realtime'])) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
+        }
+
         /*
          * Compute unique identifier
         */
@@ -788,34 +792,28 @@ abstract class RestoModel {
          * First check if feature is already in database
          * (do this before getKeywords to avoid iTag process)
          */
+        $schemaName = '_' . strtolower($collection->name);
         if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array(
-                'featureIdentifier' => $featureIdentifier
+                'featureIdentifier' => $featureIdentifier,
+                'schema' => $schemaName
         ))) {
             RestoLogUtil::httpError(409, 'Feature ' . $featureIdentifier . ' already in database');
-        }
-
-        /*
-         * Default realtime value
-         */
-        if (empty($properties['realtime'])) {
-            $properties['realtime'] = $this->getDefaultRealtime($collection->name, $properties);
         }
         
         /*
          * For S1 collection and $context->obsolescenceS1useDhusIngestDate == false
          *    Check if we get multiples products version with the same realtime
          */
-        if ($collection->name === 'S1' 
-                && $collection->context->obsolescenceS1useDhusIngestDate === false 
-                && !empty($properties['productIdentifier']) 
-                && !empty($properties['realtime'])
-                && $collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
-                        'collectionName' => 'S1',
-                        'realtime' => $properties['realtime'],
-                        'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], 'S1')
-                ))) 
+        if ($collection->name === 'S1' &&
+            $collection->context->obsolescenceS1useDhusIngestDate === false &&
+            $collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE_S1_REALTIME, array(
+                    'collectionName' => 'S1',
+                    'realtime' => $properties['realtime'],
+                    'pattern' => $this->getFeatureVersionPattern($properties['title'], 'S1')
+            ))
+        ) 
         {
-            RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['productIdentifier'] . ')');
+                RestoLogUtil::httpError(409, 'multiple product versions with same realtime (' . $properties['realtime'] . ': ' . $properties['title'] . ')');
         }
         
         /*
@@ -834,7 +832,8 @@ abstract class RestoModel {
         ));
 
         $feature = new RestoFeature($collection->context, $collection->user, array (
-                'featureIdentifier' => $featureIdentifier
+                'featureIdentifier' => $featureIdentifier,
+                'collection' => $collection
         ));
 
         /*
@@ -843,45 +842,6 @@ abstract class RestoModel {
         $this->updateFeatureVersions($feature);
 
         return $feature;
-    }
-    
-    /**
-     * Returns a default realtime value
-     * 
-     * @param string $collectionName
-     * @param object $properties
-     * @return string realtime value
-     */
-    private function getDefaultRealtime($collectionName, $properties)
-    {
-        $realtime = '';
-        
-        switch($collectionName) {
-            case 'S1':
-                // use property isnrt
-                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT-3h' : 'Reprocessing';  
-                break;
-            case 'S2ST':
-                // use property isnrt
-                $realtime = isset($properties['isNrt']) && (int)$properties['isNrt'] === 1 ? 'NRT' : 'Nominal';
-                break;
-            case 'S3':
-                // use title timeliness
-                $realtime = 'NTC';
-                if (isset($properties['productIdentifier'])) {
-                    $timeliness = substr($properties['productIdentifier'], 88, 2);
-                    switch($timeliness) {
-                        case 'NR': $realtime = 'NRT'; break;
-                        case 'ST': $realtime = 'STC'; break;
-                        case 'NT': $realtime = 'NTC'; break;
-                        default:
-                    }
-                }
-                break;
-            default:
-        }
-        
-        return $realtime;
     }
     
     /**
@@ -902,26 +862,24 @@ abstract class RestoModel {
         // get all the product versions ordered by the newest first
         $allVersions = $collection->context->dbDriver->get(RestoDatabaseDriver::FEATURE_ALL_VERSIONS, array(
             'context' => $collection->context,
-            'user' => $collection->user,
-            'productIdentifier' => $properties['productIdentifier'],
-            'dhusIngestDate' => $properties['dhusIngestDate'],
-            'collection' => $feature->collection,
+            'collection' => $collection,
             'pattern' => $this->getFeatureVersionPattern($properties['productIdentifier'], $collection->name)
         ));
         
+        $count = count($allVersions);
         // if there is more than one version of the product
-        if (count($allVersions) > 1) {
+        if ($count > 1) {
             // in all cases, the newest version is set to visible
             $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                 'collection' => $collection,
-                'featuresArray' => $allVersions[0],
+                'featuresArray' => array($allVersions[0]),
                 'visible' => 1,
                 'newVersion' => ''
             ));
             // the other versions (NRT) become invisible
             $nrtVersions = array();
-            for ($i = 1/*ignore the newest version*/; $i < count($allVersions); $i++) {
-                if ($allVersions[$i]['properties']['isNrt'] == 1) {
+            for ($i = 1/*ignore the newest version*/; $i < $count; $i++) {
+                if ($allVersions[$i]['isnrt'] == 1) {
                     $nrtVersions[] = $allVersions[$i]; 
                 }
             }
@@ -930,7 +888,7 @@ abstract class RestoModel {
                     'collection' => $collection,
                     'featuresArray' => $nrtVersions,
                     'visible' => 0,
-                    'newVersion' => $allVersions[0]['id']
+                    'newVersion' => $allVersions[0]['identifier']
                 ));
             }
         }
@@ -973,11 +931,8 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
         }
 
-        /*
-         * Default realtime value
-         */
         if (empty($properties['realtime'])) {
-            $properties['realtime'] = $this->getDefaultRealtime($feature->collection->name, $properties);
+            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
         }
         
         /*
@@ -997,7 +952,7 @@ abstract class RestoModel {
                 )
         ));
 
-        if ($obsolescence == true){
+        if ($obsolescence === true){
             $this->updateFeatureVersions($feature);
         }
     }
@@ -1111,27 +1066,38 @@ abstract class RestoModel {
         $regexFeatureVersions = null;
         switch ($collection) {
             case 'S1' :
-                // ignore checksum (CCCC)
-                //      MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC
-                $regexFeatureVersions = substr($productIdentifier, 0, $length - 4) . '%';
+                /* 
+                 * ignore checksum (CCCC)
+                 *      MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD_CCCC
+                 *      pattern version ==> MMM_BB_TTTR_LFPP_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_OOOOOO_DDDDDD
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, $length - 5);
                 break;
             case 'S2' :
-                // ignore ... (yyyymmddThhmmss)
-                //      MMM_CCCC_TTTTTTTTTT_ssss_yyyymmddThhmmss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
-                $regexFeatureVersions = substr($productIdentifier, 0, 25) . '%' . substr($productIdentifier, 40);
+                /* 
+                 * ignore ... (yyyymmddThhmmss)
+                 *    MMM_CCCC_TTTTTTTTTT_ssss_yyyymmddThhmmss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
+                 *    pattern version ==> MMM_CCCC_TTTTTTTTTT_ssss_ROOO_VYYYYMMTDDHHMMSS_YYYYMMTDDHHMMSS
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 24) . substr($productIdentifier, 40);
                 break;
             case 'S2ST' :
-                // ignore processing baseline number (xxyy)
-                //      MMM_MSIL1C_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_YYYYMMDDTHHMMSS
-                $regexFeatureVersions = substr($productIdentifier, 0, 28) . '%' . substr($productIdentifier, 32);
+                /* 
+                 * ignore processing baseline number (xxyy)
+                 *      MMM_MSIL1C_YYYYMMDDTHHMMSS_Nxxyy_ROOO_Txxxxx_YYYYMMDDTHHMMSS
+                 *      pattern version==> MMM_MSIL1C_YYYYMMDDTHHMMSS_N_ROOO_Txxxxx_YYYYMMDDTHHMMSS
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 28) . substr($productIdentifier, 32);
                 break;
             case 'S3' :
-                // ignore product creation date + center code + timeliness
-                //      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
-                $regexFeatureVersions = substr($productIdentifier, 0, 48)  . '%'    // product creation date (YYYYMMDDTHHMMSS)
-                                      . substr($productIdentifier, 63, 19) . '%'    // center code (GGG)
-                                      . substr($productIdentifier, 85, 3)  . '%'    // timeliness (XX)
-                                      . substr($productIdentifier, 90);
+                /* 
+                 * ignore product creation date + timeliness
+                 *      MMM_OL_L_TTTTTT_yyyymmddThhmmss_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_XX_NNN
+                 *      pattern version => MMM_OL_L_TTTTTT_YYYYMMDDTHHMMSS_YYYYMMDDTHHMMSS_IIIIIIIIIIIIIIIII_GGG_P_NNN
+                 */
+                $regexFeatureVersions = substr($productIdentifier, 0, 48)
+                . substr($productIdentifier, 64, 24)
+                . substr($productIdentifier, 91);
                 break;
             default :
                 break;

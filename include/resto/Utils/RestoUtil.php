@@ -575,7 +575,7 @@ class RestoUtil {
      */
     private static function readFile($uploadDirectory, $deleteAfterRead = true)
     {
-        $filename = $lthis->uploadFile($uploadDirectory);
+        $filename = $this->uploadFile($uploadDirectory);
         if (!$filename) {
             RestoLogUtil::httpError(500, 'Cannot upload file(s)');
         }

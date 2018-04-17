@@ -262,6 +262,11 @@ class WPS extends RestoModule {
                 case 'outputs':
                     return $this->GET_wps_outputs($this->segments);
                 /*
+                 * HTTP/GET wps/status
+                 */
+                case 'status':
+                    return $this->GET_wps_status($this->segments);
+                /*
                  * HTTP/GET wps/processings (admin only)
                  * HTTP/GET wps/processings/{identifier}/describe
                  */
@@ -341,7 +346,23 @@ class WPS extends RestoModule {
         }
         return $response;
     }
-
+    
+    /**
+     * Returns current VIZO status
+     * 
+     */
+    private function GET_wps_status()
+    {
+        $query  = 'SELECT * FROM usermanagement.wps_status WHERE TRUE';
+        $result = $this->context->dbDriver->query($query);
+        $row    = $this->context->dbDriver->fetch_assoc($result);
+        
+        return RestoLogUtil::success("vizo status: " . $row['status'], array(
+            'status' => $row['status'],
+            'last_dispatch' => $row['last_dispatch']
+        ));
+    }
+    
     /**
      * 
      * @param array $segments route elements

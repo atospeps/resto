@@ -94,7 +94,6 @@ class RestoFeatureUtil {
             'geometry' => isset($rawCorrectedArray['geometry']) ? $rawCorrectedArray['geometry'] : null,
             'properties' => $this->toProperties($rawCorrectedArray)
         );
-
     }
     
     /**

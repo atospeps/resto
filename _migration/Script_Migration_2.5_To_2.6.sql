@@ -74,7 +74,7 @@ INSERT INTO resto.keywords (name, value, lang, type) VALUES ('L2A', 'level2a', '
 --                                  FT-489
 --
 -------------------------------------------------------------------------------------------
-UPDATE resto.osdescriptions SET developper = 'CNES'
+UPDATE resto.osdescriptions SET developper = 'CNES';
 
 
 -- ----------------------------------------------------------------------------------------

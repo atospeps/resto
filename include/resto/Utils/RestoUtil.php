@@ -575,23 +575,29 @@ class RestoUtil {
      */
     private static function readFile($uploadDirectory, $deleteAfterRead = true)
     {
-        $filename = $this->uploadFile($uploadDirectory);
-        if (!$filename) {
-            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
-        }
-        
         try {
-            $lines = file($fileName);
-            if ($deleteAfterRead) {
-                unlink($fileName);
+            $fileToUpload = is_array($_FILES['file']['tmp_name']) ? $_FILES['file']['tmp_name'][0] : $_FILES['file']['tmp_name'];
+            if (is_uploaded_file($fileToUpload)) {
+                if (!is_dir($uploadDirectory)) {
+                    mkdir($uploadDirectory);
+                }
+                $fileName = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15));
+                move_uploaded_file($fileToUpload, $fileName);
+                $lines = file($fileName);
+                if ($deleteAfterRead) {
+                    unlink($fileName);
+                }
             }
         } catch (Exception $e) {
             RestoLogUtil::httpError(500, 'Cannot upload file(s)');
         }
-
-        // assume that input data format is JSON by default
+        
+        /*
+         * Assume that input data format is JSON by default
+         */
         $json = json_decode(join('', $lines), true);
-        return ($json === null) ? $lines : $json;
+        
+        return $json === null ? $lines : $json;
     }
     
     /***

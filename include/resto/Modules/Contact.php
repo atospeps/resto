@@ -11,7 +11,7 @@
  *    | HTTP/GET        wps/status                                       | Check VIZO status
  *    
  */
-class Upload extends RestoModule {
+class Contact extends RestoModule {
     /*
      * Resto context
      */
@@ -36,9 +36,6 @@ class Upload extends RestoModule {
         
         // Set context
         $this->context = $context;
-        if (isset($this->context->dbDriver)){
-            $this->context->dbDriver->closeDbh();
-        }
     }
 
     /**
@@ -46,15 +43,8 @@ class Upload extends RestoModule {
      * {@inheritDoc}
      * @see RestoModule::run()
      */
-    public function run($segments, $data = []) {    
+    public function run($elements, $data = []) {
         
-        
-        if (isset($_FILES)){
-            error_log("FILES EXISTS", 0);
-        } else {
-            error_log("FILES NOT EXISTS", 0);
-        }
-
         // Allowed HTTP method
         if ($this->context->method !== 'POST')
         {
@@ -83,7 +73,7 @@ class Upload extends RestoModule {
      * @param unknown $data
      * @return unknown|string[]|StdClass[][]
      */
-    private function upload($segments, $data){       
+    private function upload($segments, $data){
         
         if ($segments[0] === 'upload') {
             

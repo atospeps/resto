@@ -54,16 +54,9 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Input data for POST request
          */
-        if ($segments[0] !== 'upload') {
-            $data = RestoUtil::readInputData($this->context->uploadDirectory);
-            if (!is_array($data) || count($data) === 0) {
-                RestoLogUtil::httpError(400);
-            }
-        }
+        $data = RestoUtil::readInputData($this->context->uploadDirectory);
 
         switch($segments[0]) {
-            case 'upload':
-                return $this->POST_upload($segments);
             case 'api':
                 return $this->POST_api($segments, $data);
             case 'collections':
@@ -80,124 +73,7 @@ class RestoRoutePOST extends RestoRoute {
                 return $this->processModuleRoute($segments, $data);
         }
     }
-   
-    /**
-     * 
-     * Process HTTP POST request on upload
-     * 
-     *    upload/area                         |  Upload a SHP, KML or GeoJSON file
-     * 
-     * @param array $segments
-     */
-    private function POST_upload($segments)
-    {
-        if ($segments[0] === 'upload') {
-            
-            if (!isset($segments[1]) || isset($segments[2])) {
-                RestoLogUtil::httpError(404);
-            }
-            
-            // upload file
-            $fileName = RestoUtil::uploadFile($this->context->uploadDirectory);
-            
-            /*
-             * api/upload/area
-             */
-            if ($segments[1] === 'area' && !isset($segments[2])) {
-                
-                // get content
-                try {
-                    $content = file_get_contents($fileName);
-                    $json = json_decode($content, true);
-                } catch (Exception $e) {
-                    RestoLogUtil::httpError(415);
-                }
-                
-                // GeoJSON
-                if ($json && (
-                    RestoGeometryUtil::isValidGeoJSONFeatureCollection($json) || 
-                    RestoGeometryUtil::isValidGeoJSONFeature($json)
-                )) {
-                    unlink($fileName);
-                    return $json;
-                }
-                
-                /*
-                 * KML / SHP
-                 */ 
-                try {
-                    // detect content format (here KML only)
-                    $format = geoPHP::detectFormat($content);
-                    
-                    // extract file infos
-                    $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
-                    $basename = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
-                    
-                    /*
-                     * ----- KML
-                     */
-                    if ($format === 'kml') {
-                        $geometry = geoPHP::load($content, 'kml');
-                        $geometry = geoPHP::geometryReduce($geometry);
-                        if ($geometry) {
-                            $feature = new StdClass();
-                            $feature->type = "Feature";
-                            $feature->geometry = json_decode($geometry->out('json'));
-                            $feature->properties = new StdClass();
-                            unlink($fileName);
-                            return array(
-                                "type" => "FeatureCollection",
-                                "features" => array($feature)
-                            );
-                        }
-                    }
-                    
-                    /*
-                     * ----- SHP
-                     */
-                    elseif ($ext === 'zip') {
-                    
-                        $extractDir = $this->context->workingDirectory . DIRECTORY_SEPARATOR . $basename;
 
-                        $polygons = array();
-                        if (RestoUtil::extractZip($fileName, $extractDir) === true) {
-                            $ShapeFile = new ShapeFile($extractDir . DIRECTORY_SEPARATOR . $basename . '.shp');
-                            while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
-                            	if (isset($record['dbf']['deleted'])) continue;
-                                $polygons[] = $record['shp'];
-                            }
-                        }
-                        
-                        unlink($fileName);
-                        if (is_dir($extractDir)) {
-                            RestoUtil::rrmdir($extractDir);
-                        }
-                            
-                        if (count($polygons) > 0) {
-                            $geometry = geoPHP::load('GEOMETRYCOLLECTION(' . implode(',', $polygons) . ')', 'wkt');
-                            $geometry = geoPHP::geometryReduce($geometry);
-                            if ($geometry) {
-                                $feature = new StdClass();
-                                $feature->type = "Feature";
-                                $feature->geometry = json_decode($geometry->out('json'));
-                                $feature->properties = new StdClass();
-                                return array(
-                                    "type" => "FeatureCollection",
-                                    "features" => array($feature)
-                                );
-                            }
-                        }
-                    }
-                    
-                    RestoLogUtil::httpError(415);
-                    
-                } catch (Exception $ex) {
-                    RestoLogUtil::httpError(415);
-                }
-            }
-        }
-    }
-    
     /**
      * 
      * Process HTTP POST request on api

@@ -1136,7 +1136,7 @@ class WPS extends RestoModule {
         {
             $resultid = $data[$i];
             // ? Is numeric
-            if (!ctype_digit($resultid)) 
+            if (!ctype_digit("$resultid")) 
             {
                 RestoLogUtil::httpError(400);
             }

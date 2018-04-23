@@ -292,7 +292,7 @@ class Functions_features {
         // Column/Values to update into database
         $columnsAndValues = array (
                 $collection->model->getDbKey('visible') => $visible,
-                $collection->model->getDbKey('newVersion') => '\'' . $newVersion . '\'' ,
+                $collection->model->getDbKey('newVersion') => empty($newVersion) ? 'NULL' : ('\'' . $newVersion . '\'') ,
                 'updated' => 'now()'
         );
 

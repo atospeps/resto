@@ -859,7 +859,7 @@ abstract class RestoModel {
                 'collection' => $collection,
                 'featuresArray' => array($allVersions[0]),
                 'visible' => 1,
-                'newVersion' => ''
+                'newVersion' => null
             ));
             // the other versions (NRT) become invisible
             $nrtVersions = array();

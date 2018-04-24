@@ -899,6 +899,11 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
         }
         
+        $featureIdentifier = $feature->collection->toFeatureId($properties['title']);
+        if ($featureIdentifier !== $feature->identifier) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Property "title" and feature title differ');
+        }
+
         if (empty($properties['orbitDirection'])) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
         }

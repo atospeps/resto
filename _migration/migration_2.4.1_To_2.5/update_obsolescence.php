@@ -75,7 +75,7 @@ function setVisibleNewVersion($collectionName)
     $count = 0;
     
     // for all the NRT products...
-    $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
+    $r = query("SELECT * FROM " . $schema . ".features");
     if (!$r) {
         output("An error has occurred");
         exit;
@@ -83,27 +83,21 @@ function setVisibleNewVersion($collectionName)
     while ($nrtProduct = pg_fetch_assoc($r)) {
         $count++;
 
-        if ($count % 10000 == 0){
+        if ($count % 10000 == 0) {
             output("$count products updated successfully...");
         }
         // get all the versions of the current product
         $allVersions = getAllVersions($collectionName, $nrtProduct['productidentifier']);
 
         if (count($allVersions) > 1) {
-            // the newest version is set to visible
-            $newestVersion = $allVersions[0];
-
-            // the other versions (NRT) become invisible
-            array_shift($allVersions);
-            foreach ($allVersions as $version) {
-                if ((int)$version['isnrt'] === 1) {
-                    $whereClause    = ' WHERE identifier=\'' . $version['identifier'] . '\'';
-                    $updateClause   = ' SET visible=0, new_version=\'' . $newestVersion['identifier'] . '\'';
-                    $query = 'UPDATE ' . $schema . '.features' . $updateClause . $whereClause;
-                    query($query);
-                }
-            }
-        }        
+            // the newest version is set to visible and the other versions become invisible
+            $newestVersion = array_shift($allVersions);
+            
+            $whereClause = ' WHERE ' . implode(' OR ', array_map(function ($v) { return 'identifier=\'' . $v['identifier'] . '\''; }, $allVersions));
+            $updateClause   = ' SET visible=0, new_version=\'' . $newestVersion['identifier'] . '\'';
+            $query = 'UPDATE ' . $schema . '.features' . $updateClause . $whereClause;
+            query($query);
+        }
     } 
     output("End to updating collection $collectionName ( $count products updated ).");
 }

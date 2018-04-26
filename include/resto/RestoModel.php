@@ -869,7 +869,6 @@ abstract class RestoModel {
         $count = count($allVersions);
         // if there is more than one version of the product
         if ($count > 1) {
-        if ($count > 1) {
 
             $lastVersion = array_shift($allVersions);
 

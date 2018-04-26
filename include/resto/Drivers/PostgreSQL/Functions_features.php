@@ -289,7 +289,7 @@ class Functions_features {
         // Column/Values to update into database
         $columnsAndValues = array (
                 $collection->model->getDbKey('visible') => $visible,
-                $collection->model->getDbKey('newVersion') => '\'' . $newVersion . '\'' ,
+                $collection->model->getDbKey('newVersion') => empty($newVersion) ? 'NULL' : ('\'' . $newVersion . '\'') ,
                 'updated' => 'now()'
         );
 
@@ -392,55 +392,45 @@ class Functions_features {
         $featureId = $featureArray['id'];
 
         /*
-         * Check that resource exists in database
+         * Get database columns array
          */
-        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array (
-            'featureIdentifier' => $featureId 
-        ))) {
+        $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, false, $featureId);
+        
+        // Convert the array ion a format accepted for the "update" sql query
+        $values = implode(', ', array_map(function ($v, $k) {
+            return $k . '=' . $v;
+        }, $columnsAndValues, array_keys($columnsAndValues)));
 
-            /*
-             * Get database columns array
-             */
-            $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, false, $featureId);
+        try {
             
-            // Convert the array ion a format accepted for the "update" sql query
-            $values = implode(', ', array_map(function ($v, $k) {
-                return $k . '=' . $v;
-            }, $columnsAndValues, array_keys($columnsAndValues)));
-
-            try {
-                
-                /*
-                 * First we delete the current facets
-                 */                
-                $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
-                // Format correctly the keywords to be treated by the removeFeatureFacet function
-                $array = pg_fetch_row($result);
-                $keywords['properties']['keywords'] = json_decode($array[0], true);
-                $this->removeFeatureFacets($keywords, $collection->name);
-                
-                /*
-                 * Start transaction
-                 */
-                pg_query($this->dbh, 'BEGIN');
-                
-                /*
-                 * Store feature
-                 */
-                pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureId  . "'");
-                
-                /*
-                 * We insert the new facets
-                 */
-                $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
-                
-                pg_query($this->dbh, 'COMMIT');
-            } catch (Exception $e) {
-                pg_query($this->dbh, 'ROLLBACK');
-                RestoLogUtil::httpError(500, 'Feature ' . $featureId . ' cannot be updated in database');
-            }
-        } else {
-            RestoLogUtil::httpError(409, 'Feature ' . $featureId . ' does not exist in database');
+            /*
+             * First we delete the current facets
+             */                
+            $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
+            // Format correctly the keywords to be treated by the removeFeatureFacet function
+            $array = pg_fetch_row($result);
+            $keywords['properties']['keywords'] = json_decode($array[0], true);
+            $this->removeFeatureFacets($keywords, $collection->name);
+            
+            /*
+             * Start transaction
+             */
+            pg_query($this->dbh, 'BEGIN');
+            
+            /*
+             * Store feature
+             */
+            pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureId  . "'");
+            
+            /*
+             * We insert the new facets
+             */
+            $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
+            
+            pg_query($this->dbh, 'COMMIT');
+        } catch (Exception $e) {
+            pg_query($this->dbh, 'ROLLBACK');
+            RestoLogUtil::httpError(500, 'Feature ' . $featureId . ' cannot be updated in database');
         }
     }
 

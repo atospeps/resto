@@ -13,8 +13,6 @@ $options = getopt('d:u:p:c:');
 /*************************************************/
 /*************************************************/
 
-$obsolescenceS1useDhusIngestDate = false;
-
 $resto_db = array(
   'db'       => 'resto',
   'host'     => isset($options['d']) ? $options['d'] : 'localhost',
@@ -75,35 +73,29 @@ function setVisibleNewVersion($collectionName)
     $count = 0;
     
     // for all the NRT products...
-    $r = query("SELECT * FROM " . $schema . ".features WHERE isnrt = 1");
+    $r = query("SELECT productidentifier FROM " . $schema . ".features");
     if (!$r) {
         output("An error has occurred");
         exit;
     }
-    while ($nrtProduct = pg_fetch_assoc($r)) {
+    while ($product = pg_fetch_assoc($r)) {
         $count++;
 
-        if ($count % 10000 == 0){
+        if ($count % 10000 == 0) {
             output("$count products updated successfully...");
         }
         // get all the versions of the current product
-        $allVersions = getAllVersions($collectionName, $nrtProduct['productidentifier']);
+        $allVersions = getAllVersions($collectionName, $product['productidentifier']);
 
         if (count($allVersions) > 1) {
-            // the newest version is set to visible
-            $newestVersion = $allVersions[0];
+            // the newest version is set to visible and the other versions become invisible
+            $newestVersion = array_shift($allVersions);
 
-            // the other versions (NRT) become invisible
-            array_shift($allVersions);
-            foreach ($allVersions as $version) {
-                if ((int)$version['isnrt'] === 1) {
-                    $whereClause    = ' WHERE identifier=\'' . $version['identifier'] . '\'';
-                    $updateClause   = ' SET visible=0, new_version=\'' . $newestVersion['identifier'] . '\'';
-                    $query = 'UPDATE ' . $schema . '.features' . $updateClause . $whereClause;
-                    query($query);
-                }
-            }
-        }        
+            $whereClause = ' WHERE ' . implode(' OR ', array_map(function ($v) { return 'identifier=\'' . $v['identifier'] . '\''; }, $allVersions));
+            $updateClause   = ' SET visible=0, new_version=\'' . $newestVersion['identifier'] . '\'';
+            $query = 'UPDATE ' . $schema . '.features' . $updateClause . $whereClause;
+            query($query);
+        }
     } 
     output("End to updating collection $collectionName ( $count products updated ).");
 }
@@ -113,7 +105,6 @@ function setVisibleNewVersion($collectionName)
  */
 function getAllVersions($collectionName, $productIdentifier)
 {
-    global $obsolescenceS1useDhusIngestDate;
     
     $schema = '_' . strtolower($collectionName);
 
@@ -137,10 +128,7 @@ function getAllVersions($collectionName, $productIdentifier)
                     .     " WHEN 'NRT-1h'       THEN 5"
                     .     " WHEN 'NRT-10m'      THEN 6"
                     .     " ELSE 7"
-                    .   " END";
-            if ($obsolescenceS1useDhusIngestDate === true) {
-                $orderByClause .= ", dhusingestdate DESC";
-            }
+                    .   " END, dhusingestdate DESC";
             break;
         case '_s2st':
             $orderByClause = " ORDER BY"
@@ -169,10 +157,7 @@ function getAllVersions($collectionName, $productIdentifier)
     }
 
     // QUERY
-    $query = 'SELECT *';
-    $query .= $fromClause;
-    $query .= $whereClause;
-    $query .= $orderByClause;
+    $query = 'SELECT identifier, realtime, isnrt' .  $fromClause . $whereClause . $orderByClause;
     
     // RESULTS
     $results = query($query);

@@ -869,28 +869,24 @@ abstract class RestoModel {
         $count = count($allVersions);
         // if there is more than one version of the product
         if ($count > 1) {
+        if ($count > 1) {
+
+            $lastVersion = array_shift($allVersions);
+
             // in all cases, the newest version is set to visible
             $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
                 'collection' => $collection,
-                'featuresArray' => array($allVersions[0]),
+                'featuresArray' => array($lastVersion),
                 'visible' => 1,
-                'newVersion' => ''
+                'newVersion' => null
             ));
-            // the other versions (NRT) become invisible
-            $nrtVersions = array();
-            for ($i = 1/*ignore the newest version*/; $i < $count; $i++) {
-                if ($allVersions[$i]['isnrt'] == 1) {
-                    $nrtVersions[] = $allVersions[$i]; 
-                }
-            }
-            if (count($nrtVersions)) {
-                $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
-                    'collection' => $collection,
-                    'featuresArray' => $nrtVersions,
-                    'visible' => 0,
-                    'newVersion' => $allVersions[0]['identifier']
-                ));
-            }
+            // the other versions (old versions) become invisible            
+            $collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE_VERSION, array(
+                'collection' => $collection,
+                'featuresArray' => $allVersions,
+                'visible' => 0,
+                'newVersion' => $lastVersion['identifier']
+            ));
         }
     }
 
@@ -919,6 +915,11 @@ abstract class RestoModel {
             RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
         }
         
+        $featureIdentifier = $feature->collection->toFeatureId($properties['title']);
+        if ($featureIdentifier !== $feature->identifier) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Property "title" and feature title differ');
+        }
+
         if (empty($properties['orbitDirection'])) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
         }
@@ -934,7 +935,7 @@ abstract class RestoModel {
         if (empty($properties['realtime'])) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
         }
-        
+
         /*
          * Updates feature
         */

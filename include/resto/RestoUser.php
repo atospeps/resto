@@ -151,7 +151,6 @@ class RestoUser {
     public function isAdmin() {
         return $this->profile['groupname'] === 'admin';
     }
-<<<<<<< HEAD
     
     /**
      * Can User search ?
@@ -164,9 +163,6 @@ class RestoUser {
         return $rights['search'];
     }
     
-=======
-
->>>>>>> refs/tags/LIV_2.3
     /**
      * Can User download ? 
      * 

@@ -326,11 +326,7 @@ class WPS_ExecuteResponse extends WPS_Response {
             if (count($this->processOutputs)> 0) {
                 $result = $this->processOutputs[0];
                 if (strtolower($result['identifier']) == 'report') {
-<<<<<<< HEAD
                     $response = json_decode($result['value'], true);
-=======
-                    $response = json_decode($result['value'], true);                    
->>>>>>> refs/tags/LIV_2.3
 
                     if (!empty($response['job_status'])) {
                         return $response;

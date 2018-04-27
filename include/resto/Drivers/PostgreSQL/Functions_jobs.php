@@ -49,10 +49,11 @@ class Functions_jobs {
 
         $filters[] = 'userid=' . $this->dbDriver->quote($userid);
         $filters[] = 'visible=TRUE';
+        $filters[] = 'lower(key)=\'datainputs\'';
         $oFilter = implode(' AND ', $filters);
 
         // Query
-        $query = 'SELECT *, SUBSTRING((data::json->>\'datainputs\')::text from 9) as product FROM usermanagement.jobs WHERE ' . $oFilter . ' ORDER BY querytime DESC';
+        $query = 'SELECT j.*, SUBSTRING(value::text from \'product=([A-Z0-9_]+)]?\') as product FROM usermanagement.jobs j, json_each_text(data::json) WHERE ' . $oFilter . ' ORDER BY querytime DESC';
 
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }

@@ -386,9 +386,10 @@ class RestoUtil {
         /*
          * A file is posted - read attachement
          */
-        else {
-            return RestoUtil::readFile($uploadDirectory);
-        }
+        // By now, we don't attach files to POST URLs
+//         else {
+//             return RestoUtil::readFile($uploadDirectory);
+//         }
         
     }
     
@@ -569,8 +570,7 @@ class RestoUtil {
      * 
      * @param string $uploadDirectory
      * @param boolean deleteAfterRead
-     * 
-     * @return array|json
+     * @return type
      * @throws Exception
      */
     private static function readFile($uploadDirectory, $deleteAfterRead = true)
@@ -607,20 +607,42 @@ class RestoUtil {
      * 
      * @return string - uploaded file name
      */
-    public static function uploadFile($uploadDirectory)
+    public static function uploadFile($uploadDirectory, $options= array())
     {
         $fileName = null;
         
+        $extensions = isset($options['extensions']) ? $options['extensions'] : array();
+        
+        
+        
         try {
-            $fileToUpload = is_array($_FILES['file']['tmp_name']) ? $_FILES['file']['tmp_name'][0] : $_FILES['file']['tmp_name'];
-            if (is_uploaded_file($fileToUpload)) {
+            $fileToUpload = $_FILES['file']['tmp_name'];
+            $file_ext = strtolower(end(explode('.', $_FILES['file']['name'])));
+            $file_name = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
+            $file_size = $_FILES['file']['size'];
+            
+            // Check file extension
+            if(in_array($file_ext, $extensions) === false) 
+            {
+                RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension not allowed, please choose a ' . join(' or ', $extensions) . ' file.');
+            }
+
+//             // TODO
+//             if($file_size > 2097152) {
+//                 RestoLogUtil::httpError(400, 'Cannot upload file(s) - File size must be excately XX MB.');
+//             }
+            
+            if (is_uploaded_file($fileToUpload)) 
+            {
                 if (!is_dir($uploadDirectory)) {
                     mkdir($uploadDirectory);
                 }
                 $fileName = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15));
                 move_uploaded_file($fileToUpload, $fileName);
+                
+                // TODO 
+                //RUN ANTIVIRUS
             }
-            
         } catch (Exception $e) {
             RestoLogUtil::httpError(500, 'Cannot upload file(s)');
         }
@@ -628,8 +650,13 @@ class RestoUtil {
         if (!$fileName) {
             RestoLogUtil::httpError(500, 'Cannot upload file(s)');
         }
-        
-        return $fileName;
+
+        return array(
+                'name' => $file_name,
+                'path' => $fileName,
+                'extension' => $file_ext,
+                'size' => $file_size);
+                
     }
 
     /***

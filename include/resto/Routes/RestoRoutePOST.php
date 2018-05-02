@@ -43,8 +43,6 @@ class RestoRoutePOST extends RestoRoute {
      *    users/{userid}/processingcart                 |  Add new item in {userid} processing cart
      *    users/{userid}/orders                         |  Send an order for {userid}
      *    
-     *    upload/area                                   |  Upload a SHP, KML or GeoJSON file
-     *    
      *    contact                                       |  Send contact form to contact email
      * 
      * @param array $segments

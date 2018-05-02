@@ -3,12 +3,14 @@
 /**
  * @author Atos
  * RESTo Upload module.
+ *    upload/area                                                       |  Upload a SHP, KML or GeoJSON file
  *
  *    | 
  *    | Resource                                                        | Description
  *    |_________________________________________________________________|______________________________________
  *    | HTTP/GET        wps/users/{userid}/jobs                         | List of all user's jobs
- *    | HTTP/GET        wps/status                                       | Check VIZO status
+ *    | HTTP/GET        wps/status                                      | Check VIZO status
+ *    
  *    
  */
 class Upload extends RestoModule {
@@ -21,7 +23,42 @@ class Upload extends RestoModule {
      * Current user (only set for administration on a single user)
      */
     public $user = null;
+    
+    /*
+     * File extensions allowed
+     */
+    private $extensions = array('geojson', 'json', 'zip', 'kml');
+    
+    /*
+     * 
+     */
+    private $fileSizeLimit = 1024;
 
+    /*
+     * 
+     */
+    private $areaLimit = 1000;
+    
+    /*
+     * 
+     */
+    private $scanFile = false;
+    
+    
+
+    
+    /*
+     * Antivirus
+     * geometry empty
+     * geometry complexe
+     * geometry trop de points
+     * geometry trop grande surface
+     * erreur de lecture des fichiers geo
+     * fichier geo invalides
+     * 
+     * 
+     */
+    
     /**
      * Constructor
      *
@@ -36,8 +73,21 @@ class Upload extends RestoModule {
         
         // Set context
         $this->context = $context;
-        if (isset($this->context->dbDriver)){
+        if (isset($this->context->dbDriver)) {
             $this->context->dbDriver->closeDbh();
+        }
+        
+        if (function_exists('mb_detect_encoding') === false) {
+            function mb_detect_encoding($str = 'UTF-8')
+            {
+                return $str;
+            }
+        }
+        if (function_exists('mb_strtolower') === false) {
+            function mb_strtolower($str, $encoding = 'UTF-8')
+            {
+                return strtolower($str);     
+            }
         }
     }
 
@@ -48,167 +98,157 @@ class Upload extends RestoModule {
      */
     public function run($segments, $data = []) {    
         
-        
-        if (isset($_FILES)){
-            error_log("FILES EXISTS", 0);
-        } else {
-            error_log("FILES NOT EXISTS", 0);
-        }
-
         // Allowed HTTP method
-        if ($this->context->method !== 'POST')
+        if ($this->context->method !== 'POST' || isset($segments[0]))
         {
             RestoLogUtil::httpError(404);
-        }        
-        return $this->route($segments, $data);
+        }
+
+        if (isset($_FILES)) {
+            return $this->process();
+        } else {
+            RestoLogUtil::httpError(400);
+        }
     }
 
-    /**
-     * 
-     * @param unknown $segments
-     * @param unknown $data
-     * @return unknown|unknown|string[]|StdClass[][]
-     */
-    private function route($segments, $data){
-        
-        if (isset($segments[0]) && $segments['0'] === 'area' && !isset($segments[1])) {
-            return RestoLogUtil::httpError(404);
-        }
-        return $this->upload($segments, $data);
-    }
-    
     /**
      * 
      * @param unknown $segments
      * @param unknown $data
      * @return unknown|string[]|StdClass[][]
      */
-    private function upload($segments, $data){       
+    private function process() {
         
-        if ($segments[0] === 'upload') {
-            
-            if (!isset($segments[1]) || isset($segments[2])) {
-                RestoLogUtil::httpError(404);
-            }
-            
-            // upload file
-            $fileName = RestoUtil::uploadFile($this->context->uploadDirectory);
-            
-            /*
-             * api/upload/area
-             */
-            if ($segments[1] === 'area' && !isset($segments[2])) {
-                
-                // get content
-                try {
-                    $content = file_get_contents($fileName);
-                    $json = json_decode($content, true);
-                } catch (Exception $e) {
-                    RestoLogUtil::httpError(415);
+        // upload file
+        $options = array('extensions' => $this->extensions);
+        $file = RestoUtil::uploadFile($this->context->uploadDirectory, $options);
+
+        // TODO : *** test antivirus ***
+        
+        // TODO *** check size, complexity issimple, .... ***
+
+        $geometry = null;
+        
+        $file_ext = $file['extension'];
+        switch ($file_ext) {
+            case 'json':
+            case 'geojson':
+                $geometry = $this->readGeoJson($file);
+                break;
+            case 'kml':
+                $geometry = $this->readKML($file);
+                break;
+            case 'zip':
+                $geometry = $this->readShapefile($file);
+                break;
+            default:
+                return RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension \'' . $file_ext . '\'not allowed, please choose a valid file.');
+        }
+        return $this->answer($geometry);
+    }
+    
+    /**
+     * 
+     */
+    private function readShapefile($file){
+        
+        $path = $file['path'];
+        $geometry = null;
+        $extractDir = $this->context->workingDirectory . DIRECTORY_SEPARATOR . basename($path);
+
+        $polygons = array();
+        if (RestoUtil::extractZip($path, $extractDir) === true) {
+            $shp = glob($extractDir . '/*.[sS][hH][pP]');
+            if ($shp)
+            {
+                $ShapeFile = new ShapeFile($shp[0]);
+                while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
+                    if (isset($record['dbf']['deleted'])) {
+                        continue;
+                    }
+                    $polygons[] = $record['shp'];
                 }
-                
-                // GeoJSON
-                if ($json && (
-                        RestoGeometryUtil::isValidGeoJSONFeatureCollection($json) ||
-                        RestoGeometryUtil::isValidGeoJSONFeature($json)
-                        )) {
-                            unlink($fileName);
-                            return $json;
-                        }
-                        
-                        /*
-                         * KML / SHP
-                         */
-                        try {
-                            // detect content format (here KML only)
-                            $format = geoPHP::detectFormat($content);
-                            
-                            // extract file infos
-                            $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
-                            $basename = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
-                            
-                            /*
-                             * ----- KML
-                             */
-                            if ($format === 'kml') {
-                                $geometry = geoPHP::load($content, 'kml');
-                                $geometry = geoPHP::geometryReduce($geometry);
-                                if ($geometry) {
-                                    $feature = new StdClass();
-                                    $feature->type = "Feature";
-                                    $feature->geometry = json_decode($geometry->out('json'));
-                                    $feature->properties = new StdClass();
-                                    unlink($fileName);
-                                    return array(
-                                            "type" => "FeatureCollection",
-                                            "features" => array($feature)
-                                    );
-                                }
-                            }
-                            
-                            /*
-                             * ----- SHP
-                             */
-                            elseif ($ext === 'zip') {
-                                
-                                $extractDir = $this->context->workingDirectory . DIRECTORY_SEPARATOR . $basename;
-                                
-                                $polygons = array();
-                                if (RestoUtil::extractZip($fileName, $extractDir) === true) {
-                                    $ShapeFile = new ShapeFile($extractDir . DIRECTORY_SEPARATOR . $basename . '.shp');
-                                    while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
-                                        if (isset($record['dbf']['deleted'])) continue;
-                                        $polygons[] = $record['shp'];
-                                    }
-                                }
-                                
-                                unlink($fileName);
-                                if (is_dir($extractDir)) {
-                                    RestoUtil::rrmdir($extractDir);
-                                }
-                                
-                                if (count($polygons) > 0) {
-                                    $geometry = geoPHP::load('GEOMETRYCOLLECTION(' . implode(',', $polygons) . ')', 'wkt');
-                                    $geometry = geoPHP::geometryReduce($geometry);
-                                    if ($geometry) {
-                                        $feature = new StdClass();
-                                        $feature->type = "Feature";
-                                        $feature->geometry = json_decode($geometry->out('json'));
-                                        $feature->properties = new StdClass();
-                                        return array(
-                                                "type" => "FeatureCollection",
-                                                "features" => array($feature)
-                                        );
-                                    }
-                                }
-                            }
-                            
-                            RestoLogUtil::httpError(415);
-                            
-                        } catch (Exception $ex) {
-                            RestoLogUtil::httpError(415);
-                        }
             }
         }
-        
+
+        unlink($path);
+        if (is_dir($extractDir)) {
+            RestoUtil::rrmdir($extractDir);
+        }
+
+        if (count($polygons) > 0) 
+        {
+            $geometry = geoPHP::load('GEOMETRYCOLLECTION(' . implode(',', $polygons) . ')', 'wkt');
+        }
+        return $geometry;
+
     }
     
-    private function uploadShapefile(){
-        
+    /**
+     * 
+     * @param unknown $file
+     * @return unknown|NULL
+     */
+    private function readGeoJson($file){
+        $path = $file['path'];
+        $geometry = null;
+        try {
+            $content = file_get_contents($path);
+            unlink($path);
+            $geometry = geoPHP::load($content, 'json');
+        } catch (Exception $e) {
+            unlink($path);
+            return RestoLogUtil::httpError(400);
+        }
+        return $geometry;
     }
     
-    private function uploadGeoJson(){
-        
+    /**
+     * 
+     * @param unknown $file
+     * @return unknown|NULL
+     */
+    private function readKML($file){
+        $path = $file['path'];
+        $geometry = null;
+        try {
+            $content = file_get_contents($path);
+            unlink($path);
+            $geometry = geoPHP::load($content, 'kml');
+        } catch (Exception $e) {
+            unlink($path);
+            return RestoLogUtil::httpError(400);
+        }
+        return $geometry;
     }
-    
-    private function uploadKML(){
-        
+
+    /**
+     * 
+     * @param unknown $geometry
+     */
+    private function answer($geometry){
+        if (empty($geometry))
+        {
+            return RestoLogUtil::httpError(400, "Empty geometry");
+        }
+        $geometry = geoPHP::geometryReduce($geometry);
+
+        header('Content-Type: application/json');
+        print preg_replace('/\s+/', '', '{
+            "type": "FeatureCollection",
+            "features": [
+                                  { "type": "Feature",
+                                    "geometry": ' . $geometry->out('json') . ',
+                                    "properties": {}
+                                  }
+                                ]
+        }');
     }
 
     /**
      * 
      */
-    private function checkFile(){
+    private function scanFile(){
         
     }
     

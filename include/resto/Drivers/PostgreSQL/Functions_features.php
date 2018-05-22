@@ -346,36 +346,48 @@ class Functions_features {
      * @throws Exception
      */
     public function storeFeature($collection, $featureArray) {
-
         /*
          * Get database columns array
          */
         $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, true);
+        $schema = '_' . strtolower($collection->name);
+
+        /*
+         * Check that resource does not already exist in database
+         */
+        if ($this->featureExists($featureArray['id'], $schema)) {
+            RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' already in database');
+        }
 
         try {
             
             /*
              * Start transaction
              */
-            $this->dbDriver->query('BEGIN');
+            pg_query($this->dbh, 'BEGIN');
 
             /*
              * Store feature
              */
-            $query = 'INSERT INTO ' . pg_escape_string('_' . strtolower($collection->name)) . '.features (' . join(',', array_keys($columnsAndValues)) . ') VALUES (' . join(',', array_values($columnsAndValues)) . ')';
-            $this->dbDriver->query($query);
+            $query = 'INSERT INTO ' . pg_escape_string($schema) . '.features (' . join(',', array_keys($columnsAndValues)) . ') VALUES (' . join(',', array_values($columnsAndValues)) . ')';
+            pg_query($this->dbh, $query);
 
             /*
              * Store facets
              */
             $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
             
-            $this->dbDriver->query('COMMIT');
+            pg_query($this->dbh, 'COMMIT');
             
         } 
         catch (Exception $e) 
         {
-            $this->dbDriver->query('ROLLBACK');
+            pg_query($this->dbh, 'ROLLBACK');
+            
+            // Concurrent requests
+            if ($this->featureExists($featureArray['id'], $schema)){
+                RestoLogUtil::httpError(409, 'Feature ' . $featureArray['id'] . ' already in database');
+            }
             RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be inserted in database');
         }
     }
@@ -446,12 +458,12 @@ class Functions_features {
             /*
              * Begin transaction
              */
-            $this->dbDriver->query('BEGIN');
+            pg_query($this->dbh, 'BEGIN');
             
             /*
              * Remove feature
              */
-            $this->dbDriver->query('DELETE FROM ' . (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features WHERE identifier=\'' . pg_escape_string($feature->identifier) . '\'');
+            pg_query($this->dbh, 'DELETE FROM ' . (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features WHERE identifier=\'' . pg_escape_string($feature->identifier) . '\'');
             
             /*
              * Remove facets
@@ -461,10 +473,10 @@ class Functions_features {
             /*
              * Commit
              */
-            $this->dbDriver->query('COMMIT');
+            pg_query($this->dbh, 'COMMIT');
             
         } catch (Exception $e) {
-            $this->dbDriver->query('ROLLBACK'); 
+            pg_query($this->dbh, 'ROLLBACK'); 
             RestoLogUtil::httpError(500, 'Cannot delete feature ' . $feature->identifier);
         }
     }
@@ -521,7 +533,7 @@ class Functions_features {
             /*
              * Update feature
              */
-            $this->dbDriver->query('UPDATE ' .  (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
+            pg_query($this->dbh, 'UPDATE ' .  (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
             /*
              * We insert the new facets
              */

@@ -644,11 +644,11 @@ class RestoUtil {
                 //RUN ANTIVIRUS
             }
         } catch (Exception $e) {
-            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+            RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
         
         if (!$fileName) {
-            RestoLogUtil::httpError(500, 'Cannot upload file(s)');
+            RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
 
         return array(

@@ -85,3 +85,24 @@ UPDATE resto.osdescriptions SET developper = 'CNES';
 -- ----------------------------------------------------------------------------------------
 UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 15) || to_char(orbitnumber, '000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid IS NULL OR s2takeid='';
 
+-- ----------------------------------------------------------------------------------------
+-- 
+--  Les index (dont les contraintes d'unicité) et les contraintes de clés étrangères ne s'appliquent qu'aux tables mères, pas à leurs héritiers.
+-- (http://docs.postgresqlfr.org/9.4/ddl-inherit.html)
+-- Les collections (S1, S2, S2ST et S3) héritent de la table resto.features.
+-- Les contraintes d’unicité sont définies seulement dans la table resto.features 
+-- (« CONSTRAINT features_identifier_key UNIQUE (identifier) ») et pas dans les collections héritières (_s1.features, _s2.features, …).
+--
+-- ----------------------------------------------------------------------------------------
+
+-- Deleting duplicate rows (same identifier)
+DELETE FROM _s1.features a USING _s1.features b WHERE a.published < b.published AND a.identifier = b.identifier;
+DELETE FROM _s2.features a USING _s2.features b WHERE a.published < b.published AND a.identifier = b.identifier;
+DELETE FROM _s2st.features a USING _s2st.features b WHERE a.published < b.published AND a.identifier = b.identifier;
+DELETE FROM _s3.features a USING _s3.features b WHERE a.published < b.published AND a.identifier = b.identifier;
+
+ALTER TABLE _s1.features ADD CONSTRAINT _s1_features_identifier_key UNIQUE(identifier);
+ALTER TABLE _s2.features ADD CONSTRAINT _s2_features_identifier_key UNIQUE(identifier);
+ALTER TABLE _s2st.features ADD CONSTRAINT _s2st_features_identifier_key UNIQUE(identifier);
+ALTER TABLE _s3.features ADD CONSTRAINT _s3_features_identifier_key UNIQUE(identifier);
+

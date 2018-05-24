@@ -95,7 +95,7 @@ UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 1
 --
 -- ----------------------------------------------------------------------------------------
 
--- Deleting duplicate rows (same identifier)
+-- Suppression des doublons (même identifier) les plus anciens (en fonction de la date de publication)
 DELETE FROM _s1.features a USING _s1.features b WHERE a.published < b.published AND a.identifier = b.identifier;
 DELETE FROM _s2.features a USING _s2.features b WHERE a.published < b.published AND a.identifier = b.identifier;
 DELETE FROM _s2st.features a USING _s2st.features b WHERE a.published < b.published AND a.identifier = b.identifier;
@@ -105,4 +105,20 @@ ALTER TABLE _s1.features ADD CONSTRAINT _s1_features_identifier_key UNIQUE(ident
 ALTER TABLE _s2.features ADD CONSTRAINT _s2_features_identifier_key UNIQUE(identifier);
 ALTER TABLE _s2st.features ADD CONSTRAINT _s2st_features_identifier_key UNIQUE(identifier);
 ALTER TABLE _s3.features ADD CONSTRAINT _s3_features_identifier_key UNIQUE(identifier);
+
+--
+-- Performance - Index fonctionnel
+--
+DROP INDEX IF EXISTS resto.resto_features_startdate_visible_idx;
+DROP INDEX IF EXISTS _s1._s1_features_startdate_visible_idx;
+DROP INDEX IF EXISTS _s2._s2_startdate_visible_idx;
+DROP INDEX IF EXISTS _s2st._s2st_features_startdate_visible_idx;
+DROP INDEX IF EXISTS _s3._s3_features_startdate_visible_idx;
+
+CREATE INDEX resto_features_startdate_visible_idx ON resto.features USING btree (startdate DESC, identifier) where visible = 1;
+CREATE INDEX _s1_features_startdate_visible_idx ON _s1.features USING btree (startdate DESC, identifier) where visible = 1;
+CREATE INDEX _s2_startdate_visible_idx ON _s2.features USING btree (startdate DESC, identifier) where visible = 1;
+CREATE INDEX _s2st_features_startdate_visible_idx ON _s2st.features USING btree (startdate DESC, identifier) where visible = 1;
+CREATE INDEX _s3_features_startdate_visible_idx ON _s3.features USING btree (startdate DESC, identifier) where visible = 1;
+
 

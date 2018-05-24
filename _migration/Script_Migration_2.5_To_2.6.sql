@@ -106,6 +106,11 @@ ALTER TABLE _s2.features ADD CONSTRAINT _s2_features_identifier_key UNIQUE(ident
 ALTER TABLE _s2st.features ADD CONSTRAINT _s2st_features_identifier_key UNIQUE(identifier);
 ALTER TABLE _s3.features ADD CONSTRAINT _s3_features_identifier_key UNIQUE(identifier);
 
+DROP INDEX IF EXISTS _s1._s1_features_identifier_idx;
+DROP INDEX IF EXISTS _s2._s2_features_identifier_idx;
+DROP INDEX IF EXISTS _s2st._s2st_features_identifier_idx;
+DROP INDEX IF EXISTS _s3._s3_features_identifier_idx;
+
 --
 -- Performance - Index fonctionnel
 --

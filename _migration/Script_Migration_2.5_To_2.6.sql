@@ -122,8 +122,14 @@ DROP INDEX IF EXISTS _s3._s3_features_startdate_visible_idx;
 
 CREATE INDEX resto_features_startdate_visible_idx ON resto.features USING btree (startdate DESC, identifier) where visible = 1;
 CREATE INDEX _s1_features_startdate_visible_idx ON _s1.features USING btree (startdate DESC, identifier) where visible = 1;
-CREATE INDEX _s2_startdate_visible_idx ON _s2.features USING btree (startdate DESC, identifier) where visible = 1;
+CREATE INDEX _s2_features_startdate_visible_idx ON _s2.features USING btree (startdate DESC, identifier) where visible = 1;
 CREATE INDEX _s2st_features_startdate_visible_idx ON _s2st.features USING btree (startdate DESC, identifier) where visible = 1;
 CREATE INDEX _s3_features_startdate_visible_idx ON _s3.features USING btree (startdate DESC, identifier) where visible = 1;
 
+DROP INDEX IF EXISTS _s1.features_title_idx;
+CREATE INDEX resto_features_title_idx ON resto.features USING btree (title text_pattern_ops DESC);
+CREATE INDEX _s1_features_title_idx ON _s1.features USING btree (title text_pattern_ops DESC);
+CREATE INDEX _s2_features_title_idx ON _s2.features USING btree (title text_pattern_ops DESC);
+CREATE INDEX _s2st_features_title_idx ON _s2st.features USING btree (title text_pattern_ops DESC);
+CREATE INDEX _s3_features_title_idx ON _s3.features USING btree (title text_pattern_ops DESC);
 

@@ -106,11 +106,12 @@ class HPSS extends RestoModule {
      * @param array $url Request url
      */
     private function staging($path) {
-        $handle = fopen($path, "rb");
+        RestoLogUtil::httpError(202);
+        /*$handle = fopen($path, "rb");
         if (!is_resource($handle)) {
             RestoLogUtil::httpError(404);
         }
         fread($handle, 1);
-        fclose($handle);
+        fclose($handle);*/
     }
 }

@@ -136,7 +136,10 @@ return array(
          */
         'instantLimitDownloadVolume' => 1000,
         'weeklyLimitDownloadVolume' => 5000,
-
+        /*
+         * Obsolescence : allows to enable 'obsolescenceS1useDhusIngestDate' in S1 product versionning
+         */
+        'obsolescenceS1useDhusIngestDate' => false,
         /*
          * Tape data management (download service)
          */

@@ -132,4 +132,3 @@ CREATE INDEX _s1_features_title_idx ON _s1.features USING btree (title text_patt
 CREATE INDEX _s2_features_title_idx ON _s2.features USING btree (title text_pattern_ops DESC);
 CREATE INDEX _s2st_features_title_idx ON _s2st.features USING btree (title text_pattern_ops DESC);
 CREATE INDEX _s3_features_title_idx ON _s3.features USING btree (title text_pattern_ops DESC);
-

@@ -500,6 +500,10 @@ class RestoRouteGET extends RestoRoute {
             }
         }
 
+        if ($this->user->profile['userid'] == -1) {
+            RestoLogUtil::httpError(401);
+        }
+
         //We validate all the possible elemnts to allow the product download
         $sizeLimitState = $this->validateUserSizeLimit($collection, $feature);
 

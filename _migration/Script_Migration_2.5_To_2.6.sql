@@ -132,3 +132,9 @@ CREATE INDEX _s1_features_title_idx ON _s1.features USING btree (title text_patt
 CREATE INDEX _s2_features_title_idx ON _s2.features USING btree (title text_pattern_ops DESC);
 CREATE INDEX _s2st_features_title_idx ON _s2st.features USING btree (title text_pattern_ops DESC);
 CREATE INDEX _s3_features_title_idx ON _s3.features USING btree (title text_pattern_ops DESC);
+<<<<<<< HEAD
+=======
+
+DROP INDEX IF EXISTS usermanagement.usermanagement_history_querytime_idx;
+CREATE INDEX usermanagement_history_querytime_idx ON usermanagement.history (querytime DESC) WHERE service='download' and method='GET';
+>>>>>>> branch '2.1' of https://github.com/atospeps/resto.git

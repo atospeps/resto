@@ -763,7 +763,6 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
         if (isset($this->dbh)) {
             pg_close($this->dbh);
             unset($this->dbh);
-            
         }
     }
     

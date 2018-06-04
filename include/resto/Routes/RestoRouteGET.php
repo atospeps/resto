@@ -485,6 +485,10 @@ class RestoRouteGET extends RestoRoute {
             }
         }
 
+        if ($this->user->profile['userid'] == -1) {
+            RestoLogUtil::httpError(401);
+        }
+
         // We validate all the elemetns needed to make the product available to the user
         $downloadState = $this->validateDownload($collection, $feature);
         

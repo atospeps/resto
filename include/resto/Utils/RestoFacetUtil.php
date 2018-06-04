@@ -46,7 +46,6 @@ class RestoFacetUtil {
             'swath'
         ),
         array(
-            'isNrt',
         	'realtime'
         ),
         array(

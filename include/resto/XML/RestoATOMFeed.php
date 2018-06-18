@@ -162,7 +162,8 @@ class RestoATOMFeed extends RestoXML {
             'xmlns:eo' => 'http://a9.com/-/opensearch/extensions/eo/1.0/',
             'xmlns:metalink' => 'urn:ietf:params:xml:ns:metalink',
             'xmlns:xlink' => 'http://www.w3.org/1999/xlink',
-            'xmlns:media' => 'http://search.yahoo.com/mrss/'
+            'xmlns:media' => 'http://search.yahoo.com/mrss/',
+            'xmlns:resto' => 'http://mapshup.info/-/resto/2.0/'
         ));
     }
     

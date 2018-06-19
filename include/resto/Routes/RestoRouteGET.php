@@ -453,7 +453,7 @@ class RestoRouteGET extends RestoRoute {
         //We validate all the possible elemnts to allow the product download
         $downloadState = $this->validateDownload($collection, $feature);
     
-        if ($downloadState !== "OK") {
+        if ($downloadState !== true) {
             return $downloadState;
         }
     }
@@ -493,7 +493,7 @@ class RestoRouteGET extends RestoRoute {
         $downloadState = $this->validateDownload($collection, $feature);
         
         // If the validations is OK we download
-        if ($downloadState === "OK") {
+        if ($downloadState === true) {
             $this->storeQuery('download', $collection->name, $feature->identifier);
             $feature->download();
             return null;
@@ -800,7 +800,7 @@ class RestoRouteGET extends RestoRoute {
         /*
         * Existinf file + rights = OK
         */
-        return "OK";
+        return true;
     }
 
     /**

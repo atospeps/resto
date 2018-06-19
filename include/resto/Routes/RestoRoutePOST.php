@@ -789,11 +789,7 @@ class RestoRoutePOST extends RestoRoute {
         // retrieve all order items
         $items = array();
         $fromCart = isset($this->context->query['_fromCart']) && filter_var($this->context->query['_fromCart'], FILTER_VALIDATE_BOOLEAN);
-        if($fromCart) {
-            $items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email']));
-        } else {
-            $items = $data;
-        }
+        $items = $fromCart ? $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array('email' => $user->profile['email'])) : $data;
         
         // refresh user profile
         $user->profile = $this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, array('email' => $user->profile['email']));
@@ -802,7 +798,7 @@ class RestoRoutePOST extends RestoRoute {
         $weeklyDownloaded = $this->context->dbDriver->get(RestoDatabaseDriver::USER_DOWNLOADED_WEEKLY, array('identifier' => $user->profile['email']));
         
         // check weekly download limit
-        if($downloadLimits['weeklyLimitDownload'] > 0 && $weeklyDownloaded + count($items) > $downloadLimits['weeklyLimitDownload']) {
+        if ($downloadLimits['weeklyLimitDownload'] > 0 && $weeklyDownloaded + count($items) > $downloadLimits['weeklyLimitDownload']) {
             return RestoLogUtil::httpError(420, "You can't download more than " . $downloadLimits['weeklyLimitDownload'] . "products per week, please wait some days, or contact our administrator");
         }
         

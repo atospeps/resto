@@ -45,6 +45,15 @@ class RestoFeature {
      */
     private $featureArray;
     
+    /*
+     * Storage mode constants
+     */
+    const STORAGE_MODE_DISK = 'disk';
+    const STORAGE_MODE_STAGING = 'staging';
+    const STORAGE_MODE_TAPE = 'tape';
+    const STORAGE_MODE_UNAIVALABLE = 'unaivalable';
+    const STORAGE_MODE_UNKNOWN = 'unknown';
+    
     /**
      * Constructor 
      * 
@@ -97,9 +106,10 @@ class RestoFeature {
              * 
              */
             $path = realpath($this->featureArray['properties']['resourceInfos']['path']);
-            $storage = isset($this->featureArray['properties']['storage']['mode']) ? $this->featureArray['properties']['storage']['mode'] : null;
+            $storage = isset($this->featureArray['properties']['storage']) ? $this->featureArray['properties']['storage'] : self::STORAGE_MODE_UNKNOWN;
 
-            if (empty($storage) || $storage == 'tape'){
+            
+            if ($storage == self::STORAGE_MODE_TAPE){
                 /*
                  * Stage product from tape to disk
                  */
@@ -109,14 +119,16 @@ class RestoFeature {
                 }
                 fclose($handle);
 
-                $response = $this->callStagingWS($path, $this->context->hpssTimeout);
-                if ($response === false){
-                    // file is unavailable
-                    header('HTTP/1.1 202 You should retry the request');
-                    header('X-regards-retry: ' . $this->context->hpssRetryAfter);
-                    header('Retry-After: ' . $this->context->hpssRetryAfter);
-                    return null;
-                }
+                $this->callStagingWS($this->featureArray['properties']['hpssResource'], $this->context->hpssTimeout);
+            }
+
+            // Return retry-after
+            if ($storage == self::STORAGE_MODE_TAPE || $storage == self::STORAGE_MODE_STAGING){
+                // file is unavailable
+                header('HTTP/1.1 202 You should retry the request');
+                header('X-regards-retry: ' . $this->context->hpssRetryAfter);
+                header('Retry-After: ' . $this->context->hpssRetryAfter);
+                return null;
             }
             return $this->streamLocalUrl($path, isset($this->featureArray['properties']['resourceInfos']['mimeType']) ? $this->featureArray['properties']['resourceInfos']['mimeType'] : 'application/octet-stream');
         }
@@ -137,9 +149,8 @@ class RestoFeature {
     /**
      * @param string $hpssPath HPSS resource path
      * Returns Storage information :
-     * {    "path": “<nom du fichier>", 
-     *      "storage": "<disk ou tape>", 
-     *      "id": "< 0 si sur disque ou XXXXX (numéro de la bande) si sur bande"
+     * {    "name": “<nom du produit>", 
+     *      "storage": "<disk ou tape ou staging ou unaivalable ou unknown>", 
      *  }
      */
     private function getStorageInfo($hpssPath) {
@@ -147,12 +158,9 @@ class RestoFeature {
         /*
          * Storage informations
          */
-        $storage = null;
+        $storage = self::STORAGE_MODE_UNKNOWN;
         if (isset($this->featureArray['properties']['isNrt']) && $this->featureArray['properties']['isNrt'] == 1){
-            $storage = array(
-                    'mode' => 'disk',
-                    'id' => 0
-            );
+            $storage = self::STORAGE_MODE_DISK;
         }
         else if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
             // http://pepsvfs:8081/hpss?file={hpss_path}
@@ -171,11 +179,8 @@ class RestoFeature {
             if ($response){
                 $data = json_decode($response, true);
                 // Read request response
-                if ($data != false && isset($data['storage']) && isset($data['id'])){
-                    $storage = array(
-                            'mode' => $data['storage'],
-                            'id' => $data['id']
-                    );
+                if (isset($data['storage'])){
+                    $storage = $data['storage'];
                 }
             }
 
@@ -526,30 +531,35 @@ class RestoFeature {
      */
     private function callStagingWS($path, $timeout = 30){
 
-        $access_token = isset($this->user->token) ? $this->user->token : $this->context->createToken($this->user->profile['userid'], $this->user->profile);
-        $url = $this->context->baseUrl . '/' . (isset($this->context->modules['route']) ? $this->options['route'] : 'hpss') . '?file=' . $path;
-
-        $curl = curl_init($url);
-
-        $headers = array('Authorization: Bearer ' . $access_token);
-        curl_setopt_array($curl, array (
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_POST => 1,
-                CURLOPT_POSTFIELDS => '',
-                CURLOPT_SSL_VERIFYHOST => 0,
-                CURLOPT_SSL_VERIFYPEER => 0,
-                CURLOPT_TIMEOUT => $timeout
-        ));
-
-        curl_exec($curl);
-        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-        // File is available
-        if ($httpcode == 200){
-            return true;
+        if (isset($path) && !empty($this->context->hpssRestApi['stage'])) {
+            $url = $this->context->hpssRestApi['stage'] . $path;
+            $curl = curl_init($url);
+            
+            $headers = array();
+            curl_setopt_array($curl, array (
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_RETURNTRANSFER => 1,
+                    CURLOPT_POST => 1,
+                    CURLOPT_POSTFIELDS => '',
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                    CURLOPT_SSL_VERIFYPEER => 0,
+                    CURLOPT_TIMEOUT => $timeout
+            ));
+            
+            curl_exec($curl);
+            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            if(curl_errno($curl)){
+                $error = curl_error($curl);
+                error_log($error, 0);
+            }
+            curl_close($curl);
+            // File is available
+            if ($httpcode == 200){
+                return true;
+            }
+            // Timeout or error
+            return false;
         }
-        // Timeout or error
         return false;
     }
 }

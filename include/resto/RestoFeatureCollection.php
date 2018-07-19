@@ -351,12 +351,12 @@ class RestoFeatureCollection {
         $storageInfos = array();
         for ($i = 0, $l = count($featuresArray['features']); $i < $l; $i++) {
             // If NRT, stoage mode is disk
-            if (isset($featuresArray['features'][$i]['properties']['isNrt']) && $feature['properties']['isNrt'] == 1){
+            if (isset($featuresArray['features'][$i]['properties']['isNrt']) && $featuresArray['features'][$i]['properties']['isNrt'] == 1){
                 $storageInfos[$featuresArray['features'][$i]['properties']['title']] = array('storage' => self::STORAGE_MODE_DISK);
                 continue;
             }
             if (isset($featuresArray['features'][$i]['properties']['hpssResource'])) {
-                $postData = $featuresArray['features'][$i]['properties']['hpssResource'];
+                $postData[] = $featuresArray['features'][$i]['properties']['hpssResource'];
                 continue;
             }
             //$storageInfos[$featuresArray['features'][$i]['properties']['title']] = self::STORAGE_MODE_UNKNOWN;
@@ -370,8 +370,9 @@ class RestoFeatureCollection {
             if (isset($this->collections) && !isset($this->collections[$featuresArray['features'][$i]['properties']['collection']])) {
                 $this->collections[$featuresArray['features'][$i]['properties']['collection']] = new RestoCollection($featuresArray['features'][$i]['properties']['collection'], $this->context, $this->user, array('autoload' => true));
             }
-            $featuresArray['features'][$i]['properties']['collection']['storage'] = isset($storageInfos[$featuresArray['features'][$i]['properties']['title']['storage']]) 
-                    ? $storageInfos[$featuresArray['features'][$i]['properties']['title']['storage']] : self::STORAGE_MODE_UNKNOWN;
+            $name = $featuresArray['features'][$i]['properties']['title'];
+            $featuresArray['features'][$i]['properties']['storage'] = isset($storageInfos[$name]['storage']) 
+                    ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN;
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureArray' => $featuresArray['features'][$i],
                 'collection' => isset($this->collections) && isset($featuresArray['features'][$i]['properties']['collection']) && $this->collections[$featuresArray['features'][$i]['properties']['collection']] ? $this->collections[$featuresArray['features'][$i]['properties']['collection']] : $this->defaultCollection
@@ -781,13 +782,13 @@ class RestoFeatureCollection {
          * Storage informations
          */
         if (isset($data) && !empty($this->context->hpssRestApi['getStorageInfo'])){
-            $curl = curl_init();
+            $curl = curl_init($this->context->hpssRestApi['getStorageInfo']);
             $headers = array("Content-type: text/plain");
             curl_setopt_array($curl, array (
                     CURLOPT_RETURNTRANSFER => 1,
                     CURLOPT_POST => 1,
                     CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_POSTFIELDS => $data,
+                    CURLOPT_POSTFIELDS => implode(' ', $data),
                     CURLOPT_SSL_VERIFYHOST => 0,
                     CURLOPT_SSL_VERIFYPEER => 0,
                     CURLOPT_TIMEOUT => $timeout
@@ -810,3 +811,4 @@ class RestoFeatureCollection {
     
     
 }
+

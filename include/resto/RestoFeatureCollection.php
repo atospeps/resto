@@ -65,6 +65,15 @@ class RestoFeatureCollection {
      */
     private $queryAnalyzer;
     
+    /*
+     * Storage mode constants
+     */
+    const STORAGE_MODE_DISK = 'disk';
+    const STORAGE_MODE_STAGING = 'staging';
+    const STORAGE_MODE_TAPE = 'tape';
+    const STORAGE_MODE_UNAIVALABLE = 'unaivalable';
+    const STORAGE_MODE_UNKNOWN = 'unknown';
+    
     /**
      * Constructor 
      * 
@@ -338,10 +347,31 @@ class RestoFeatureCollection {
         /*
          * Load collections array
          */
+        $postData = array();
+        $storageInfos = array();
+        for ($i = 0, $l = count($featuresArray['features']); $i < $l; $i++) {
+            // If NRT, stoage mode is disk
+            if (isset($featuresArray['features'][$i]['properties']['isNrt']) && $feature['properties']['isNrt'] == 1){
+                $storageInfos[$featuresArray['features'][$i]['properties']['title']] = array('storage' => self::STORAGE_MODE_DISK);
+                continue;
+            }
+            if (isset($featuresArray['features'][$i]['properties']['hpssResource'])) {
+                $postData = $featuresArray['features'][$i]['properties']['hpssResource'];
+                continue;
+            }
+            //$storageInfos[$featuresArray['features'][$i]['properties']['title']] = self::STORAGE_MODE_UNKNOWN;
+        }
+        if (!empty($postData)) {
+            $postData = $this->getStorageInfo($postData);
+        }
+        $storageInfos = array_merge($storageInfos, $postData);
+        
         for ($i = 0, $l = count($featuresArray['features']); $i < $l; $i++) {
             if (isset($this->collections) && !isset($this->collections[$featuresArray['features'][$i]['properties']['collection']])) {
                 $this->collections[$featuresArray['features'][$i]['properties']['collection']] = new RestoCollection($featuresArray['features'][$i]['properties']['collection'], $this->context, $this->user, array('autoload' => true));
             }
+            $featuresArray['features'][$i]['properties']['collection']['storage'] = isset($storageInfos[$featuresArray['features'][$i]['properties']['title']['storage']]) 
+                    ? $storageInfos[$featuresArray['features'][$i]['properties']['title']['storage']] : self::STORAGE_MODE_UNKNOWN;
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureArray' => $featuresArray['features'][$i],
                 'collection' => isset($this->collections) && isset($featuresArray['features'][$i]['properties']['collection']) && $this->collections[$featuresArray['features'][$i]['properties']['collection']] ? $this->collections[$featuresArray['features'][$i]['properties']['collection']] : $this->defaultCollection
@@ -737,6 +767,45 @@ class RestoFeatureCollection {
         }
         $params['searchTerms'] = join(' ', $params['searchTerms']);
         return $params;
+    }
+    
+    
+    /*
+     * TODO
+     * 
+     */
+    private function getStorageInfo($data, $timeout=30) {
+        
+        $result = array();
+        /*
+         * Storage informations
+         */
+        if (isset($data) && !empty($this->context->hpssRestApi['getStorageInfo'])){
+            $curl = curl_init();
+            $headers = array("Content-type: text/plain");
+            curl_setopt_array($curl, array (
+                    CURLOPT_RETURNTRANSFER => 1,
+                    CURLOPT_POST => 1,
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_POSTFIELDS => $data,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                    CURLOPT_SSL_VERIFYPEER => 0,
+                    CURLOPT_TIMEOUT => $timeout
+            ));
+            
+            // Perform request
+            $response = curl_exec($curl);
+            if ($response){
+                $result = json_decode($response, true);
+            }
+            
+            if(curl_errno($curl)){
+                $error = curl_error($curl);
+                error_log($error, 0);
+            }
+            curl_close($curl);
+        }
+        return $result;        
     }
     
     

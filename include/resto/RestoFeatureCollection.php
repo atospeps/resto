@@ -371,8 +371,8 @@ class RestoFeatureCollection {
                 $this->collections[$featuresArray['features'][$i]['properties']['collection']] = new RestoCollection($featuresArray['features'][$i]['properties']['collection'], $this->context, $this->user, array('autoload' => true));
             }
             $name = $featuresArray['features'][$i]['properties']['title'];
-            $featuresArray['features'][$i]['properties']['storage'] = isset($storageInfos[$name]['storage']) 
-                    ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN;
+            $featuresArray['features'][$i]['properties']['storage'] = array('mode' => isset($storageInfos[$name]['storage']) 
+                    ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN);
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureArray' => $featuresArray['features'][$i],
                 'collection' => isset($this->collections) && isset($featuresArray['features'][$i]['properties']['collection']) && $this->collections[$featuresArray['features'][$i]['properties']['collection']] ? $this->collections[$featuresArray['features'][$i]['properties']['collection']] : $this->defaultCollection

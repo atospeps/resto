@@ -312,9 +312,9 @@ class RestoFeature {
         else {
             $this->identifier = $this->featureArray['id'];
             if ($this->overwriteStorageMode) {
-                $this->featureArray['properties']['storage'] = isset($this->featureArray['properties']['hpssResource']) 
+                $this->featureArray['properties']['storage'] = array('mode' => isset($this->featureArray['properties']['hpssResource']) 
                     ? $this->getStorageInfo($this->featureArray['properties']['hpssResource']) 
-                    : self::STORAGE_MODE_UNKNOWN;
+                    : self::STORAGE_MODE_UNKNOWN);
             }
             $this->setCollection($this->featureArray['properties']['collection']);
         }

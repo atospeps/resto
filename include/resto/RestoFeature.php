@@ -46,6 +46,11 @@ class RestoFeature {
     private $featureArray;
     
     /*
+     * Overwrite storage mode
+     */
+    private $overwriteStorageMode = false;
+    
+    /*
      * Storage mode constants
      */
     const STORAGE_MODE_DISK = 'disk';
@@ -145,6 +150,54 @@ class RestoFeature {
             RestoLogUtil::httpError(404);
         }
     }
+    
+    /**
+     * @param string $hpssPath HPSS resource path
+     * Returns Storage information :
+     * {    "name": “<nom du produit>", 
+     *      "storage": "<disk ou tape ou staging ou unaivalable ou unknown>", 
+     *  }
+     */
+    private function getStorageInfo($hpssPath) {
+
+        /*
+         * Storage informations
+         */
+        $storage = self::STORAGE_MODE_UNKNOWN;
+        if (isset($this->featureArray['properties']['isNrt']) && $this->featureArray['properties']['isNrt'] == 1){
+            $storage = self::STORAGE_MODE_DISK;
+        }
+        else if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
+            // http://pepsvfs:8081/hpss?file={hpss_path}
+            $urlGetStorageInfo = $this->context->hpssRestApi['getStorageInfo'] . $hpssPath;
+            $curl = curl_init();
+            curl_setopt_array($curl, array (
+                    CURLOPT_RETURNTRANSFER => 1,
+                    CURLOPT_URL => $urlGetStorageInfo,
+                    CURLOPT_SSL_VERIFYHOST => 0,
+                    CURLOPT_SSL_VERIFYPEER => 0,
+                    CURLOPT_TIMEOUT_MS => isset($this->context->hpssRestApi['timeout']) ? $this->context->hpssRestApi['timeout'] : 1000
+            ));
+
+            // Perform request
+            $response = curl_exec($curl);
+            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            if ($response && $httpcode === 200){
+                $data = json_decode($response, true);
+                // Read request response
+                if (isset($data['storage'])){
+                    $storage = $data['storage'];
+                }
+            }
+
+            if(curl_errno($curl)){
+                $error = curl_error($curl);
+                error_log($error, 0);
+            }
+            curl_close($curl);
+        }
+        return $storage;
+    }
 
     /**
      * Update feature from database
@@ -218,6 +271,10 @@ class RestoFeature {
             $this->collection = $options['collection'];
         }
         
+        if (isset($options['overwriteStorageMode']) ===  true) {
+            $this->overwriteStorageMode = $options['overwriteStorageMode'];
+        }
+        
         /*
          * Load from database
          */
@@ -254,6 +311,11 @@ class RestoFeature {
         }
         else {
             $this->identifier = $this->featureArray['id'];
+            if ($this->overwriteStorageMode) {
+                $this->featureArray['properties']['storage'] = isset($this->featureArray['properties']['hpssResource']) 
+                    ? $this->getStorageInfo($this->featureArray['properties']['hpssResource']) 
+                    : self::STORAGE_MODE_UNKNOWN;
+            }
             $this->setCollection($this->featureArray['properties']['collection']);
         }
     }

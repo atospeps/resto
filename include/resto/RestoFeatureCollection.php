@@ -769,11 +769,12 @@ class RestoFeatureCollection {
         $params['searchTerms'] = join(' ', $params['searchTerms']);
         return $params;
     }
-    
-    
-    /*
-     * TODO
-     * 
+
+    /**
+     * Return storage information of specified data
+     * @param array $data data
+     * @param number $timeout timeout
+     * @return array storage information of inputs data
      */
     private function getStorageInfo($data, $timeout=30) {
         
@@ -796,10 +797,11 @@ class RestoFeatureCollection {
             
             // Perform request
             $response = curl_exec($curl);
-            if ($response){
+            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            if ($response && $httpcode === 200){
                 $result = json_decode($response, true);
             }
-            
+
             if(curl_errno($curl)){
                 $error = curl_error($curl);
                 error_log($error, 0);
@@ -808,7 +810,5 @@ class RestoFeatureCollection {
         }
         return $result;        
     }
-    
-    
 }
 

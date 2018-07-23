@@ -109,7 +109,7 @@ class RestoFeature {
             $storage = isset($this->featureArray['properties']['storage']) ? $this->featureArray['properties']['storage'] : self::STORAGE_MODE_UNKNOWN;
 
             
-            if ($storage == self::STORAGE_MODE_TAPE){
+            if ($storage === self::STORAGE_MODE_TAPE){
                 /*
                  * Stage product from tape to disk
                  */
@@ -123,7 +123,7 @@ class RestoFeature {
             }
 
             // Return retry-after
-            if ($storage == self::STORAGE_MODE_TAPE || $storage == self::STORAGE_MODE_STAGING){
+            if ($storage !== self::STORAGE_MODE_DISK) {
                 // file is unavailable
                 header('HTTP/1.1 202 You should retry the request');
                 header('X-regards-retry: ' . $this->context->hpssRetryAfter);
@@ -144,53 +144,6 @@ class RestoFeature {
         else {
             RestoLogUtil::httpError(404);
         }
-    }
-    
-    /**
-     * @param string $hpssPath HPSS resource path
-     * Returns Storage information :
-     * {    "name": “<nom du produit>", 
-     *      "storage": "<disk ou tape ou staging ou unaivalable ou unknown>", 
-     *  }
-     */
-    private function getStorageInfo($hpssPath) {
-
-        /*
-         * Storage informations
-         */
-        $storage = self::STORAGE_MODE_UNKNOWN;
-        if (isset($this->featureArray['properties']['isNrt']) && $this->featureArray['properties']['isNrt'] == 1){
-            $storage = self::STORAGE_MODE_DISK;
-        }
-        else if (isset($hpssPath) && !empty($this->context->hpssRestApi['getStorageInfo'])){
-            // http://pepsvfs:8081/hpss?file={hpss_path}
-            $urlGetStorageInfo = $this->context->hpssRestApi['getStorageInfo'] . $hpssPath;
-            $curl = curl_init();
-            curl_setopt_array($curl, array (
-                    CURLOPT_RETURNTRANSFER => 1,
-                    CURLOPT_URL => $urlGetStorageInfo,
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                    CURLOPT_TIMEOUT_MS => isset($this->context->hpssRestApi['timeout']) ? $this->context->hpssRestApi['timeout'] : 1000
-            ));
-
-            // Perform request
-            $response = curl_exec($curl);
-            if ($response){
-                $data = json_decode($response, true);
-                // Read request response
-                if (isset($data['storage'])){
-                    $storage = $data['storage'];
-                }
-            }
-
-            if(curl_errno($curl)){
-                $error = curl_error($curl);
-                error_log($error, 0);
-            }
-            curl_close($curl);
-        }
-        return $storage;
     }
 
     /**

@@ -111,7 +111,7 @@ class RestoFeature {
              * 
              */
             $path = realpath($this->featureArray['properties']['resourceInfos']['path']);
-            $storage = isset($this->featureArray['properties']['storage']) ? $this->featureArray['properties']['storage'] : self::STORAGE_MODE_UNKNOWN;
+            $storage = isset($this->featureArray['properties']['storage']['mode']) ? $this->featureArray['properties']['storage']['mode'] : self::STORAGE_MODE_UNKNOWN;
 
             
             if ($storage === self::STORAGE_MODE_TAPE){

@@ -391,7 +391,8 @@ class RestoRouteGET extends RestoRoute {
         if (isset($segments[2])) {
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureIdentifier' => $segments[2], 
-                'collection' => $collection
+                'collection' => $collection,
+                'overwriteStorageMode' => true
             ));
             if (!$feature->isValid()) {
                 RestoLogUtil::httpError(404);

@@ -158,9 +158,10 @@ return array(
                         'timeout' => 1500, // milliseconds
                         /* 
                          * Returns storage information
-                         * {"path": <file_path>, "storage": "<disk or tape>", "id": "< 0 if storage disk, otherwise XXXXX (tape identifier)"}
+                         * {"name": <product_name>, "storage": "<disk or tape or staging or unknown or unavailable>""}
                          */
-                        'getStorageInfo' => 'http://pepsvfs:8081/hpss'
+                        'getStorageInfo' => 'http://localhost:8085/getinfo',
+                        'stage' => 'http://localhost:8085/stage'
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds

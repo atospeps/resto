@@ -1,3 +1,4 @@
+
 <?php
 /*
  * Copyright 2014 Jérôme Gasperi
@@ -64,6 +65,15 @@ class RestoFeatureCollection {
      * Query analyzer
      */
     private $queryAnalyzer;
+    
+    /*
+     * Storage mode constants
+     */
+    const STORAGE_MODE_DISK = 'disk';
+    const STORAGE_MODE_STAGING = 'staging';
+    const STORAGE_MODE_TAPE = 'tape';
+    const STORAGE_MODE_UNAIVALABLE = 'unaivalable';
+    const STORAGE_MODE_UNKNOWN = 'unknown';
     
     /**
      * Constructor 
@@ -315,11 +325,10 @@ class RestoFeatureCollection {
         /*
          * Convert productIdentifier to identifier if needed
          */
-        if (isset($params['geo:uid']) 
-                && !RestoUtil::isValidUUID($params['geo:uid']) 
-                && isset($this->defaultCollection)) 
-        {
-            $params['geo:uid'] = RestoUtil::UUIDv5($this->defaultCollection->name . ':' . strtoupper($params['geo:uid']));
+        if (isset($params['geo:uid']) && !RestoUtil::isValidUUID($params['geo:uid'])) {
+            if (isset($this->defaultCollection)) {
+                $params['geo:uid'] = RestoUtil::UUIDv5($this->defaultCollection->name . ':' . strtoupper($params['geo:uid']));
+            }
         }
         
         /*
@@ -339,10 +348,32 @@ class RestoFeatureCollection {
         /*
          * Load collections array
          */
+        $postData = array();
+        $storageInfos = array();
+        for ($i = 0, $l = count($featuresArray['features']); $i < $l; $i++) {
+            // If NRT, stoage mode is disk
+            if (isset($featuresArray['features'][$i]['properties']['isNrt']) && $featuresArray['features'][$i]['properties']['isNrt'] == 1){
+                $storageInfos[$featuresArray['features'][$i]['properties']['title']] = array('storage' => self::STORAGE_MODE_DISK);
+                continue;
+            }
+            if (isset($featuresArray['features'][$i]['properties']['hpssResource'])) {
+                $postData[] = $featuresArray['features'][$i]['properties']['hpssResource'];
+                continue;
+            }
+            //$storageInfos[$featuresArray['features'][$i]['properties']['title']] = self::STORAGE_MODE_UNKNOWN;
+        }
+        if (!empty($postData)) {
+            $postData = $this->getStorageInfo($postData);
+        }
+        $storageInfos = array_merge($storageInfos, $postData);
+        
         for ($i = 0, $l = count($featuresArray['features']); $i < $l; $i++) {
             if (isset($this->collections) && !isset($this->collections[$featuresArray['features'][$i]['properties']['collection']])) {
                 $this->collections[$featuresArray['features'][$i]['properties']['collection']] = new RestoCollection($featuresArray['features'][$i]['properties']['collection'], $this->context, $this->user, array('autoload' => true));
             }
+            $name = $featuresArray['features'][$i]['properties']['title'];
+            $featuresArray['features'][$i]['properties']['storage'] = array('mode' => isset($storageInfos[$name]['storage']) 
+                    ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN);
             $feature = new RestoFeature($this->context, $this->user, array(
                 'featureArray' => $featuresArray['features'][$i],
                 'collection' => isset($this->collections) && isset($featuresArray['features'][$i]['properties']['collection']) && $this->collections[$featuresArray['features'][$i]['properties']['collection']] ? $this->collections[$featuresArray['features'][$i]['properties']['collection']] : $this->defaultCollection
@@ -474,271 +505,3 @@ class RestoFeatureCollection {
                 'type' => 'application/opensearchdescription+xml',
                 'title' => $this->context->dictionary->translate('_osddLink'),
                 'href' => $this->context->baseUrl . '/api/collections/' . (isset($this->defaultCollection) ? $this->defaultCollection->name . '/' : '') . 'describe.xml'
-            )
-        );
-    }
-    
-    /**
-     * Return Link
-     * 
-     * @param string $rel
-     * @param string $title
-     * @param array $params
-     * @return array
-     */
-    private function getLink($rel, $title, $params) {
-        
-        /*
-         * Do not set count if equal to default limit
-         */
-        if (isset($params['count']) && $params['count'] === $this->context->dbDriver->resultsPerPage) {
-            unset($params['count']);
-        }
-            
-        return array(
-            'rel' => $rel,
-            'type' => RestoUtil::$contentTypes['json'],
-            'title' => $this->context->dictionary->translate($title),
-            'href' => RestoUtil::updateUrl($this->context->getUrl(false), $this->writeRequestParams(array_merge($this->context->query, $params)))
-        );
-    }
-    
-    /**
-     * Get start, next and last page from limit and offset
-     *
-     * @param array $count
-     * @param integer $limit
-     * @param integer $offset
-     */
-    private function getPaging($count, $limit, $offset) {
-        /*
-         * If first page contains no features count must be 0 not estimated value
-         */
-        if ($offset == 0 && count($this->restoFeatures) == 0){
-            $count = array(
-                'total' => 0,
-                'isExact' => true
-            );
-        }
-
-        /*
-         * Default paging
-         */
-        $paging = array(
-            'count' => $count,
-            'startPage' => 1,
-            'nextPage' => 1,
-            'totalPage' => 0
-        );
-        if (count($this->restoFeatures) > 0) {
-
-            $startPage = ceil(($offset + 1) / $limit);
-
-            /*
-             * Tricky part if count is estimate, then
-             * the total count is the maximum between the database estimate
-             * and the pseudo real count based on the retrieved features count
-             */
-            if (!$count['isExact']) {
-                $count['total'] = max(count($this->restoFeatures) + (($startPage - 1) * $limit), $count['total']);
-            }
-            $totalPage = ceil($count['total'] / $limit);
-            $paging = array(
-                'count' => $count,
-                'startPage' => $startPage,
-                'nextPage' => $startPage + 1,
-                'totalPage' => $totalPage
-            );
-        }
-
-        return $paging;
-    }
-
-    /**
-     * Return query array from search filters
-     * 
-     * @param array $searchFilters
-     * @return array
-     */
-    private function cleanFilters($searchFilters) {
-        $query = array();
-        $exclude = array(
-            'count',
-            'startIndex',
-            'startPage'
-        );
-        foreach ($searchFilters as $key => $value) {
-            if (in_array($key, $exclude)) {
-                continue;
-            }
-            $query[$key] = $key === 'searchTerms' ? stripslashes($value) : $value;
-        }
-        ksort($query);
-        return $query;
-    }
-    
-    /**
-     * Get ATOM subtitle - construct from $this->description['properties']['title']
-     * 
-     * @return string
-     */
-    private function getATOMSubtitle() {
-        $subtitle = '';
-        if (isset($this->description['properties']['totalResults'])) {
-            $subtitle = $this->context->dictionary->translate($this->description['properties']['totalResults'] === 1 ? '_oneResult' : '_multipleResult', $this->description['properties']['totalResults']);
-        }
-        $previous = isset($this->description['properties']['links']['previous']) ? '<a href="' . RestoUtil::updateUrlFormat($this->description['properties']['links']['previous'], 'atom') . '">' . $this->context->dictionary->translate('_previousPage') . '</a>&nbsp;' : '';
-        $next = isset($this->description['properties']['links']['next']) ? '&nbsp;<a href="' . RestoUtil::updateUrlFormat($this->description['properties']['links']['next'], 'atom') . '">' . $this->context->dictionary->translate('_nextPage') . '</a>' : '';
-        $subtitle .= isset($this->description['properties']['startIndex']) ? '&nbsp;|&nbsp;' . $previous . $this->context->dictionary->translate('_pagination', $this->description['properties']['startIndex'], $this->description['properties']['startIndex'] + 1) . $next : '';
-        return $subtitle;
-    }
-    
-    /**
-     * Analyse searchTerms
-     * 
-     * @param array $params
-     */
-    private function analyze($params) {
-        
-        /*
-         * No searchTerms specify - leave input search filters untouched
-         */
-        if (empty($params['searchTerms'])) {
-            return array(
-                'searchFilters' => $params,
-                'analysis' => array(
-                    'query' => ''
-                )
-            );
-        }
-        
-        /*
-         * Analyse query
-         */
-        $analysis = $this->queryAnalyzer->analyze($params['searchTerms']);
-        
-        /*
-         * Not understood - return error
-         */
-        if (empty($analysis['analyze']['What']) && empty($analysis['analyze']['When']) && empty($analysis['analyze']['Where'])) {
-            return array(
-                'notUnderstood' => true,
-                'searchFilters' => $params,
-                'analysis' => $analysis
-            );
-        }
-        
-        /*
-         * What
-         */
-        $params = $this->setWhatFilters($analysis['analyze']['What'], $params);
-        
-        /*
-         * When
-         */
-        $params = $this->setWhenFilters($analysis['analyze']['When'], $params);
-        
-        /*
-         * Where
-         */
-        $params = $this->setWhereFilters($analysis['analyze']['Where'], $params);
-        
-        return array(
-            'searchFilters' => $params,
-            'analysis' => $analysis
-        );
-    }
-    
-    /**
-     * Set what filters from query analysis
-     * 
-     * @param array $what
-     * @param array $params
-     */
-    private function setWhatFilters($what, $params) {
-        $params['searchTerms'] = array();
-        foreach($what as $key => $value) {
-            if ($key === 'searchTerms') {
-                for ($i = count($value); $i--;) {
-                    $params['searchTerms'][] = $value[$i];
-                }
-            }
-            else {
-                $params[$key] = $value;
-            }
-        }
-        return $params;
-    }
-    
-    /**
-     * Set when filters from query analysis
-     * 
-     * @param array $when
-     * @param array $params
-     */
-    private function setWhenFilters($when, $params) {
-        foreach($when as $key => $value) {
-            
-            /*
-             * times is an array of time:start/time:end pairs
-             * TODO : Currently only one pair is supported
-             */
-            if ($key === 'times') {
-                $params = array_merge($params, $this->timesToOpenSearch($value));
-            }
-            else {
-                $params['searchTerms'][] = $key . ':' . $value;
-            }
-        }
-        return $params;
-    }
-    
-    /**
-     * 
-     * @param array $times
-     */
-    private function timesToOpenSearch($times) {
-        $params = array();
-        for ($i = 0, $ii = count($times); $i < $ii; $i++) {
-            foreach($times[$i] as $key => $value) {
-                $params[$key] = $value;
-            }
-        }
-        return $params;
-    }
-    
-    /**
-     * Set location filters from query analysis
-     * 
-     * @param array $where
-     * @param array $params
-     */
-    private function setWhereFilters($where, $params) {
-        for ($i = count($where); $i--;) {
-            
-            /*
-             * Only one toponym is supported (the last one) 
-             */
-            if (isset($where[$i]['geo:lon'])) {
-                $params['geo:lon'] = $where[$i]['geo:lon'];
-                $params['geo:lat'] = $where[$i]['geo:lat'];
-            }
-            /*
-             * Searching for keywords is faster than geometry
-             */
-            else if (isset($where[$i]['searchTerms'])) {
-                $params['searchTerms'][] = $where[$i]['searchTerms'];
-            }
-            /*
-             * Geometry
-             */
-            else {
-                $params['geo:geometry'] = $where[$i]['geometry'];
-            }
-        }
-        $params['searchTerms'] = join(' ', $params['searchTerms']);
-        return $params;
-    }
-    
-    
-}

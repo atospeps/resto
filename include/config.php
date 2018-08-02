@@ -40,12 +40,7 @@ return array(
          * called RestoDictionary_{language} (usually located under $RESTO_BUILD/include/resto/Dictionaries) 
          */
         'languages' => array('en', 'fr'),
-        
-        /*
-         *  Contact email
-         */
-        'contactEmail' => 'exppeps@cnes.fr',
-        
+
         /*
          * Debug mode
          */
@@ -165,19 +160,6 @@ return array(
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
-        )
-    ),
-
-    /*
-     * Google reCaptcha
-     */
-    'reCaptcha' => array(
-        'secret' => '',
-        'verifyUrl' => 'https://www.google.com/recaptcha/api/siteverify',
-        'curlOpts' => array(
-            CURLOPT_PROXY => '',
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 30
         )
     ),
 
@@ -467,7 +449,20 @@ return array(
                  */ 
                 'areaLimit' => 3000000
             )
+        ),
+        'Contact' => array(
+                'activate' => true,
+                'route' => 'contact',
+                'options' => array(
+                        'contactEmail' => 'exppeps@cnes.fr',
+                        'secret' => '',
+                        'verifyUrl' => 'https://www.google.com/recaptcha/api/siteverify',
+                        'curlOpts' => array(
+                                CURLOPT_PROXY => '',
+                                CURLOPT_TIMEOUT => 30,
+                                CURLOPT_CONNECTTIMEOUT => 30
+                        )),
+                
         )
-        
     )
 );

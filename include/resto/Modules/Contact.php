@@ -1,17 +1,15 @@
 <?php
 
 /**
- * @author Atos
- * RESTo Upload module.
  *
- *    | 
- *    | Resource                                                        | Description
- *    |_________________________________________________________________|______________________________________
- *    | HTTP/GET        wps/users/{userid}/jobs                         | List of all user's jobs
- *    | HTTP/GET        wps/status                                       | Check VIZO status
+ * @author Atos
+ * Contact Module
  *    
+ *    contact |  Send contact form to contact email
+ *
  */
 class Contact extends RestoModule {
+    
     /*
      * Resto context
      */
@@ -21,7 +19,18 @@ class Contact extends RestoModule {
      * Current user (only set for administration on a single user)
      */
     public $user = null;
-
+    
+    /*
+     * segments
+     */
+    public $segments;
+    
+    /*
+     * Module configuration
+     */
+    private $config;
+    
+    
     /**
      * Constructor
      *
@@ -36,172 +45,93 @@ class Contact extends RestoModule {
         
         // Set context
         $this->context = $context;
+        
+        $this->initialize();
     }
-
+    
+    /**
+     * Initialize module
+     */
+    private function initialize() {
+        // Close database handler
+        if (isset($this->context->dbDriver)){
+            $this->context->dbDriver->closeDbh();
+        }
+        // Load options
+        $this->config = $this->context->modules[get_class($this)];        
+    }
     /**
      * 
      * {@inheritDoc}
      * @see RestoModule::run()
      */
-    public function run($elements, $data = []) {
+    public function run($segments, $data = array()) {
+
+        $this->segments = $segments;
+        $method = $this->context->method;
         
-        // Allowed HTTP method
-        if ($this->context->method !== 'POST')
+        if ($method === 'POST')
         {
-            RestoLogUtil::httpError(404);
-        }        
-        return $this->route($segments, $data);
-    }
-
-    /**
-     * 
-     * @param unknown $segments
-     * @param unknown $data
-     * @return unknown|unknown|string[]|StdClass[][]
-     */
-    private function route($segments, $data){
-        
-        if (isset($segments[0]) && $segments['0'] === 'area' && !isset($segments[1])) {
-            return RestoLogUtil::httpError(404);
+            return $this->processPOST($data);
         }
-        return $this->upload($segments, $data);
+        return RestoLogUtil::httpError(404);
     }
     
     /**
      * 
-     * @param unknown $segments
-     * @param unknown $data
-     * @return unknown|string[]|StdClass[][]
+     * @param array $data Posted data
+     * @return mixed output execution status
      */
-    private function upload($segments, $data){
-        
-        if ($segments[0] === 'upload') {
-            
-            if (!isset($segments[1]) || isset($segments[2])) {
-                RestoLogUtil::httpError(404);
-            }
-            
-            // upload file
-            $fileName = RestoUtil::uploadFile($this->context->uploadDirectory);
-            
-            /*
-             * api/upload/area
-             */
-            if ($segments[1] === 'area' && !isset($segments[2])) {
-                
-                // get content
-                try {
-                    $content = file_get_contents($fileName);
-                    $json = json_decode($content, true);
-                } catch (Exception $e) {
-                    RestoLogUtil::httpError(415);
-                }
-                
-                // GeoJSON
-                if ($json && (
-                        RestoGeometryUtil::isValidGeoJSONFeatureCollection($json) ||
-                        RestoGeometryUtil::isValidGeoJSONFeature($json)
-                        )) {
-                            unlink($fileName);
-                            return $json;
-                        }
-                        
-                        /*
-                         * KML / SHP
-                         */
-                        try {
-                            // detect content format (here KML only)
-                            $format = geoPHP::detectFormat($content);
-                            
-                            // extract file infos
-                            $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
-                            $basename = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
-                            
-                            /*
-                             * ----- KML
-                             */
-                            if ($format === 'kml') {
-                                $geometry = geoPHP::load($content, 'kml');
-                                $geometry = geoPHP::geometryReduce($geometry);
-                                if ($geometry) {
-                                    $feature = new StdClass();
-                                    $feature->type = "Feature";
-                                    $feature->geometry = json_decode($geometry->out('json'));
-                                    $feature->properties = new StdClass();
-                                    unlink($fileName);
-                                    return array(
-                                            "type" => "FeatureCollection",
-                                            "features" => array($feature)
-                                    );
-                                }
-                            }
-                            
-                            /*
-                             * ----- SHP
-                             */
-                            elseif ($ext === 'zip') {
-                                
-                                $extractDir = $this->context->workingDirectory . DIRECTORY_SEPARATOR . $basename;
-                                
-                                $polygons = array();
-                                if (RestoUtil::extractZip($fileName, $extractDir) === true) {
-                                    $ShapeFile = new ShapeFile($extractDir . DIRECTORY_SEPARATOR . $basename . '.shp');
-                                    while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
-                                        if (isset($record['dbf']['deleted'])) continue;
-                                        $polygons[] = $record['shp'];
-                                    }
-                                }
-                                
-                                unlink($fileName);
-                                if (is_dir($extractDir)) {
-                                    RestoUtil::rrmdir($extractDir);
-                                }
-                                
-                                if (count($polygons) > 0) {
-                                    $geometry = geoPHP::load('GEOMETRYCOLLECTION(' . implode(',', $polygons) . ')', 'wkt');
-                                    $geometry = geoPHP::geometryReduce($geometry);
-                                    if ($geometry) {
-                                        $feature = new StdClass();
-                                        $feature->type = "Feature";
-                                        $feature->geometry = json_decode($geometry->out('json'));
-                                        $feature->properties = new StdClass();
-                                        return array(
-                                                "type" => "FeatureCollection",
-                                                "features" => array($feature)
-                                        );
-                                    }
-                                }
-                            }
-                            
-                            RestoLogUtil::httpError(415);
-                            
-                        } catch (Exception $ex) {
-                            RestoLogUtil::httpError(415);
-                        }
-            }
+    private function processPOST($data) {
+        // check email
+        if (!isset($data['email'])) {
+            RestoLogUtil::httpError(1101, 'Email is not set');
+        }
+        if (!RestoUtil::isValidEmail($data['email'])) {
+            RestoLogUtil::httpError(1102, "Email is invalid");
         }
         
-    }
-    
-    private function uploadShapefile(){
-        
-    }
-    
-    private function uploadGeoJson(){
-        
-    }
-    
-    private function uploadKML(){
-        
-    }
+        if (!isset($this->config['verifyUrl'])) {
+            RestoLogUtil::httpError(500, 'Contact module - configuration failed (verifyUrl)');
+        }
+        if (!isset($this->config['secret'])) {
+            RestoLogUtil::httpError(500, "Contact module - configuration failed (secret)");
+        }
+        if (!isset($this->config['contactEmail']) || !RestoUtil::isValidEmail($this->config['contactEmail'])) {
+            RestoLogUtil::httpError(500, "Contact module - configuration failed (contactEmail)");
+        }
 
-    /**
-     * 
-     */
-    private function checkFile(){
+        // check reCaptcha
+        $response = Curl::Post(
+                $this->config['verifyUrl'],
+                array(
+                        'secret' => $this->config['secret'],
+                        'response' => $data['response']
+                ),
+                isset($this->config['curlOpts']) ? $this->config['curlOpts'] : array()
+                );
+        $decode = json_decode($response, true);
+        if ($decode === null) {
+            RestoLogUtil::httpError(1104, "Contact module - Captcha checking failed");
+        }
+        if (!isset($decode['success']) || $decode['success'] !== true) {
+            RestoLogUtil::httpError(1104, "Contact module - Captcha checking failed" . (isset($decode['error-codes']) && is_array($decode['error-codes'])) ? ': ' . implode(', ', $decode['error-codes']) : '');
+        }
         
+        // send
+        $rn = "\r\n";
+        $to = $this->config['contactEmail'];
+        $subject = 'PEPS Contact: ' . $data['name'];
+        $message = wordwrap(str_replace("\n", "\r\n", $data['message']), 70, "\r\n");
+        $params = '-f' . $data['email'];
+        $headers = 'From: ' . $data['email'] 
+                    . $rn . 'Reply-To: ' . $to 
+                    . $rn . 'X-Mailer: PHP/' . phpversion();
+        if (mail($to, $subject, $message, $headers, $params) !== true) {
+            RestoLogUtil::httpError(1103, 'Email can not be sent');
+        }
+        
+        return RestoLogUtil::success('Email has been successfully sent');
     }
     
 }
-
-

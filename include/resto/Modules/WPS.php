@@ -385,11 +385,10 @@ class WPS extends RestoModule {
         if (count($job) > 0) 
         {
             $response = $this->wpsRequestManager->getExecuteResponse($job[0]['statuslocation']);
-            if ($response === false){
-                return RestoLogUtil::httpError(404);
+            if ($response instanceof WPS_ExecuteResponse){
+                $response->replaceTerms($this->replacements);
+                return $response;
             }
-            $response->replaceTerms($this->replacements);
-            return $response;
         }
 
         // ? Is processings file result
@@ -405,8 +404,8 @@ class WPS extends RestoModule {
             return $this->wpsRequestManager->download($result[0]['value'], null, $result[0]['identifier']);
         }
         
-        // HTTP 404
-        return RestoLogUtil::httpError(404);
+        echo $this->wpsRequestManager->getOutput($resource);
+        return null;
     }
 
     /**

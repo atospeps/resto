@@ -200,8 +200,11 @@ class WPS_RequestManager {
     }
 
     /**
-     * 
-     * @param unknown $resource
+     * Download resource
+     * @param string $url resource path
+     * @param string $type resource encodage
+     * @param string $filename resource name
+     * @return NULL
      */
     public function download($url, $type=null, $filename='download') {
         if (filter_var($url, FILTER_VALIDATE_URL)) 
@@ -241,6 +244,18 @@ class WPS_RequestManager {
 
         return false;
     }
+    
+    /**
+     * Return resource content
+     * @param string $path resource path
+     * @return string file content
+     */
+    public function getOutput($path) {
+        // Prevent proxy cache issues
+        $url = $this->getOutputsUrl() . $path;
+        return Curl::Get($url, array(), $this->curlOpts);
+    }
+    
     /**
      * 
      * @param unknown $jobId

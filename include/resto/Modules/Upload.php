@@ -161,13 +161,18 @@ class Upload extends RestoModule {
             $shp = glob($extractDir . '/*.[sS][hH][pP]');
             if ($shp)
             {
-                $ShapeFile = new ShapeFile($shp[0]);
-                while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
-                    if (isset($record['dbf']['deleted'])) {
-                        continue;
+                try {
+                    $ShapeFile = new ShapeFile($shp[0]);
+                    while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
+                        if (isset($record['dbf']['deleted'])) {
+                            continue;
+                        }
+                        $polygons[] = $record['shp'];
                     }
-                    $polygons[] = $record['shp'];
+                } catch (Exception $e) {
+                    error_log($e->getMessage(), 0);
                 }
+                
             }
         }
 

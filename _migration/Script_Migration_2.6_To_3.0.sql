@@ -27,6 +27,7 @@ CREATE OR REPLACE function f_rename_col(_tbl regclass, _col1 text, _col2 text)
   RETURNS bool AS
 $func$
 BEGIN
+<<<<<<< HEAD
 	  IF NOT EXISTS (SELECT 1 FROM pg_attribute
               WHERE  attrelid = _tbl
               AND    attname = _col1
@@ -36,6 +37,10 @@ BEGIN
       	EXECUTE 'ALTER TABLE ' || _tbl || ' RENAME COLUMN ' || _col1 || ' TO ' || _col2;
       	RETURN TRUE;
       END IF;
+=======
+      EXECUTE 'ALTER TABLE ' || _tbl || ' RENAME COLUMN ' || _col1 || ' TO ' || _col2;
+      RETURN TRUE;
+>>>>>>> branch '3.0' of https://github.com/atospeps/resto.git
 END
 $func$  LANGUAGE plpgsql;
 

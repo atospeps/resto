@@ -80,11 +80,11 @@ SELECT f_add_col('usermanagement.orders', 'userid', 'integer');
 -- Creates TABLE usermanagement.wps_status
 --
 ------------------------------------------------------------------------------------------- 
-CREATE TABLE usermanagement.wps_status
+CREATE TABLE IF NOT EXISTS usermanagement.wps_status
 (
   last_dispatch timestamp without time zone,
   status text NOT NULL
-)
+);
 
 ALTER TABLE usermanagement.wps_status OWNER TO resto;
 GRANT ALL ON TABLE usermanagement.wps_status TO postgres;
@@ -116,3 +116,10 @@ insert into resto.facets (uid, type, value, collection, counter) values ('653e45
 insert into resto.facets (uid, type, value, collection, counter) values ('671b9c886d67577', 'realtime', 'NRT', 'S3', (select count(identifier) from _s3.features where realtime='NRT'));
 insert into resto.facets (uid, type, value, collection, counter) values ('d205833dfd4c97b', 'realtime', 'NTC', 'S3', (select count(identifier) from _s3.features where realtime='NTC'));
 insert into resto.facets (uid, type, value, collection, counter) values ('dfaf229ee26146d', 'realtime', 'STC', 'S3', (select count(identifier) from _s3.features where realtime='STC'));
+
+
+--
+-- Perfs
+--
+DROP INDEX IF EXISTS _s2st._s2st_features_s2takeid_idx;
+CREATE INDEX _s2st_features_s2takeid_idx ON _s2st.features (s2takeid DESC);

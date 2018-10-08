@@ -285,7 +285,7 @@ class RestoOSDD extends RestoXML {
                 if (isset($filter['options'])) {
                     if (is_array($filter['options'])) {
                         for ($i = count($filter['options']); $i--;) {
-                            $this->startElement('parameters:Options');
+                            $this->startElement('parameters:Option');
                             $this->writeAttribute('value', $filter['options'][$i]['value']);
                             if (isset($filter['options'][$i]['label'])) {
                                 $this->writeAttribute('label', $filter['options'][$i]['label']);
@@ -300,7 +300,7 @@ class RestoOSDD extends RestoXML {
                         $statistics = $this->collection->getStatistics();
                         if (isset($filter['key']) && isset($statistics['facets'][$filter['key']])) {
                             foreach (array_keys($statistics['facets'][$filter['key']]) as $key) {
-                                $this->startElement('parameters:Options');
+                                $this->startElement('parameters:Option');
                                 $this->writeAttribute('value', $key);
                                 if (isset($this->titles[strtoupper($key)])) {
                                     $this->writeAttribute('title', $this->titles[strtoupper($key)]);

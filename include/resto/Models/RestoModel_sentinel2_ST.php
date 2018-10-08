@@ -68,6 +68,15 @@ class RestoModel_sentinel2_ST extends RestoModel {
                         'type' => 'mgrs'
                 )
         );
+        
+        $this->searchFilters['resto:s2TakeId'] = array (
+                'key' => 's2TakeId',
+                'osKey' => 's2TakeId',
+                'operation' => '=',
+                'title' => 'mission data take identifier',
+                'pattern' => '^G(?:S2A|S2B)_\d{8}T\d{6}_\d{6}_N\d\d\.\d\d$'
+        );
+        
     }
 
     /**

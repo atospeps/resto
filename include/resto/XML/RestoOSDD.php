@@ -196,7 +196,7 @@ class RestoOSDD extends RestoXML {
         ));
         $this->endElement('Query');
         $this->writeElements(array(
-            'Developper' => $this->collection->osDescription[$this->collection->context->dictionary->language]['Developper'],
+//             'Developper' => $this->collection->osDescription[$this->collection->context->dictionary->language]['Developper'],
             'Attribution' => $this->collection->osDescription[$this->collection->context->dictionary->language]['Attribution'],
             'SyndicationRight' => 'open',
             'AdultContent' => 'false'

@@ -83,11 +83,7 @@ UPDATE resto.osdescriptions SET developper = 'CNES';
 -- Les datatakeID des produits S2 sont manquants
 --
 -- ----------------------------------------------------------------------------------------
-<<<<<<< HEAD
 UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 16) || to_char(orbitnumber, 'FM000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2);
-=======
-UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 16) || to_char(orbitnumber, 'FM000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid IS NULL OR s2takeid='';
->>>>>>> branch '3.0' of https://github.com/atospeps/resto.git
 
 -- ----------------------------------------------------------------------------------------
 -- 

@@ -83,7 +83,7 @@ UPDATE resto.osdescriptions SET developper = 'CNES';
 -- Les datatakeID des produits S2 sont manquants
 --
 -- ----------------------------------------------------------------------------------------
-UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 16) || to_char(orbitnumber, 'FM000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid like '% %' or s2takeid like '%#%' or orbitnumber > 999999;
+UPDATE _s2st.features SET s2takeid='G' || substr(title, 1, 4) || substr(title, 12, 16) || to_char(orbitnumber, 'FM000000') || '_N' || substr(title, 29, 2) || '.' || substr(title, 31, 2) where s2takeid IS NULL or s2takeid='' or s2takeid like '% %' or s2takeid like '%#%' or orbitnumber > 999999;
 
 -- ----------------------------------------------------------------------------------------
 -- 

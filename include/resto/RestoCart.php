@@ -51,7 +51,8 @@ class RestoCart{
         // get storage info
         foreach ($this->items as $id => $item) {
             $feature = new RestoFeature($context, $this->user, array (
-                'featureArray' => $item
+                'featureArray' => $item,
+                'overwriteStorageMode' => true
             ));
             $this->items[$id] = $feature->toArray();
         }

@@ -137,6 +137,7 @@ class QueryAnalyzer extends RestoModule {
     public $whereProcessor = null;
     public $whatProcessor = null;
     
+   
     /**
      * Constructor
      * 
@@ -155,7 +156,7 @@ class QueryAnalyzer extends RestoModule {
         $this->whenProcessor = new WhenProcessor($this->queryManager);
         $this->whatProcessor = new WhatProcessor($this->queryManager, $this->options);
         if (isset($context->modules['Gazetteer'])) {
-            $this->whereProcessor = new WhereProcessor($this->queryManager, new Gazetteer($context, $user, $context->modules['Gazetteer']));
+              $this->whereProcessor = new WhereProcessor($this->queryManager, new Gazetteer($context, $user, $context->modules['Gazetteer']));
         }
         
     }
@@ -181,32 +182,85 @@ class QueryAnalyzer extends RestoModule {
         return $this->analyze($query);
         
     }
-    
-    /**
-     * Query analyzer process searchTerms and modify query parameters accordingly
-     * 
-     * @param string $query
-     * @return type
-     */
+  
+       /**
+        * Function to analyze a query in natural language
+        * 
+        * @param string $query
+        * @return array containing the query, the language, the analyze and the processing time
+        */
     public function analyze($query) {
-        
         $startTime = microtime(true);
         
-        /*
-         * QueryAnalyzer only apply on searchTerms filter
-         */
         if (!isset($query)) {
             RestoLogUtil::httpError(400, 'Missing mandatory searchTerms');
         }
         
+        
+        $result = $this->executeQuery($query);
+        $analyses =json_decode($result, false)->{'analyses'};
+        
+        
         return array(
             'query' => $query,
-            'language' => $this->context->dictionary->language,
-            'analyze' => $this->process($query),
+            'language' => $this->getlanguage($analyses),
+            'analyze' => $analyses,
             'processingTime' => microtime(true) - $startTime
         );
-        
     }
+    
+    /**
+     * Execute Http query =>API for peps semantic analyze
+     * 
+     * @param string $query query in natural language
+     * @return string body result of the request
+     */
+    private function executeQuery($query) {
+        $start_year= isset($this->options['start_year']) ? $this->options['start_year'] : "2017";
+        $url = isset($this->options['analysis_route']) ? $this->options['analysis_route'] : "http://localhost:8080/analysis";
+                
+        $url .= "?q=" . urlencode($query) . "&start_year=" . $start_year;
+                
+        $opts = array(
+            'http' => array('method' => 'GET')
+        );
+        $context = stream_context_create($opts);
+                
+        $result = file_get_contents($url, false, $context);
+        
+        
+        if (!isset($result)) {
+            RestoLogUtil::httpError(500, 'ERROR when querying the API for peps semantic analyze');
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Return the main language of the query
+     * If two languages are detected, the dictionary language (of the context) is used
+     * 
+     * @param array() $analyses semantic analysis
+     * @return string language
+     */
+    private function getlanguage($analyses) {
+        $language = $this->context->dictionary->language;
+        if(count($analyses) === 1) {
+            $language = key($analyses);
+        }
+        return $language;
+    }
+    
+    
+    /**
+     * Return conversions between query analyzer property keys and Resto model property keys
+     * 
+     * @return array
+     */
+    public function getConversions() {
+        return isset($this->options['conversions']) ? $this->options['conversions'] : array();
+    }
+    
     
     /**
      * Return array of search terms from input query
@@ -247,6 +301,7 @@ class QueryAnalyzer extends RestoModule {
         );
         
     }
+    
     
     /**
      * Extract time patterns from query

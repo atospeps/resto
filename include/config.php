@@ -375,7 +375,17 @@ return array(
             'activate' => true,
             'route' => 'api/query/analyze',
             'options' => array(
-                'minimalQuantity' => 25
+                'minimalQuantity' => 25,
+                'start_year' => '2017',
+                'analysis_route' => 'http://localhost:8080/analysis',
+                'conversions' => array(
+                   'title' => 'productIdentifier',
+                   'cloud' => 'eo:cloudCover',
+                   'nrt' => 'resto:isNrt',
+                   'mgrs' => 'resto:tileid',
+                   'level' => 'eo:processingLevel',
+                   'platform' => 'eo:platform'
+                )
             )
         ),
         

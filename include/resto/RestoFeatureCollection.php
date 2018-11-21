@@ -159,11 +159,14 @@ class RestoFeatureCollection {
             $this->defaultCollection = $collections;
             $this->defaultModel = $this->defaultCollection->model;
         }
-        else {
+    // TODO
+            else {
+                $this->defaultModel = new RestoModel_default();
             $this->collections = $collections;
-            reset($collections);
+         /*   reset($collections);
             $this->defaultCollection = $this->collections[key($collections)];
             $this->defaultModel = $this->defaultCollection->model;
+            */
         }
         
         if(!$countFeature) {
@@ -341,7 +344,8 @@ class RestoFeatureCollection {
             'options' => array(
                 'limit' => $limit,
                 'offset' => $offset
-            )
+            ),
+            'collections' => $this->collections
         ));
 
         /*
@@ -648,31 +652,38 @@ class RestoFeatureCollection {
         $analysis = $this->queryAnalyzer->analyze($params['searchTerms']);
         
         /*
+         * Language
+         */
+        $language = $analysis['language'];
+                
+        /*
          * Not understood - return error
          */
-        if (empty($analysis['analyze']['What']) && empty($analysis['analyze']['When']) && empty($analysis['analyze']['Where'])) {
+        
+        if (empty($analysis['analyze']->{$language})||(empty($analysis['analyze']->{$language}->{'what'}) && empty($analysis['analyze']->{$language}->{'when'}) && empty($analysis['analyze']->{$language}->{'where'}))) {
             return array(
                 'notUnderstood' => true,
                 'searchFilters' => $params,
                 'analysis' => $analysis
             );
         }
-        
+                
         /*
          * What
          */
-        $params = $this->setWhatFilters($analysis['analyze']['What'], $params);
+        $params = $this->setWhatFilters($analysis['analyze']->{$language}->{'what'}, $params);
         
         /*
          * When
          */
-        $params = $this->setWhenFilters($analysis['analyze']['When'], $params);
-        
+       $params = $this->setWhenFilters($analysis['analyze']->{$language}->{'when'}, $params);
+             
         /*
          * Where
          */
-        $params = $this->setWhereFilters($analysis['analyze']['Where'], $params);
-        
+       $params = $this->setWhereFilters($analysis['analyze']->{$language}->{'where'}, $params);
+       
+       
         return array(
             'searchFilters' => $params,
             'analysis' => $analysis
@@ -684,19 +695,32 @@ class RestoFeatureCollection {
      * 
      * @param array $what
      * @param array $params
+     * @param array $conversions
      */
     private function setWhatFilters($what, $params) {
         $params['searchTerms'] = array();
+        $conversions = $this->queryAnalyzer->getConversions();
+        
         foreach($what as $key => $value) {
             if ($key === 'searchTerms') {
                 for ($i = count($value); $i--;) {
-                    $params['searchTerms'][] = $value[$i];
+                    $params['searchTerms'][] = $value[$i]->{'value'};
                 }
-            }
-            else {
-                $params[$key] = $value;
+            } else if ($key === 'collection') {
+                for ($i = count($value); $i--;) {
+                    $this->defaultCollection = $this->collections[$value[$i]->{'value'}] ;
+                    $params['collection'] = $value[$i]->{'value'};
+                }
+              
+            } else {
+                $newKey = isset($conversions[$key]) ? $conversions[$key] : $key ;
+                for ($i = count($value); $i--;) {   
+                    $params[$newKey][] = is_array($value[$i]->{'value'}) ? json_encode($value[$i]->{'value'}) : $value[$i]->{'value'};
+                }
+                $params[$newKey] = join('|', $params[$newKey]);
             }
         }
+        
         return $params;
     }
     
@@ -707,17 +731,14 @@ class RestoFeatureCollection {
      * @param array $params
      */
     private function setWhenFilters($when, $params) {
-        foreach($when as $key => $value) {
+        foreach($when as $whenItem) {
             
             /*
              * times is an array of time:start/time:end pairs
              * TODO : Currently only one pair is supported
              */
-            if ($key === 'times') {
-                $params = array_merge($params, $this->timesToOpenSearch($value));
-            }
-            else {
-                $params['searchTerms'][] = $key . ':' . $value;
+            if ($whenItem->{'time'}->{'operator'} === 'in') {
+                $params = array_merge($params, $this->timesToOpenSearch($whenItem->{'time'}->{'intervals'}));
             }
         }
         return $params;
@@ -727,11 +748,19 @@ class RestoFeatureCollection {
      * 
      * @param array $times
      */
-    private function timesToOpenSearch($times) {
+    private function timesToOpenSearch($times) { 
+    
         $params = array();
         for ($i = 0, $ii = count($times); $i < $ii; $i++) {
             foreach($times[$i] as $key => $value) {
-                $params[$key] = $value;
+                if($key === 'end') {
+                    $date = DateTime::createFromFormat('Y-m-d', $value);
+                    $date->setTime(23,59,59);
+                    $params['time:end'] = $date->format("Y-m-d\TH:i:s\Z");
+                }
+                if($key === 'start') {
+                    $params['time:start'] = date("Y-m-d\TH:i:s\Z", strtotime($value));
+                }
             }
         }
         return $params;
@@ -747,23 +776,17 @@ class RestoFeatureCollection {
         for ($i = count($where); $i--;) {
             
             /*
-             * Only one toponym is supported (the last one) 
+             * Geometry
              */
-            if (isset($where[$i]['geo:lon'])) {
-                $params['geo:lon'] = $where[$i]['geo:lon'];
-                $params['geo:lat'] = $where[$i]['geo:lat'];
-            }
-            /*
-             * Searching for keywords is faster than geometry
-             */
-            else if (isset($where[$i]['searchTerms'])) {
-                $params['searchTerms'][] = $where[$i]['searchTerms'];
+            if($where[$i]->{'geo'}->{'type'}==='Point') {
+                $params['geo:lon'] = $where[$i]->{'geo'}->{'coordinates'}[0];
+                $params['geo:lat'] = $where[$i]->{'geo'}->{'coordinates'}[1];
             }
             /*
              * Geometry
              */
             else {
-                $params['geo:geometry'] = $where[$i]['geometry'];
+            $params['resto:geometry'] = $where[$i]->{'geo'};
             }
         }
         $params['searchTerms'] = join(' ', $params['searchTerms']);

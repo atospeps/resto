@@ -158,15 +158,10 @@ class RestoFeatureCollection {
         else if (!is_array($collections)) {
             $this->defaultCollection = $collections;
             $this->defaultModel = $this->defaultCollection->model;
-        }
-    // TODO
-            else {
-                $this->defaultModel = new RestoModel_default();
+        } else {
+            $this->defaultModel = new RestoModel_default();
             $this->collections = $collections;
-         /*   reset($collections);
-            $this->defaultCollection = $this->collections[key($collections)];
-            $this->defaultModel = $this->defaultCollection->model;
-            */
+            reset($collections);
         }
         
         if(!$countFeature) {

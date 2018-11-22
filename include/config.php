@@ -385,7 +385,8 @@ return array(
                    'mgrs' => 'resto:tileid',
                    'level' => 'eo:processingLevel',
                    'platform' => 'eo:platform'
-                )
+                ),
+                'curlOpts' => array()
             )
         ),
         

@@ -262,6 +262,11 @@ return array(
     	        'route' => 'hpss',
     	        'options' => array()
     	),
+        'Upload' => array(
+                'activate' => true,
+                'route' => 'upload/area',
+                'options' => array()
+        ),
         'WPS' => array(
                 'activate' => true,
                 'route' => 'wps',

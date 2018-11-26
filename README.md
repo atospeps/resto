@@ -1,6 +1,6 @@
 #resto
 
-[![Code Climate](https://codeclimate.com/github/jjrom/resto2/badges/gpa.svg)](https://codeclimate.com/github/jjrom/resto2)
+[![Code Climate](https://codeclimate.com/github/jjrom/resto2/badges/gpa.svg)](https://codeclimate.com/github/jjrom/resto2) 
 
 [resto](http://mapshup.com/resto2/) - an Earth Observation products search engine 
 

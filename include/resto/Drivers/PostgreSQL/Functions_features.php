@@ -80,7 +80,7 @@ class Functions_features {
      * @return array
      * @throws Exception
      */
-    public function search($context, $user, $collection, $params, $options) {
+    public function search($context, $user, $collection, $params, $options, $collections = null) {
                 
         /*
          * Search filters functions
@@ -97,10 +97,25 @@ class Functions_features {
          */
         $this->checkMandatoryFilters($model, $params);
         
+        
         /*
          * Set search filters
          */
         $filters = $filtersUtils->prepareFilters($model, $params);
+        
+        if(!isset($collection) && isset($collections)) {
+
+            foreach ($collections as $collectionTest) {
+                $tempFilters = $filtersUtils->prepareFilters($collectionTest->model, $params);
+                /* The result is better with its collection */
+                if(count($tempFilters)>count($filters)) {
+                    $filters=$tempFilters;
+                    $collection=$collectionTest;
+                    $model=$collectionTest->model;
+                }
+            }
+            
+        }
         
         /*
          * TODO - get count from facet statistic and not from count() OVER()

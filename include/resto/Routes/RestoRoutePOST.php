@@ -151,7 +151,7 @@ class RestoRoutePOST extends RestoRoute {
         /*
          * Search in one collection...or in all collections
          */
-        $resource = isset($collectionName) ? new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true)) : new RestoCollections($this->context, $this->user);
+        $resource = isset($collectionName) ? new RestoCollection($collectionName, $this->context, $this->user, array('autoload' => true)) : new RestoCollections($this->context, $this->user, array('autoload' => true));
         $this->storeQuery('search', isset($collectionName) ? $collectionName : '*', null);
 
         return $resource->search();

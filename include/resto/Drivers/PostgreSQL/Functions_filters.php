@@ -248,6 +248,10 @@ class Functions_filters {
             return ($exclusion ? 'NOT ' : '') . 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ", ST_GeomFromText('" . pg_escape_string($requestParams[$filterName]) . "', 4326))";
         }
         
+        if ($filterName === 'resto:geometry') {
+            return ($exclusion ? 'NOT ' : '') . 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ", ST_Buffer(ST_GeomFromText(ST_AsEWKT(ST_GeomFromGeoJSON('" . pg_escape_string(json_encode($requestParams[$filterName])) . "')), 4326), 0))";
+        }
+        
         return null;
     }
     

@@ -641,6 +641,12 @@ abstract class RestoModel {
                             'value' => 'relativeorbit'
                     )
             ),
+           'resto:geometry' => array (
+            'key' => 'geometry',
+            'osKey' => 'geometry',
+            'operation' => 'intersects',
+               'title' => 'Defined in Well Known Text standard (WKT) with coordinates in decimal degrees (EPSG:4326)',
+        ),
     );
     public $extendedProperties = array ();
     

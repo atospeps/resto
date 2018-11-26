@@ -110,10 +110,6 @@
  * 
  * @param array $params
  */
-require 'QueryAnalyzer/QueryManager.php';
-require 'QueryAnalyzer/WhatProcessor.php';
-require 'QueryAnalyzer/WhenProcessor.php';
-require 'QueryAnalyzer/WhereProcessor.php';
 class QueryAnalyzer extends RestoModule {
 
     /*
@@ -124,19 +120,7 @@ class QueryAnalyzer extends RestoModule {
     const MISSING_ARGUMENT = 'MISSING_ARGUMENT';
     const MISSING_UNIT = 'MISSING_UNIT';
     const NOT_UNDERSTOOD = 'NOT_UNDERSTOOD';
-    
-    /*
-     * Query manager
-     */
-    public $queryManager = null;
-    
-    /*
-     * Processors
-     */
-    public $whenProcessor = null;
-    public $whereProcessor = null;
-    public $whatProcessor = null;
-    
+       
     /**
      * Constructor
      * 
@@ -146,18 +130,6 @@ class QueryAnalyzer extends RestoModule {
      */
     public function __construct($context, $user, $model = null) {
         parent::__construct($context, $user);
-        
-        /*
-         * Patterns processor (i.e. When, What and Where)
-         * Note : Where processor needs gazetteer
-         */
-        $this->queryManager = new QueryManager($this->context->dictionary, $model);
-        $this->whenProcessor = new WhenProcessor($this->queryManager);
-        $this->whatProcessor = new WhatProcessor($this->queryManager, $this->options);
-        if (isset($context->modules['Gazetteer'])) {
-            $this->whereProcessor = new WhereProcessor($this->queryManager, new Gazetteer($context, $user, $context->modules['Gazetteer']));
-        }
-        
     }
 
     /**
@@ -181,293 +153,81 @@ class QueryAnalyzer extends RestoModule {
         return $this->analyze($query);
         
     }
-    
-    /**
-     * Query analyzer process searchTerms and modify query parameters accordingly
-     * 
-     * @param string $query
-     * @return type
-     */
+  
+       /**
+        * Function to analyze a query in natural language
+        * 
+        * @param string $query
+        * @return array containing the query, the language, the analyze and the processing time
+        */
     public function analyze($query) {
-        
         $startTime = microtime(true);
         
-        /*
-         * QueryAnalyzer only apply on searchTerms filter
-         */
         if (!isset($query)) {
             RestoLogUtil::httpError(400, 'Missing mandatory searchTerms');
         }
         
+        
+        $result = $this->executeQuery($query);
+        $analyses =json_decode($result, false)->{'analyses'};
+        
+        
         return array(
             'query' => $query,
-            'language' => $this->context->dictionary->language,
-            'analyze' => $this->process($query),
+            'language' => $this->getlanguage($analyses),
+            'analyze' => $analyses,
             'processingTime' => microtime(true) - $startTime
         );
-        
     }
     
     /**
-     * Return array of search terms from input query
+     * Execute Http query =>API for peps semantic analyze
      * 
-     * @param string $query
+     * @param string $query query in natural language
+     * @return string body result of the request
+     */
+    private function executeQuery($query) {
+        
+        $data = array();
+        $data['q'] = urlencode($query);
+        $data['start_year'] = isset($this->options['start_year']) ? $this->options['start_year'] : "2017" ;
+        
+        $options = isset($this->options['curlOpts']) ? $this->options['curlOpts'] : array() ;
+        
+        $url = isset($this->options['analysis_route']) ? $this->options['analysis_route'] : "";
+        
+        $response = Curl::Get($url, $data, $options);
+        
+        if (!isset($response)) {
+            RestoLogUtil::httpError(500, 'ERROR when querying the API for peps semantic analyze');
+        }
+        
+        return $response;
+    }
+    
+    /**
+     * Return the main language of the query
+     * If two languages are detected, the dictionary language (of the context) is used
+     * 
+     * @param array() $analyses semantic analysis
+     * @return string language
+     */
+    private function getlanguage($analyses) {
+        $language = $this->context->dictionary->language;
+        if(count($analyses) === 1) {
+            $language = key($analyses);
+        }
+        return $language;
+    }
+    
+    
+    /**
+     * Return conversions between query analyzer property keys and Resto model property keys
+     * 
      * @return array
      */
-    private function process($query) {
-        
-        /*
-         * Initialize QueryManager
-         */
-        $this->queryManager->initialize($this->queryToWords($query));
-        
-        /*
-         * Extract (in this order !) "what", "when" and "where" elements from query
-         * Suppose that query is structured (i.e. is a sentence) 
-         */
-        $this->processWhat(true);
-        $this->processWhen(true);
-        $this->processWhere(true);
-        
-        /*
-         * Remaining words are unstructured (i.e. not a sentence)
-         */
-        $this->processWhat(false);
-        $this->processWhen(false);
-        $this->processWhere(false);
-        
-        /*
-         * Return processing results
-         */
-        return array(
-            'What' => $this->whatProcessor->getResult(),
-            'When' => $this->whenProcessor->getResult(),
-            'Where' => isset($this->whereProcessor) ? $this->whereProcessor->getResult() : array(),
-            'Errors' => $this->getErrors()
-        );
-        
-    }
-    
-    /**
-     * Extract time patterns from query
-     * 
-     * @param boolean $fromSentence
-     */
-    private function processWhen($fromSentence) {
-        $fromSentence ? $this->processSentence('when') : $this->processWords('when');
-    }
-    
-    /**
-     * Extract location patterns from query
-     * Note: needs Gazetteer module up and running
-     * 
-     * @param boolean $fromSentence
-     */
-    private function processWhere($fromSentence) {
-        if (isset($this->whereProcessor)) {
-            $fromSentence ? $this->processSentence('where') : $this->processWords('where');
-        }
-    }
-    
-    /**
-     * Extract what patterns from query
-     * 
-     * @param boolean $fromSentence
-     */
-    private function processWhat($fromSentence) {
-        $fromSentence ? $this->processSentence('what') : $this->processWords('what');
-    }
-    
-    /*
-     * Extract What, When and Where patterns from unstructured words
-     * 
-     * @param string $type
-     */
-    private function processWords($type) {
-        for ($i = 0; $i < $this->queryManager->length; $i++) {
-            if ($this->queryManager->isValidPosition($i) && !$this->queryManager->isStopWordPosition($i) && !$this->queryManager->dictionary->isNoise($this->queryManager->words[$i]['word'])) {
-                switch ($type) {
-                    case 'what':
-                        $this->whatProcessor->processWith($i, 0);
-                        break;
-                    case 'when':
-                        $this->whenProcessor->processIn($i, 0);
-                        break;
-                    case 'where':
-                        $this->whereProcessor->processIn($i, 0);
-                        break;
-                    default:
-                }
-            }
-        }
-    }
-    
-    /*
-     * Extract What, When and Where patterns from sentence
-     * 
-     * @param string $type
-     */
-    private function processSentence($type) {
-        for ($i = 0; $i < $this->queryManager->length; $i++) {
-            if ($this->queryManager->isValidPosition($i)) {
-                switch ($type) {
-                    case 'what':
-                        $this->processModifier($this->context->dictionary->get(RestoDictionary::QUANTITY_MODIFIER, $this->queryManager->words[$i]['word']), $this->whatProcessor, $i);
-                        break;
-                    case 'when':
-                        $this->processModifier($this->context->dictionary->get(RestoDictionary::TIME_MODIFIER, $this->queryManager->words[$i]['word']), $this->whenProcessor, $i);
-                        break;
-                    case 'where':
-                        $this->processModifier($this->context->dictionary->get(RestoDictionary::LOCATION_MODIFIER, $this->queryManager->words[$i]['word']), $this->whereProcessor, $i);
-                        break;
-                    default:
-                }
-            }
-        }
-    }
-    
-    /**
-     * Process Modifier
-     * 
-     * @param string $modifier
-     * @param string $processorClass
-     * @param integer $position
-     * @return array
-     */
-    private function processModifier($modifier, $processorClass, $position) {
-        if (isset($modifier)) {
-            $functionName = 'process' . ucfirst($modifier);
-            if (method_exists($processorClass, $functionName)) {
-                call_user_func_array(array($processorClass, $functionName), array($position));
-            }
-        }
-    }
-    
-    /**
-     * 
-     * Explode query into normalized array of words
-     * 
-     * In order :
-     *   - replace "," and ";" characters by space
-     *   - transliterate query string afterward (i.e. all words in lowercase without accent)
-     *   - split remaining query - split each terms with (" " character)
-     *   - add a space between numeric value and '%' character
-     * 
-     * @param string $query
-     * @return array
-     */
-    private function queryToWords($query) {
-        $rawWords = RestoUtil::splitString($this->escapeMultiwords($this->context->dbDriver->normalize($this->removePrefixes(str_replace(array(',', ';'), ' ', $query)))));
-        $words = array();
-        for ($i = 0, $ii = count($rawWords); $i < $ii; $i++) {
-            $term = trim($rawWords[$i]);
-            if ($term === '') {
-                continue;
-            }
-            $splitted = explode('%', $term);
-            if (count($splitted) === 2 && is_numeric($splitted[0])) {
-                $words[] = $splitted[0];
-                $words[] = '%';
-            }
-            else {
-                $words[] = $rawWords[$i];
-            }
-        }
-        return $words;
-    }
-    
-    /**
-     * 
-     * Surround multiwords by " character
-     * 
-     * @param string $query
-     * @return array
-     */
-    private function escapeMultiwords($query) {
-        $query = ' ' . $query . ' ';
-        for ($i = count($this->queryManager->dictionary->multiwords); $i--;) {
-            $multiword = $this->queryManager->dictionary->multiwords[$i];
-            $query = str_replace(' ' . $multiword . ' ', ' "' . $multiword . '" ', $query);
-        }
-        return trim($query);
-    }
-    
-    /**
-     * Remove prefix from query words
-     * 
-     * @param string $query
-     * @return string
-     */
-    private function removePrefixes($query) {
-        $splittedQuery = explode(' ', $query);
-        $words = array();
-        for ($i = 0, $ii = count($splittedQuery); $i < $ii; $i++) {
-            $words[] = $this->queryManager->dictionary->stripPrefix($splittedQuery[$i]);
-        }
-        return join(' ', $words);
-    }
-    
-    /**
-     * Return errors array from remaining words list
-     */
-    private function getErrors() {
-        
-        $inError = $this->getInErrorWords();
-        $errors = array();
-        $length = count($inError);
-        if ($length === 0) {
-            return $errors;
-        }
-        $error = null;
-        $currentErrorType = null;
-        for ($i = 0; $i <= $length; $i++) {
-            
-            if ($i === $length) {
-                $errors[] = $error;
-                break;
-            }
-            
-            if (!isset($currentErrorType) || $currentErrorType === $inError[$i]['error']) {
-                $message = (isset($error) ? $error['message'] . ' ' : '') . $inError[$i]['word'];
-            }
-            else {
-                $errors[] = $error;
-                $message = $inError[$i]['word'];
-            }
-            
-            $currentErrorType = $inError[$i]['error'];
-            $error = array(
-                'error' => $currentErrorType,
-                'message' => (isset($error) ? $error['message'] . ' ' : '') . $inError[$i]['word']
-            );
-        }
-        return $errors;
-    }
-    
-    /**
-     * Get in error words removing noise and stopWords
-     */
-    private function getInErrorWords() {
-        
-        $inError = array();
-        for ($i = 0; $i < $this->queryManager->length; $i++) {
-            
-            $word = $this->queryManager->words[$i];
-            
-            if (!$word['processed'] && !$this->queryManager->dictionary->isStopWord($word['word']) && !$this->queryManager->dictionary->isNoise($word['word'])) {
-                $inError[] = array(
-                    'word' => $word['word'],
-                    'error' => QueryAnalyzer::NOT_UNDERSTOOD
-                );
-            }
-            else if (isset($word['error'])) {
-                $inError[] = array(
-                    'word' => $word['word'],
-                    'error' => $word['error']
-                );
-            }
-        }
-        return $inError;
+    public function getConversions() {
+        return isset($this->options['conversions']) ? $this->options['conversions'] : array();
     }
     
 }

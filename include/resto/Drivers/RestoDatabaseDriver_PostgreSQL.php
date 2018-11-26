@@ -148,7 +148,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::FEATURES_DESCRIPTIONS:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options']);                
+                return $featuresFunctions->search($params['context'], $params['user'], $params['collection'], $params['filters'], $params['options'], $params['collections']);                
 
             /*
              * Get Keywords

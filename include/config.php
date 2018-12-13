@@ -476,7 +476,9 @@ return array(
                         'curlOpts' => array(
                                 CURLOPT_PROXY => '',
                                 CURLOPT_TIMEOUT => 30,
-                                CURLOPT_CONNECTTIMEOUT => 30
+                                CURLOPT_CONNECTTIMEOUT => 30,
+                                CURLOPT_SSL_VERIFYHOST => 0,
+                                CURLOPT_SSL_VERIFYPEER => 0
                         )),
                 
         )

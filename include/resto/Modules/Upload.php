@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . '../../../lib/celery-php/vendor/autoload.php';
+
 /**
  * @author Atos
  * RESTo Upload module.
@@ -24,6 +26,13 @@ class Upload extends RestoModule {
      */
     public $user = null;
     
+    const TASK_NAME = 'tasks.process';
+    
+    /*
+     * 
+     */
+    private $client;
+    
     /*
      * File extensions allowed
      */
@@ -37,15 +46,7 @@ class Upload extends RestoModule {
     /*
      * 
      */
-    private $areaLimit = 1000;
-    
-    /*
-     * 
-     */
-    private $scanFile = false;
-    
-    
-
+    private $areaLimit = 1000;    
     
     /*
      * Antivirus
@@ -77,18 +78,17 @@ class Upload extends RestoModule {
             $this->context->dbDriver->closeDbh();
         }
         
-        if (function_exists('mb_detect_encoding') === false) {
-            function mb_detect_encoding($str = 'UTF-8')
-            {
-                return $str;
-            }
-        }
-        if (function_exists('mb_strtolower') === false) {
-            function mb_strtolower($str, $encoding = 'UTF-8')
-            {
-                return strtolower($str);     
-            }
-        }
+        $this->client = new \Celery\Celery(
+            'localhost', /* Server */
+            '', /* Login */
+            '', /* Password */
+            '0', /* vhost */
+            'celery', /* exchange */
+            'celery', /* binding */
+            6379, /* port */
+            'redis' /* connector */
+            );
+
     }
 
     /**
@@ -96,170 +96,166 @@ class Upload extends RestoModule {
      * {@inheritDoc}
      * @see RestoModule::run()
      */
-    public function run($segments, $data = []) {    
-        error_log("Upload Area from file", 0);
-        // Allowed HTTP method
-        if ($this->context->method !== 'POST' || isset($segments[0]))
-        {
-            RestoLogUtil::httpError(404);
+    public function run($segments, $data = []) {       
+        
+        $method = $this->context->method;
+        
+        // Switch on HTTP methods
+        switch ($method) {
+            /*
+             * HTTP/GET
+             */
+            case HttpRequestMethod::GET:
+                return $this->process_GET($segments);
+            /*
+             * HTTP/POST
+             */
+            case HttpRequestMethod::POST:
+                return $this->process_POST($segments, $data);
+            default :
+                RestoLogUtil::httpError(404);
         }
-
-        if (isset($_FILES)) {
-            return $this->process();
-        }
-        // Bad request - empty data
-        RestoLogUtil::httpError(400);
     }
 
     /**
      * 
      * @param unknown $segments
-     * @param unknown $data
-     * @return unknown|string[]|StdClass[][]
+     * @return unknown
      */
-    private function process() {
+    private function process_GET($segments) {
+        if (!isset($segments[0]))
+        {
+            return RestoLogUtil::httpError(404);
+        }
+        $taskId = $segments[0];
+        if (!RestoUtil::isValidUUID($taskId))
+        {
+            return RestoLogUtil::httpError(400);
+        }
+        $removeMessageFromQueue = false;
+        $res = $this->client->getAsyncResultMessage(self::TASK_NAME, $taskId, null, $removeMessageFromQueue);
+
+        if ($res === false){
+            return RestoLogUtil::httpError(400);
+        }
+        
+        $status = $res['complete_result']['status'];
+        if ($status === 'ERROR') {
+            return RestoLogUtil::httpError(500);
+        }
+        if ($status === 'SUCCESS') 
+        {
+            $code = $res['complete_result']['result']['code'];
+            if ($code === 200)
+            {
+                $this->context->outputFormat = 'json';
+//                 return new GeoJSON($res['complete_result']['result']['data']);
+                print($res['complete_result']['result']['data']);
+                return null;
+            }
+            return RestoLogUtil::error('Cannot process successfully shape file.', array('code' => $code));
+        }
+        header('HTTP/1.1 202 You should retry the request');
+        return null;
+    }
+        
+    /**
+     * 
+     * @return NULL[]|unknown
+     */
+    private function process_POST() {
         
         // upload file
         $options = array('extensions' => $this->extensions);
         $file = RestoUtil::uploadFile($this->context->uploadDirectory, $options);
 
-        // TODO : *** test antivirus ***
-        
-        // TODO *** check size, complexity issimple, .... ***
-
-        $geometry = null;
-        
-        $file_ext = $file['extension'];
-        switch ($file_ext) {
+        $ext = $file['extension'];
+        switch ($ext) {
             case 'json':
             case 'geojson':
-                $geometry = $this->readGeoJson($file);
-                break;
             case 'kml':
-                $geometry = $this->readKML($file);
-                break;
             case 'zip':
-                $geometry = $this->readShapefile($file);
-                break;
+                return $this->PostTask(self::TASK_NAME, array($file['path']));
             default:
-                return RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension \'' . $file_ext . '\'not allowed, please choose a valid file.');
+                unlink($file['path']);
+                return RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension \'' . $ext . '\'not allowed, please choose a valid file.');
         }
-        return $this->answer($geometry);
     }
-    
+
     /**
      * 
+     * @param unknown $task
+     * @param unknown $args
+     * @return NULL[]|unknown
      */
-    private function readShapefile($file){
-        
-        $path = $file['path'];
-        $geometry = null;
-        $extractDir = $this->context->workingDirectory . DIRECTORY_SEPARATOR . basename($path);
-
-        $polygons = array();
-        if (RestoUtil::extractZip($path, $extractDir) === true) {
-            $shp = glob($extractDir . '/*.[sS][hH][pP]');
-            if ($shp)
-            {
-                try {
-                    $ShapeFile = new ShapeFile($shp[0]);
-                    while ($record = $ShapeFile->getRecord(SHAPEFILE::GEOMETRY_WKT)) {
-                        if (isset($record['dbf']['deleted'])) {
-                            continue;
-                        }
-                        $polygons[] = $record['shp'];
-                    }
-                } catch (Exception $e) {
-                    error_log($e->getMessage(), 0);
-                }
-                
-            }
-        }
-
-        unlink($path);
-        if (is_dir($extractDir)) {
-            RestoUtil::rrmdir($extractDir);
-        }
-
-        if (count($polygons) > 0) 
+    private function postTask($task, $args){
+        try
         {
-            $geometry = geoPHP::load('GEOMETRYCOLLECTION(' . implode(',', $polygons) . ')', 'wkt');
-        }
-        return $geometry;
-
-    }
-    
-    /**
-     * 
-     * @param unknown $file
-     * @return unknown|NULL
-     */
-    private function readGeoJson($file){
-        $path = $file['path'];
-        $geometry = null;
-        try {
-            $content = file_get_contents($path);
-            unlink($path);
-            $geometry = geoPHP::load($content, 'json');
-        } catch (Exception $e) {
-            unlink($path);
-            return RestoLogUtil::httpError(400);
-        }
-        return $geometry;
-    }
-    
-    /**
-     * 
-     * @param unknown $file
-     * @return Geometry|NULL
-     */
-    private function readKML($file){
-        $path = $file['path'];
-        $geometry = null;
-        try {
-            $content = file_get_contents($path);
-            unlink($path);
-            $geometry = geoPHP::load($content, 'kml');
-        } catch (Exception $e) {
-            unlink($path);
-            return RestoLogUtil::httpError(400);
-        }
-        return $geometry;
-    }
-
-    /**
-     * 
-     * @param unknown $geometry
-     */
-    private function answer($geometry) {
-        if (empty($geometry) || $geometry->isEmpty())
+            $task = $this->client->PostTask($task, $args, true, "celery", array('id' => self::UUIDv4()));
+            return $this->answer($task);
+        } catch (Exception $e)
         {
-            return RestoLogUtil::httpError(400, "POLYGON_EMPTY");
+            unlink($args[0]);
+            return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred. Please retry again more later.');
         }
-        $geometry = geoPHP::geometryReduce($geometry);
-        if ($geometry->numGeometries() > 1) {
-            return RestoLogUtil::httpError(400, "POLYGON_COUNT");
-        }
-
-        header('Content-Type: application/json');
-        print preg_replace('/\s+/', '', '{
-            "type": "FeatureCollection",
-            "features": [
-                                  { "type": "Feature",
-                                    "geometry": ' . $geometry->out('json') . ',
-                                    "properties": {}
-                                  }
-                                ]
-        }');
-    }
-
-    /**
-     * 
-     */
-    private function scanFile(){
-        
     }
     
+    /**
+     * 
+     * @param unknown $task
+     */
+    private function answer($task) {
+        return array(
+            'taskId' => $task->getId()
+        );
+    }
+
+    /*
+     * 
+     * http://php.net/manual/fr/function.uniqid.php#94959
+     */
+    public static function UUIDv4() {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            
+            // 32 bits for "time_low"
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            
+            // 16 bits for "time_mid"
+            mt_rand(0, 0xffff),
+            
+            // 16 bits for "time_hi_and_version",
+            // four most significant bits holds version number 4
+            mt_rand(0, 0x0fff) | 0x4000,
+            
+            // 16 bits, 8 bits for "clk_seq_hi_res",
+            // 8 bits for "clk_seq_low",
+            // two most significant bits holds zero and one for variant DCE1.1
+            mt_rand(0, 0x3fff) | 0x8000,
+            
+            // 48 bits for "node"
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+    }
+
+}
+
+class GeoJSON {
+    private $json;
+    
+    public function __construct($json){
+        $this->json = $json;
+    }
+    
+    public function toJSON(){
+        return json_encode($this->json);
+        
+//         if (phpversion() && phpversion() >= 5.4) {
+//             return json_encode($this->json, JSON_PRETTY_PRINT);
+//         }
+//         else {
+//             return RestoUtil::prettyPrintJsonString(json_encode($this->json));
+//         }
+    }
 }
 
 

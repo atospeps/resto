@@ -111,7 +111,7 @@ return array(
         /*
          * Upload directory (for POST with attachement request)
          */
-        'uploadDirectory' => '/tmp/resto_uploads',
+        'uploadDirectory' => '/var/run/httpd/resto_uploads',
         
         /*
          * Working directory (ex: zip extract)
@@ -155,8 +155,8 @@ return array(
                          * Returns storage information
                          * {"name": <product_name>, "storage": "<disk or tape or staging or unknown or unavailable>""}
                          */
-                        'getStorageInfo' => 'http://localhost:8085/getinfo',
-                        'stage' => 'http://localhost:8085/stage'
+//                         'getStorageInfo' => 'http://localhost:8085/getinfo',
+//                         'stage' => 'http://localhost:8085/stage'
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds
@@ -264,7 +264,7 @@ return array(
     	),
         'Upload' => array(
                 'activate' => true,
-                'route' => 'upload/area',
+                'route' => 'upload/area', // HTTP/POST 'geomod/upload' || 'geomod/{taskid}'
                 'options' => array()
         ),
         'WPS' => array(

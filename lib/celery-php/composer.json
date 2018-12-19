@@ -1,0 +1,51 @@
+{
+	"name" : "massivescale/celery-php",
+	"type" : "library",
+	"description" : "PHP client for Celery task queue",
+	"keywords" : [
+		"celery",
+		"amqp",
+		"task",
+		"cron",
+		"queue",
+		"redis",
+		"python"
+	],
+	"homepage" : "https://github.com/gjedeer/celery-php/",
+	"support" : {
+		"issues" : "https://github.com/gjedeer/celery-php/issues",
+		"docs" : "https://github.com/gjedeer/celery-php/"
+	},
+	"license" : "BSD-2-Clause",
+	"authors" : [{
+			"name" : "GDR!",
+			"email" : "info@massivescale.net",
+			"homepage" : "http://massivescale.net/",
+			"role" : "Developer"
+		}
+	],
+	"require" : {
+		"php" : ">=5.4.0",
+		"predis/predis" : "*"
+	},
+	"suggest" : {
+		"ext-amqp" : "Adds support for the AMQP extension for PHP backend",
+		"php-amqplib/php-amqplib" : "Adds support for the php-amqplib, AMQP library for PHP, backend",
+		"predis/predis" : "Adds support for the predis, PHP client library for Redis, backend"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"Celery\\" : "src/"
+		}
+	},
+	"autoload-dev" : {
+		"psr-4" : {
+			"Celery\\Tests\\" : "tests/"
+		}
+	},
+	"extra" : {
+		"branch-alias" : {
+			"dev-master" : "3.0-dev"
+		}
+	}
+}

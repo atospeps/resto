@@ -609,13 +609,13 @@ class RestoUtil {
      */
     public static function uploadFile($uploadDirectory, $options= array())
     {
-        $fileName = null;
-        
+        $dest = null;
         $extensions = isset($options['extensions']) ? $options['extensions'] : array();
         
-        
-        
-        try {
+        if (!isset($_FILES['file'])) {
+            return RestoLogUtil::httpError(400, 'You must post a valid ' . join(' or ', $extensions) . ' file.');
+        }
+        try {            
             $fileToUpload = $_FILES['file']['tmp_name'];
             $file_ext = strtolower(end(explode('.', $_FILES['file']['name'])));
             $file_name = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
@@ -624,39 +624,39 @@ class RestoUtil {
             // Check file extension
             if(in_array($file_ext, $extensions) === false) 
             {
-                RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension not allowed, please choose a ' . join(' or ', $extensions) . ' file.');
+                return RestoLogUtil::httpError(400, 
+                    'Cannot upload file(s) - Extension not allowed, please choose a ' . join(' or ', $extensions) . ' file.');
             }
 
 //             // TODO
 //             if($file_size > 2097152) {
 //                 RestoLogUtil::httpError(400, 'Cannot upload file(s) - File size must be excately XX MB.');
 //             }
-            
+
             if (is_uploaded_file($fileToUpload)) 
             {
                 if (!is_dir($uploadDirectory)) {
                     mkdir($uploadDirectory);
                 }
-                $fileName = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15));
-                move_uploaded_file($fileToUpload, $fileName);
-                
-                // TODO 
-                //RUN ANTIVIRUS
+                $dest = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15)). '.' . $file_ext;
+                move_uploaded_file($fileToUpload, $dest);
+            }
+            else {
+                return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
             }
         } catch (Exception $e) {
-            RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
+            return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
         
-        if (!$fileName) {
-            RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
+        if (!$dest) {
+            return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
 
         return array(
                 'name' => $file_name,
-                'path' => $fileName,
+                'path' => $dest,
                 'extension' => $file_ext,
                 'size' => $file_size);
-                
     }
 
     /***

@@ -117,43 +117,11 @@ class Upload extends RestoModule {
         }
     }
 
+
     /**
      * 
      * @param array $segments path
      * @return unknown|GeoJSON|NULL
-     */
-    private function process_GET($segments) {
-        if (!isset($segments[0]))
-        {
-            return RestoLogUtil::httpError(404);
-        }
-        $taskId = $segments[0];
-        if (!RestoUtil::isValidUUID($taskId))
-    public function run($segments, $data = []) {       
-        
-        $method = $this->context->method;
-        
-        // Switch on HTTP methods
-        switch ($method) {
-            /*
-             * HTTP/GET
-             */
-            case HttpRequestMethod::GET:
-                return $this->process_GET($segments);
-            /*
-             * HTTP/POST
-             */
-            case HttpRequestMethod::POST:
-                return $this->process_POST($segments, $data);
-            default :
-                RestoLogUtil::httpError(404);
-        }
-    }
-
-    /**
-     * 
-     * @param unknown $segments
-     * @return unknown
      */
     private function process_GET($segments) {
         if (!isset($segments[0]))

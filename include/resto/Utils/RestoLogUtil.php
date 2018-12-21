@@ -102,7 +102,20 @@ class RestoLogUtil {
         6002 => 'Cannot add item(s) in processing cart because the maximum of products is exceeded',
         7000 => 'Cannot create Proactive account - account already exists',
         7001 => 'Cannot update Proactive account - it does not exists',
-        8000 => 'Cannot update WPS rights'
+        8000 => 'Cannot update WPS rights',
+        9404 => 'ERR_READ_OR_ACCESS',
+        9500 => 'ERR_UNEXPECTED',
+        9501 => 'ERR_SCAN_INFECTED',
+        9502 => 'ERR_SCAN_UNTERRUPTED',
+        9503 => 'ERR_SCAN_ERROR',
+        9504 => 'ERR_SCAN_UNEXPECTED',
+        9601 => 'ERR_POLYGON_EMPTY',
+        9602 => 'ERR_POLYGON_COUNT',
+        9603 => 'ERR_POLYGON_AREA',
+        9604 => 'ERR_POLYGON_SIZE',
+        9605 => 'ERR_POLYGON_DRIVER',
+        9606 => 'ERR_POLYGON_FILE',
+        9607 => 'ERR_POLYGON_LAYER' 
     );
     
     /*

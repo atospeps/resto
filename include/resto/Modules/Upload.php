@@ -136,25 +136,26 @@ class Upload extends RestoModule {
         $removeMessageFromQueue = false;
         $res = $this->client->getAsyncResultMessage(self::TASK_NAME, $taskId, null, $removeMessageFromQueue);
 
-        if ($res === false){
-            return RestoLogUtil::httpError(400);
-        }
-        $res = $res['complete_result'];
-        $status = $res['status'];
-        if ($status === 'ERROR') {
-            return RestoLogUtil::httpError(500);
-        }
-        if ($status === 'SUCCESS') 
-        {
-            $code = $res['result']['code'];
-            if ($code === 200)
-            {
-                $this->context->outputFormat = 'json';
-                return new GeoJSON($res['result']['data']);
+        if ($res !== false) {
+            $res = $res['complete_result'];
+            $status = $res['status'];
+            
+            if ($status === 'ERROR') {
+                return RestoLogUtil::httpError(500);
             }
-            return RestoLogUtil::error('Cannot process successfully shape file.', array('code' => $code));
-        }
-        header('HTTP/1.1 202 You should retry the request');
+            if ($status === 'SUCCESS')
+            {
+                $code = $res['result']['code'];
+                if ($code === 200)
+                {
+                    $this->context->outputFormat = 'json';
+                    return new GeoJSON($res['result']['data']);
+                }
+                return RestoLogUtil::error('Cannot process successfully shape file.', array('code' => $code));
+            }
+        }        
+        header('HTTP/1.1 202 Accepted');
+        header('Retry-After: 5');
         return null;
     }
         
@@ -205,7 +206,7 @@ class Upload extends RestoModule {
      */
     private function answer($task) {
         return array(
-            'taskId' => $task->getId()
+            'taskid' => $task->getId()
         );
     }
 

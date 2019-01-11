@@ -42,11 +42,6 @@ class Upload extends RestoModule {
      * 
      */
     private $fileSizeLimit = 1024;
-
-    /*
-     * 
-     */
-    private $areaLimit = 1000;    
     
     /*
      * Antivirus
@@ -77,18 +72,6 @@ class Upload extends RestoModule {
         if (isset($this->context->dbDriver)) {
             $this->context->dbDriver->closeDbh();
         }
-        
-        $this->client = new \Celery\Celery(
-            'localhost', /* Server */
-            '', /* Login */
-            '', /* Password */
-            '0', /* vhost */
-            'celery', /* exchange */
-            'celery', /* binding */
-            6379, /* port */
-            'redis' /* connector */
-            );
-
     }
 
     /**
@@ -96,28 +79,50 @@ class Upload extends RestoModule {
      * {@inheritDoc}
      * @see RestoModule::run()
      */
-    public function run($segments, $data = []) {       
+    public function run($segments, $data = []) {        
         
         $method = $this->context->method;
-        
+
         // Switch on HTTP methods
         switch ($method) {
             /*
              * HTTP/GET
              */
             case HttpRequestMethod::GET:
+                $this->initialize();
                 return $this->process_GET($segments);
             /*
              * HTTP/POST
              */
             case HttpRequestMethod::POST:
+                $this->initialize();
                 return $this->process_POST($segments, $data);
             default :
                 RestoLogUtil::httpError(404);
         }
     }
 
-
+    /**
+     * Initialize celery connection
+     */
+    private function initialize(){
+        try {
+            $this->client = new \Celery\Celery(
+                'localhost', /* Server */
+                '', /* Login */
+                '', /* Password */
+                '0', /* vhost */
+                'celery', /* exchange */
+                'celery', /* binding */
+                6379, /* port */
+                'redis' /* connector */
+                );
+        } catch (Exception $e)
+        {
+            RestoLogUtil::httpError(500, RestoLogUtil::$codes[9000]);
+        }
+    }
+    
     /**
      * 
      * @param array $segments path
@@ -133,7 +138,7 @@ class Upload extends RestoModule {
         {
             RestoLogUtil::httpError(400);
         }
-        $removeMessageFromQueue = false;
+        $removeMessageFromQueue = true;
         $res = $this->client->getAsyncResultMessage(self::TASK_NAME, $taskId, null, $removeMessageFromQueue);
 
         if ($res !== false) {
@@ -151,7 +156,9 @@ class Upload extends RestoModule {
                     $this->context->outputFormat = 'json';
                     return new GeoJSON($res['result']['data']);
                 }
-                RestoLogUtil::httpError($code);
+                return RestoLogUtil::error(
+                    isset(RestoLogUtil::$codes[$code]) ? RestoLogUtil::$codes[$code] : 'Unknown error', 
+                    array('code' => $code));
             }
         }        
         header('HTTP/1.1 202 Accepted');

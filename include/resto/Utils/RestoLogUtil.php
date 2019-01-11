@@ -103,6 +103,7 @@ class RestoLogUtil {
         7000 => 'Cannot create Proactive account - account already exists',
         7001 => 'Cannot update Proactive account - it does not exists',
         8000 => 'Cannot update WPS rights',
+        9000 => 'The service is temporarily unavailable. Try again later.',
         9404 => 'ERR_READ_OR_ACCESS',
         9500 => 'ERR_UNEXPECTED',
         9501 => 'ERR_SCAN_INFECTED',

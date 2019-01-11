@@ -151,7 +151,9 @@ class Upload extends RestoModule {
                     $this->context->outputFormat = 'json';
                     return new GeoJSON($res['result']['data']);
                 }
-                RestoLogUtil::httpError($code);
+                return RestoLogUtil::error(
+                    isset(RestoLogUtil::$codes[$code]) ? RestoLogUtil::$codes[$code] : 'Unknown error', 
+                    array('code' => $code));
             }
         }        
         header('HTTP/1.1 202 Accepted');

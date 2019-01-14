@@ -245,7 +245,19 @@ class Functions_filters {
         }
         
         if ($filterName === 'geo:geometry') {
-            return ($exclusion ? 'NOT ' : '') . 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ", ST_GeomFromText('" . pg_escape_string($requestParams[$filterName]) . "', 4326))";
+            $geometry = $requestParams[$filterName];
+            
+            $json = json_decode($geometry);
+            if (!empty($json)){
+                // GeoJSON format
+                $geometry = "ST_astext(ST_GeomFromGeoJSON('" . $geometry . "'))";
+            }
+            else {
+                // WKT format
+                $geometry = '\'' . $geometry . '\'';
+            }
+
+            return ($exclusion ? 'NOT ' : '') . 'ST_intersects(' . $model->getDbKey($model->searchFilters[$filterName]['key']) . ", ST_GeomFromText(" . $geometry . ", 4326))";
         }
         
         return null;

@@ -169,7 +169,7 @@ class QueryAnalyzer extends RestoModule {
         
         
         $result = $this->executeQuery($query);
-        $analyses =json_decode($result, false)->{'analyses'};
+        $analyses = $result['analyses'];
         
         
         return array(
@@ -197,8 +197,9 @@ class QueryAnalyzer extends RestoModule {
         $url = isset($this->options['analysis_route']) ? $this->options['analysis_route'] : "";
         
         $response = Curl::Get($url, $data, $options);
+        $response = json_decode($response, true);
         
-        if (!isset($response)) {
+        if (!isset($response) || !isset($response['analyses'])) {
             RestoLogUtil::httpError(500, 'ERROR when querying the API for peps semantic analyze');
         }
         

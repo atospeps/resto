@@ -655,7 +655,7 @@ class RestoFeatureCollection {
          * Not understood - return error
          */
         
-        if (empty($analysis['analyze']->{$language})||(empty($analysis['analyze']->{$language}->{'what'}) && empty($analysis['analyze']->{$language}->{'when'}) && empty($analysis['analyze']->{$language}->{'where'}))) {
+        if (empty($analysis['analyze'][$language])||(empty($analysis['analyze'][$language]['what']) && empty($analysis['analyze'][$language]['when']) && empty($analysis['analyze'][$language]['where']))) {
             return array(
                 'notUnderstood' => true,
                 'searchFilters' => $params,
@@ -666,17 +666,17 @@ class RestoFeatureCollection {
         /*
          * What
          */
-        $params = $this->setWhatFilters($analysis['analyze']->{$language}->{'what'}, $params);
+        $params = $this->setWhatFilters($analysis['analyze'][$language]['what'], $params);
         
         /*
          * When
          */
-       $params = $this->setWhenFilters($analysis['analyze']->{$language}->{'when'}, $params);
+       $params = $this->setWhenFilters($analysis['analyze'][$language]['when'], $params);
              
         /*
          * Where
          */
-       $params = $this->setWhereFilters($analysis['analyze']->{$language}->{'where'}, $params);
+       $params = $this->setWhereFilters($analysis['analyze'][$language]['where'], $params);
        
        
         return array(
@@ -699,18 +699,18 @@ class RestoFeatureCollection {
         foreach($what as $key => $value) {
             if ($key === 'searchTerms') {
                 for ($i = count($value); $i--;) {
-                    $params['searchTerms'][] = $value[$i]->{'value'};
+                    $params['searchTerms'][] = $value[$i]['value'];
                 }
             } else if ($key === 'collection') {
                 for ($i = count($value); $i--;) {
-                    $this->defaultCollection = $this->collections[$value[$i]->{'value'}] ;
-                    $params['collection'] = $value[$i]->{'value'};
+                    $this->defaultCollection = $this->collections[$value[$i]['value']] ;
+                    $params['collection'] = $value[$i]['value'];
                 }
               
             } else {
                 $newKey = isset($conversions[$key]) ? $conversions[$key] : $key ;
                 for ($i = count($value); $i--;) {   
-                    $params[$newKey][] = is_array($value[$i]->{'value'}) ? json_encode($value[$i]->{'value'}) : $value[$i]->{'value'};
+                    $params[$newKey][] = is_array($value[$i]['value']) ? json_encode($value[$i]['value']) : $value[$i]['value'];
                 }
                 $params[$newKey] = join('|', $params[$newKey]);
             }
@@ -732,8 +732,8 @@ class RestoFeatureCollection {
              * times is an array of time:start/time:end pairs
              * TODO : Currently only one pair is supported
              */
-            if ($whenItem->{'time'}->{'operator'} === 'in') {
-                $params = array_merge($params, $this->timesToOpenSearch($whenItem->{'time'}->{'intervals'}));
+            if ($whenItem['time']['operator'] === 'in') {
+                $params = array_merge($params, $this->timesToOpenSearch($whenItem['time']['intervals']));
             }
         }
         return $params;
@@ -769,19 +769,18 @@ class RestoFeatureCollection {
      */
     private function setWhereFilters($where, $params) {
         for ($i = count($where); $i--;) {
-            
             /*
              * Geometry
              */
-            if($where[$i]->{'geo'}->{'type'}==='Point') {
-                $params['geo:lon'] = $where[$i]->{'geo'}->{'coordinates'}[0];
-                $params['geo:lat'] = $where[$i]->{'geo'}->{'coordinates'}[1];
+            if($where[$i]['geo']['type'] === 'Point') {
+                $params['geo:lon'] = $where[$i]['geo']['coordinates'][0];
+                $params['geo:lat'] = $where[$i]['geo']['coordinates'][1];
             }
             /*
              * Geometry
              */
             else {
-            $params['resto:geometry'] = $where[$i]->{'geo'};
+                $params['geo:geometry'] = json_encode($where[$i]['geo']); //"st_astext(ST_GeomFromGeoJSON('" . json_encode($where[$i]['geo']) . "'))";                            
             }
         }
         $params['searchTerms'] = join(' ', $params['searchTerms']);

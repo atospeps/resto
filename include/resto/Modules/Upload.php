@@ -39,9 +39,28 @@ class Upload extends RestoModule {
     private $extensions = array('geojson', 'json', 'zip', 'kml');
     
     /*
-     * 
+     * Upload max file size
      */
-    private $fileSizeLimit = 1024;
+    private $maxFileSize = 1048576; // 1Mo
+    
+    /*
+     * Enable antivirus
+     */
+    private $antivirusEnabled = true;
+    
+    /*
+     * Message broker configuration
+     */
+    private $brokerCfg = array(
+        'server' => 'localhost',
+        'login' => '',
+        'password' => '',
+        'vhost' => '0',
+        'exchange' => 'celery',
+        'binding' => 'celery',
+        'port' => 6379,
+        'connector' => 'redis'
+    );
     
     /*
      * Antivirus
@@ -72,8 +91,32 @@ class Upload extends RestoModule {
         if (isset($this->context->dbDriver)) {
             $this->context->dbDriver->closeDbh();
         }
+        $this->initialize();
     }
 
+    /**
+     * Initializes Upload module.
+     */
+    private function initialize(){
+        $options = $this->context->modules[get_class($this)];
+        if (isset($options['maxFileSize'])){
+            $this->maxFileSize = $options['maxFileSize'];
+        }
+        if (isset($options['antivirusEnabled'])){
+            $this->antivirusEnabled = $options['antivirusEnabled'];
+        }
+        
+        /*
+         * Intialize message broker settings
+         */
+        $properties = array('server', 'login', 'password', 'vhost', 'exchange', 'binding', 'port', 'connector');
+        foreach ($properties as $property) {
+            if (isset($options['broker'][$property])){
+                $this->brokerCfg[$property] = $options['broker'][$property];
+            }
+        }
+    }
+    
     /**
      * 
      * {@inheritDoc}
@@ -89,13 +132,13 @@ class Upload extends RestoModule {
              * HTTP/GET
              */
             case HttpRequestMethod::GET:
-                $this->initialize();
+                $this->initializeMessageBroker();
                 return $this->process_GET($segments);
             /*
              * HTTP/POST
              */
             case HttpRequestMethod::POST:
-                $this->initialize();
+                $this->initializeMessageBroker();
                 return $this->process_POST($segments, $data);
             default :
                 RestoLogUtil::httpError(404);
@@ -105,17 +148,17 @@ class Upload extends RestoModule {
     /**
      * Initialize celery connection
      */
-    private function initialize(){
+    private function initializeMessageBroker(){
         try {
             $this->client = new \Celery\Celery(
-                'localhost', /* Server */
-                '', /* Login */
-                '', /* Password */
-                '0', /* vhost */
-                'celery', /* exchange */
-                'celery', /* binding */
-                6379, /* port */
-                'redis' /* connector */
+                $this->brokerCfg['server'],
+                $this->brokerCfg['login'],
+                $this->brokerCfg['password'],
+                $this->brokerCfg['vhost'],
+                $this->brokerCfg['exchange'],
+                $this->brokerCfg['binding'],
+                $this->brokerCfg['port'],
+                $this->brokerCfg['connector']
                 );
         } catch (Exception $e)
         {
@@ -173,19 +216,20 @@ class Upload extends RestoModule {
     private function process_POST() {
         
         // upload file
-        $options = array('extensions' => $this->extensions);
+        $options = array('extensions' => $this->extensions, 'max_file_size' => $this->maxFileSize);
         $file = RestoUtil::uploadFile($this->context->uploadDirectory, $options);
-
+        
         $ext = $file['extension'];
+        
         switch ($ext) {
             case 'json':
             case 'geojson':
             case 'kml':
             case 'zip':
-                return $this->PostTask(self::TASK_NAME, array($file['path']));
+                return $this->PostTask(self::TASK_NAME, array($file['path'], $this->antivirusEnabled));
             default:
                 unlink($file['path']);
-                return RestoLogUtil::httpError(400, 'Cannot upload file(s) - Extension \'' . $ext . '\'not allowed, please choose a valid file.');
+                return RestoLogUtil::httpError(400, 9001);
         }
     }
 
@@ -195,7 +239,7 @@ class Upload extends RestoModule {
      * @param unknown $args
      * @return NULL[]|unknown
      */
-    private function postTask($task, $args){
+    private function PostTask($task, $args){
         try
         {
             $task = $this->client->PostTask($task, $args, true, "celery", array('id' => self::UUIDv4()));

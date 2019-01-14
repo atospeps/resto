@@ -615,26 +615,25 @@ class RestoUtil {
         if (!isset($_FILES['file'])) {
             return RestoLogUtil::httpError(400, 'You must post a valid ' . join(' or ', $extensions) . ' file.');
         }
-        try {            
-            $fileToUpload = $_FILES['file']['tmp_name'];
-            $file_ext = strtolower(end(explode('.', $_FILES['file']['name'])));
-            $file_name = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
-            $file_size = $_FILES['file']['size'];
-            
-            // Check file extension
-            if(in_array($file_ext, $extensions) === false) 
-            {
-                return RestoLogUtil::httpError(400, 
-                    'Cannot upload file(s) - Extension not allowed, please choose a ' . join(' or ', $extensions) . ' file.');
-            }
+        
+        $fileToUpload = $_FILES['file']['tmp_name'];
+        $file_ext = strtolower(end(explode('.', $_FILES['file']['name'])));
+        $file_name = pathinfo($_FILES['file']['name'], PATHINFO_FILENAME);
+        $file_size = $_FILES['file']['size'];
+        
+        // Check file extension
+        if(in_array($file_ext, $extensions) === false) 
+        {
+            return RestoLogUtil::httpError(400, 9001);
+        }
+        
+        if (isset($options['max_file_size']) && $file_size > $options['max_file_size']){
+            RestoLogUtil::httpError(400, 9604);
+        }
+        
+        try {
 
-//             // TODO
-//             if($file_size > 2097152) {
-//                 RestoLogUtil::httpError(400, 'Cannot upload file(s) - File size must be excately XX MB.');
-//             }
-
-            if (is_uploaded_file($fileToUpload)) 
-            {
+            if (is_uploaded_file($fileToUpload)) {
                 if (!is_dir($uploadDirectory)) {
                     mkdir($uploadDirectory);
                 }
@@ -645,6 +644,7 @@ class RestoUtil {
                 return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
             }
         } catch (Exception $e) {
+            error_log('[' . __METHOD__ . '] ' . $e->getMessage(), 0);
             return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
         

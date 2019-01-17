@@ -189,7 +189,7 @@ class QueryAnalyzer extends RestoModule {
     private function executeQuery($query) {
         
         $data = array();
-        $data['q'] = urlencode($query);
+        $data['q'] = $query;
         $data['start_year'] = isset($this->options['start_year']) ? $this->options['start_year'] : "2017" ;
         
         $options = isset($this->options['curlOpts']) ? $this->options['curlOpts'] : array() ;

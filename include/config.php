@@ -111,13 +111,8 @@ return array(
         /*
          * Upload directory (for POST with attachement request)
          */
-        'uploadDirectory' => '/var/run/httpd/resto_uploads',
-        
-        /*
-         * Working directory (ex: zip extract)
-         */
-        'workingDirectory' => '/tmp/resto_tmp',
-        
+        'uploadDirectory' => '/tmp/resto_uploads',
+
         /*
          * Set how the products are streamed to user :
          *   - 'php' : stream through PHP process (slowest but works on all platforms)
@@ -265,7 +260,10 @@ return array(
         'Upload' => array(
                 'activate' => true,
                 'route' => 'upload/area', // HTTP/POST 'geomod/upload' || 'geomod/{taskid}'
-                'options' => array()
+                'options' => array(
+                    'antivirusEnabled' => true, 
+                    'maxFileSize' => 1048576 // 1Mo
+                )
         ),
         'WPS' => array(
                 'activate' => true,

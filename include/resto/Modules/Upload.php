@@ -49,6 +49,11 @@ class Upload extends RestoModule {
     private $antivirusEnabled = true;
     
     /*
+     * Default working directory
+     */
+    private $workingDirectory = '/var/run/peps-geoprocessor/resto_uploads';
+    
+    /*
      * Message broker configuration
      */
     private $brokerCfg = array(
@@ -106,6 +111,10 @@ class Upload extends RestoModule {
             $this->antivirusEnabled = $options['antivirusEnabled'];
         }
         
+        if (isset($options['workingDirectory'])){
+            $this->workingDirectory = $options['workingDirectory'];
+        }
+
         /*
          * Intialize message broker settings
          */
@@ -217,7 +226,7 @@ class Upload extends RestoModule {
         
         // upload file
         $options = array('extensions' => $this->extensions, 'max_file_size' => $this->maxFileSize);
-        $file = RestoUtil::uploadFile($this->context->uploadDirectory, $options);
+        $file = RestoUtil::uploadFile($this->workingDirectory, $options);
         
         $ext = $file['extension'];
         

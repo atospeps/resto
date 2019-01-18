@@ -250,7 +250,7 @@ class Functions_filters {
             $json = json_decode($geometry);
             if (!empty($json)){
                 // GeoJSON format
-                $geometry = "ST_astext(ST_GeomFromGeoJSON('" . $geometry . "'))";
+                $geometry = "ST_astext(ST_Buffer(ST_GeomFromGeoJSON('" . $geometry . "'), 0))";
             }
             else {
                 // WKT format

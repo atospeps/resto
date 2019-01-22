@@ -189,7 +189,7 @@ class QueryAnalyzer extends RestoModule {
     private function executeQuery($query) {
         
         $data = array();
-        $data['q'] = $query;
+        $data['q'] = $this->decode_date($query);
         $data['start_year'] = isset($this->options['start_year']) ? $this->options['start_year'] : "2017" ;
         
         $options = isset($this->options['curlOpts']) ? $this->options['curlOpts'] : array() ;
@@ -229,6 +229,24 @@ class QueryAnalyzer extends RestoModule {
      */
     public function getConversions() {
         return isset($this->options['conversions']) ? $this->options['conversions'] : array();
+    }
+    
+    /**
+     * Transform date into a format undertood by the semantic search component
+     * 
+     * @param string $query
+     * @return string
+     */
+    private function decode_date($query) {      
+        // 2018-06-05 => 2018/06/05
+        $pattern1 = '/(\d{4})\-(\d{1,2})\-(\d{1,2})/';
+        $replacement1 = '$1/$2/$3';
+        // 06-07-2016 => 06/07/2016 
+        $pattern2 = '/(\d{1,2})\-(\d{1,2})\-(\d{4})/';
+        $replacement2 = '$1/$2/$3';
+        
+        $newQuery = preg_replace($pattern1, $replacement1, $query);
+        return preg_replace($pattern2, $replacement2, $newQuery);
     }
     
 }

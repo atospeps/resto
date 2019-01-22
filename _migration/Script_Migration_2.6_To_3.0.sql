@@ -91,6 +91,7 @@ GRANT ALL ON TABLE usermanagement.wps_status TO postgres;
 GRANT ALL ON TABLE usermanagement.wps_status TO resto;
 
 -- Default values
+DELETE FROM usermanagement.wps_status;
 INSERT INTO usermanagement.wps_status (last_dispatch, status) VALUES (NOW(), 'SUCCESS');
 
 DROP INDEX IF EXISTS _s1.features_polarisation_idx;

@@ -613,7 +613,7 @@ class RestoUtil {
         $extensions = isset($options['extensions']) ? $options['extensions'] : array();
         
         if (!isset($_FILES['file'])) {
-            return RestoLogUtil::httpError(400, 'You must post a valid ' . join(' or ', $extensions) . ' file.');
+            RestoLogUtil::httpError(400, 'You must post a valid ' . join(' or ', $extensions) . ' file.');
         }
         
         $fileToUpload = $_FILES['file']['tmp_name'];
@@ -624,32 +624,27 @@ class RestoUtil {
         // Check file extension
         if(in_array($file_ext, $extensions) === false) 
         {
-            return RestoLogUtil::httpError(400, 9001);
+            RestoLogUtil::httpError(400, 9001);
         }
         
         if (isset($options['max_file_size']) && $file_size > $options['max_file_size']){
             RestoLogUtil::httpError(400, 9604);
         }
-        
-        try {
 
-            if (is_uploaded_file($fileToUpload)) {
-                if (!is_dir($uploadDirectory)) {
-                    mkdir($uploadDirectory);
-                }
-                $dest = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15)). '.' . $file_ext;
-                move_uploaded_file($fileToUpload, $dest);
+        if (is_uploaded_file($fileToUpload)) {
+            if (!is_dir($uploadDirectory) && mkdir($uploadDirectory) === false) {
+                error_log('[' . __METHOD__ . ']  mkdir ' . $uploadDirectory . ' failed', 0);
+                RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
             }
-            else {
-                return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
+            $dest = $uploadDirectory . DIRECTORY_SEPARATOR . (substr(sha1(mt_rand() . microtime()), 0, 15)). '.' . $file_ext;
+            if (move_uploaded_file($fileToUpload, $dest) !== true) {
+                error_log('[' . __METHOD__ . '] Unable to move ' . $fileToUpload . ' to ' . $dest, 0);
+                RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
             }
-        } catch (Exception $e) {
-            error_log('[' . __METHOD__ . '] ' . $e->getMessage(), 0);
-            return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
-        
-        if (!$dest) {
-            return RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
+        else {
+            error_log('[' . __METHOD__ . '] Is_uploaded_file ' . $fileToUpload . ' failed', 0);
+            RestoLogUtil::httpError(500, 'Cannot upload file(s) - An unexpected error occurred.');
         }
 
         return array(

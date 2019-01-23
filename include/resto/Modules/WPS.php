@@ -644,7 +644,7 @@ class WPS extends RestoModule {
              */
             if ($this->segments[0] === 'check'
                     && isset($this->segments[1])
-                    && in_array($this->segments[1], array('SUCCESS', 'FAILURE'))) {
+                    && in_array($this->segments[1], array('SUCCESS', 'FAILURE', 'ERROR'))) {
                 return $this->PUT_wps_status($this->segments[1]);
             }
                 
@@ -660,8 +660,8 @@ class WPS extends RestoModule {
     private function PUT_wps_status($status)
     {
         $query = "UPDATE usermanagement.wps_status"
-               . "SET status = '" . $status . "', last_dispatch = NOW()"
-               . "WHERE TRUE";
+               . " SET status = '" . $status . "', last_dispatch = NOW()"
+               . " WHERE TRUE";
         
         $this->context->dbDriver->query($query);
             

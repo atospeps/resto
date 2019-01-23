@@ -150,8 +150,8 @@ return array(
                          * Returns storage information
                          * {"name": <product_name>, "storage": "<disk or tape or staging or unknown or unavailable>""}
                          */
-//                         'getStorageInfo' => 'http://localhost:8085/getinfo',
-//                         'stage' => 'http://localhost:8085/stage'
+                        'getStorageInfo' => 'http://localhost:8085/getinfo',
+                        'stage' => 'http://localhost:8085/stage'
                 ),
                 'timeout' => 2, // seconds
                 'retryAfter' =>  180000 // milliseconds

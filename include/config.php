@@ -379,7 +379,7 @@ return array(
             'route' => 'api/query/analyze',
             'options' => array(
                 'minimalQuantity' => 25,
-                'start_year' => '2017',
+                'start_year' => '2015',
                 'analysis_route' => 'http://localhost:8080/analysis',
                 'conversions' => array(
                    'title' => 'productIdentifier',

@@ -123,8 +123,8 @@ class RestoModel_sentinel1 extends RestoModel {
      * @param RestoCollection $collection
      *
      */
-    public function updateFeature($feature, $data, $obsolescence = true) {
-        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection), $obsolescence);
+    public function updateFeature($feature, $data) {
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection, true));
     }
 
     /**
@@ -132,28 +132,14 @@ class RestoModel_sentinel1 extends RestoModel {
      * 
      * @param {String} $xml : $xml string
      */
-    private function parse($xml, $collection) {
+    private function parse($xml, $collection, $partiel = false) {
 
         $dom = new DOMDocument();
         if (!@$dom->loadXML(rawurldecode($xml))) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
         }
         
-        /* 
-         * adsHeader is a tag only found in the old xml version
-         */
-        $verifyVersion = $dom->getElementsByTagName('adsHeader');
-        if($verifyVersion->length == 0){
-            /* 
-             * We parse the file with the new version
-             */
-            return $this->parseNew($dom, $collection);
-        }else{
-            /* 
-             * We parse the file with the old version 
-             */
-            return $this->parseOld($dom);
-        }
+        return $this->parse($dom, $collection, $partiel);
     }
 
     /**
@@ -182,148 +168,117 @@ class RestoModel_sentinel1 extends RestoModel {
      * @return array GeoJson feature
      * 
      */
-    private function parseNew($dom, $collection){
-
-        /*
-         * Retreives orbit direction
-         */
-        $orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
+    private function parse($dom, $collection, $partiel = false) {
         
-        // Simplify polygon
-        $polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $this->getElementByName($dom, 'footprint')));
-        $polygon = RestoGeometryUtil::wktPolygonToArray($polygon);
-
+        $dom = new DOMDocument();
+        if (!@$dom->loadXML(rawurldecode($xml))) {
+            RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
+        }
+        
+        $props = array(
+            // Common properties
+            'productIdentifier' => $this->Filter('title'),
+            'title' => $this->Filter('title'),
+            'resourceSize' => $this->Filter('resourceSize'),
+            'resourceChecksum' => $this->Filter('checksum'),
+            'startDate' => $this->Filter('startTime'),
+            'completionDate' => $this->Filter('stopTime'),
+            'productType' => $this->Filter('productType'),
+            'processingLevel' => $this->Filter('processingLevel'),
+            'platform' =>  $this->Filter('missionId'),
+            'sensorMode' => $this->Filter('mode'),
+            'orbitNumber' => $this->Filter('absoluteOrbitNumber'),
+            'relativeOrbitNumber' => $this->Filter('relativeOrbitNumber'),
+            'orbitDirection' => $this->Filter('orbitDirection', 'strtolower'),
+            'instrument'=> $this->Filter('instrument'),
+            'cloudCover' => $this->Filter(null, function (){ return 0; }),
+            'isNrt' => $this->Filter('isNrt'),
+            'realtime' => $this->Filter('realtime'),
+            'dhusIngestDate' => $this->Filter('dhusIngestDate'),
+            'quicklook' => $this->Filter(null, '$this->getLocation', array($dom)),
+            'authority' => $this->Filter(null, function (){ return 'ESA'; }),
+            // Sentinel-1 specifities 
+            'cycleNumber' => $this->Filter('cycle'),
+            'swath' => $this->Filter('swath'),
+            'polarisation' => $this->Filter('polarisation'),
+            'missionTakeId' => $this->Filter('missiontakeid')
+        );        
+        
         /*
-         * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
-         * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside
-         * the ZIP files (i.e. as produced by the S1 ground segment).
+         * Parses DOM Document.
          */
-        $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection));
-
+        foreach($props as $modelKey => $filter) {
+            list($tagName, $callback, $params) = $filter;
+            
+            if ($dom->getElementsByTagName($tagName)->length || $partiel === false) {
+                $type = $this->getDbType($modelKey);                
+                $required = $this->getDbValueRequired($modelKey);
+                if (isset($tagName)) {
+                    $params = array($this->getElementByName($dom, $tagName, $type, $required));
+                }                
+                $props[$modelKey] = call_user_func_array($callback, $params);
+            }
+            else {
+                unset($props[$modelKey]);
+            }
+        }
+        
+        /*
+         * Footprint
+         */
+        $geometry = null;
+        if ($dom->getElementsByTagName('footprint')->length || $partiel === false) {
+            $footprint = $this->getElementByName($dom, 'footprint', null, true);
+            
+            // Simplify polygon
+            $polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $footprint));
+            $polygon = RestoGeometryUtil::wktPolygonToArray($polygon);            
+            /*
+             * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
+             * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside
+             * the ZIP files (i.e. as produced by the S1 ground segment).
+             */
+            $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection));
+            $geometry = array( 'type' => 'Polygon', 'coordinates' => array($polygon) );
+        }
+        
         /*
          * Initialize feature
          */
         return array(
-                'type' => 'Feature',
-                'geometry' => array(
-                        'type' => 'Polygon',
-                        'coordinates' => $polygon,
-                ),
-                'properties' => array(
-                    'productIdentifier' => $this->getElementByName($dom, 'title'),
-                    'title' => $this->getElementByName($dom, 'title'),
-                    'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
-                    'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
-                    'authority' => 'ESA',
-                    'startDate' => $this->getElementByName($dom, 'startTime'),
-                    'completionDate' => $this->getElementByName($dom, 'stopTime'),
-                    'productType' => $this->getElementByName($dom, 'productType'),
-                    'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
-                    'platform' =>  $this->getElementByName($dom, 'missionId'),
-                    'sensorMode' => $this->getElementByName($dom, 'mode'),
-                    'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
-                    'orbitDirection' => $orbitDirection,
-                    'swath' => $this->getElementByName($dom, 'swath'),
-                    'polarisation' => $this->getElementByName($dom, 'polarisation'),
-                    'missionTakeId' => $this->getElementByName($dom, 'missiontakeid'),
-                	'instrument'=> $this->getElementByName($dom, 'instrument'),
-                    'quicklook'=> $this->getLocation($dom),
-                    'cloudCover' => 0,
-                    'isNrt' => $this->getElementByName($dom,'isNrt'),
-                    'realtime' => $this->getElementByName($dom,'realtime'),
-                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
-                )
+            'type' => 'Feature',
+            'geometry' => $geometry,
+            'properties' => $props
         );
-
     }
 
     /**
-     * Create JSON feature from old resource xml string
-     *
- <product>
-  <adsHeader>
-    <missionId>S1A</missionId>
-    <productType>GRD</productType>
-    <polarisation>VV</polarisation>
-    <mode>IW</mode>
-    <swath>IW</swath>
-    <startTime>2014-10-03T18:47:39.842715</startTime>
-    <stopTime>2014-10-03T18:48:08.834276</stopTime>
-    <absoluteOrbitNumber>2669</absoluteOrbitNumber>
-    <missionDataTakeId>12181</missionDataTakeId>
-    <imageNumber>001</imageNumber>
-  </adsHeader>
-  (...)
-  <geolocationGrid>
-    <geolocationGridPointList count="231">
-      <geolocationGridPoint>
-        <azimuthTime>2014-10-03T18:47:39.842455</azimuthTime>
-        <slantRangeTime>5.364633780973990e-03</slantRangeTime>
-        <line>0</line>
-        <pixel>0</pixel>
-        <latitude>6.588778439216060e+01</latitude>
-        <longitude>1.785002983064243e+02</longitude>
-    (...)
-     *
-     * @param {DOMDocument} $dom : $dom DOMDocument
+     * 
+     * @param string $tagName
+     * @param mixed $callback
+     * @param string|null $params
+     * @return array[]|string[]
      */
-    private function parseOld($dom){
-        /*
-         * Retreives geolocation grid point
-         */
-        $geolocationGridPoint = $dom->getElementsByTagName('geolocationGridPoint');
-        /*
-         * Retreives orbit direction
-         */
-        $orbitDirection = strtolower($dom->getElementsByTagName('pass')->item(0)->nodeValue);
-        /*
-         * Performs an inversion of the specified Sentinel-1 quicklooks footprint (inside the ZIP files, i.e SAFE product).
-         * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside 
-         * the ZIP files (i.e. as produced by the S1 ground segment).
-         */
-        $polygon = SentinelUtil::readFootprintFromGeolocationGridPoint($geolocationGridPoint, $orbitDirection);
-
-        /*
-         * Initialize feature
-        */
-        return array(
-                'type' => 'Feature',
-                'geometry' => array(
-                        'type' => 'Polygon',
-                        'coordinates' => array($polygon)
-                ),
-                'properties' => array(
-                        'productIdentifier' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
-                        'title' => $dom->getElementsByTagName('title')->item(0)->nodeValue,
-                        'resourceSize' => $dom->getElementsByTagName('resourceSize')->item(0)->nodeValue,
-                        'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
-                        'authority' => 'ESA',
-                        'startDate' => $dom->getElementsByTagName('startTime')->item(0)->nodeValue,
-                        'completionDate' => $dom->getElementsByTagName('stopTime')->item(0)->nodeValue,
-                        'productType' => $dom->getElementsByTagName('productType')->item(0)->nodeValue,
-                        'processingLevel' => 'LEVEL1',
-                        'platform' => $dom->getElementsByTagName('missionId')->item(0)->nodeValue,
-                        'sensorMode' => $dom->getElementsByTagName('mode')->item(0)->nodeValue,
-                        'orbitNumber' => $dom->getElementsByTagName('absoluteOrbitNumber')->item(0)->nodeValue,
-                        'orbitDirection' => $orbitDirection,
-                        'swath' => $dom->getElementsByTagName('swath')->item(0)->nodeValue,
-                        'polarisation' => $dom->getElementsByTagName('polarisation')->item(0)->nodeValue,
-                        'missionTakeId' => $dom->getElementsByTagName('missionDataTakeId')->item(0)->nodeValue,
-                        'quicklook'=> $this->getLocation($dom),
-                        'cloudCover' => 0,
-                        'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate')
-                )
-        );
+    function Filter($tagName, $callback = null, $params = array()) {
+        if (!function_exists('$callback')){
+            $params = array($tagName);
+            $callback = function($value){ return $value; };
+        }
+        return array($tagName, $callback, $params ? $params : array());
     }
-
+    
+    /**
+     * 
+     * @param unknown $dom
+     * @return string
+     */
     function getLocation($dom) {
-        $startTime = $dom->getElementsByTagName('startTime')->item(0)->nodeValue;
+        $startTime = $this->getElementByName($dom, 'startTime', null, true);
         $startTime = explode("T", $startTime);
-        $result = str_replace("-","/",$startTime[0]);
-        $missionId = $dom->getElementsByTagName('missionId')->item(0)->nodeValue;
-        $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
-	return $result."/".$missionId."/".$title;
+        $result = str_replace("-","/", $startTime[0]);
+        $missionId = $this->getElementByName($dom, 'missionId', null, true);
+        $title= $this->getElementByName($dom, 'title', null, true);
+        return $result. "/" . $missionId . "/".$title;
     }
+    
 }

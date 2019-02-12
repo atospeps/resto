@@ -690,6 +690,19 @@ abstract class RestoModel {
         }
         return $this->properties[$modelKey]['name'];
     }
+
+    /**
+     * Return true, if property requires a valid value, otherwise false
+     *
+     * @param string $modelKey : RESTo model key
+     * @return boolean
+     */
+    public function getDbValueRequired($modelKey) {
+        if (!isset($modelKey) || !isset($this->properties[$modelKey]) || !is_array($this->properties[$modelKey])) {
+            return false;
+        }
+        return !isset($this->properties[$modelKey]['required']) || !!$this->properties[$modelKey]['required'];
+    }
     
     /**
      * Remap properties array accordingly to $inputMapping array
@@ -742,7 +755,7 @@ abstract class RestoModel {
          * Assume input file or stream is a JSON Feature
          */
         if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
-            RestoLogUtil::httpError(500, 'Invalid feature description');
+            RestoLogUtil::httpError(500, "Feature description - Geometry property is not valid.");
         }
 
         /*
@@ -750,41 +763,14 @@ abstract class RestoModel {
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
-
-        if (empty($properties['title'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not defined');
-        }
         
-        if (empty($properties['orbitDirection'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not defined');
-        }
-        
-        if (empty($properties['relativeOrbitNumber'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Relative orbit number is not defined');
-        }
-        
-        if (empty($properties['orbitNumber'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Absolute orbit number is not defined');
-        }
-        
-        if (empty($properties['resourceSize'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not defined');
-        }
-        
-        if (empty($properties['dhusIngestDate'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not defined');
-        }
-
-        if (empty($properties['realtime'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
-        }
-
         /*
          * Compute unique identifier
         */
         if (!isset($data['id']) || !RestoUtil::isValidUUID($data['id'])) {
             $featureIdentifier = $collection->toFeatureId((isset($properties['productIdentifier']) ? $properties['productIdentifier'] : md5(microtime() . rand())));
-        } else {
+        }
+        else {
             $featureIdentifier = $data['id'];
         }
 
@@ -793,10 +779,7 @@ abstract class RestoModel {
          * (do this before getKeywords to avoid iTag process)
          */
         $schemaName = '_' . strtolower($collection->name);
-        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array(
-                'featureIdentifier' => $featureIdentifier,
-                'schema' => $schemaName
-        ))) {
+        if ($collection->context->dbDriver->check(RestoDatabaseDriver::FEATURE, array( 'featureIdentifier' => $featureIdentifier, 'schema' => $schemaName ))) {
             RestoLogUtil::httpError(409, 'Feature ' . $featureIdentifier . ' already in database');
         }
         
@@ -895,66 +878,48 @@ abstract class RestoModel {
      * @param RestoFeature feature : feature to update
      * @param array $data : array (MUST BE GeoJSON in abstract Model)
      */
-    public function updateFeature($feature, $data, $obsolescence = true) {
-
-        /*
-         * Assume input file or stream is a JSON Feature
-         */
-        if (!RestoGeometryUtil::isValidGeoJSONFeature($data)) {
-            RestoLogUtil::httpError(500, 'Invalid feature description');
-        }
+    public function updateFeature($feature, $data) {
 
         /*
          * Remap properties between RESTo model and input
          * GeoJSON Feature file
          */
         $properties = $this->mapInputProperties($data['properties']);
-
+        
         if (empty($properties['title'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Title is not set');
+            RestoLogUtil::httpError(500, "Feature description - Property 'title' is missing.");
         }
         
         $featureIdentifier = $feature->collection->toFeatureId($properties['title']);
         if ($featureIdentifier !== $feature->identifier) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Property "title" and feature title differ');
+            RestoLogUtil::httpError(500, "Feature description - Property 'title' and feature title differ.");
         }
 
-        if (empty($properties['orbitDirection'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Orbit direction is not set');
-        }
-        
-        if (empty($properties['resourceSize'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Resource size is not set');
-        }
-        
-        if (empty($properties['dhusIngestDate'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - DHUS ingest date is not set');
-        }
-
-        if (empty($properties['realtime'])) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Realtime is not set');
+        /*
+         * Assume input file or stream is a JSON Feature
+         */
+        if (!empty($data['geometry']) && !RestoGeometryUtil::isValidGeoJSONFeature($data)) {
+            RestoLogUtil::httpError(500, "Feature description - Property 'footprint' has not a valid value.");
         }
 
         /*
          * Updates feature
         */
         $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
-                'collection' => $feature->collection,
+                'feature' => $feature,
                 'featureArray' => array (
                         'type' => 'Feature',
                         'id' => $feature->identifier,
-                        'geometry' => $data['geometry'],
+                    'geometry' => empty($data['geometry']) ? null : $data['geometry'],
                         'properties' => array_merge($properties, array (
-                                'keywords' => $this->getKeywords($properties, $data['geometry'], $feature->collection),
+                                'keywords' => RestoGeometryUtil::isValidGeoJSONFeature($data) ? $this->getKeywords($properties, $data['geometry'], $feature->collection) : array(),
                                 'visible' => 1, // force visibility of products to true (updateFeatureVersions will update visibility),
                                 'newVersion' => null
                         ))
                 )
         ));
 
-        if ($obsolescence === true){
-            $this->updateFeatureVersions($feature);
-        }
+        $this->updateFeatureVersions($feature);
     }
 
     /**
@@ -1009,19 +974,51 @@ abstract class RestoModel {
         return true;
     }
     
-    protected function getElementByName($dom, $tagName, $type = NULL) {
-        $value = NULL;
+    /**
+     * Returns the node value of the first <$tagName> element in the DOM document $dom.
+     * @param string $dom DOM Document
+     * @param string $tagName tag name element
+     * @param string $type
+     * @param boolean $required
+     * @throws Exception
+     * @return NULL | string
+     */
+    protected function getElementByName($dom, $tagName, $type = NULL, $required = false) {
+        
+        /*
+         * Check if an element by tagName exists.
+         */
+        if (!$dom->getElementsByTagName($tagName)->length){
+            RestoLogUtil::httpError(400, "Feature description - Property '$tagName' is missing.");
+        }
+        
+        /*
+         * Get the node value of the first <$tagName> element in the document $dom
+         */
+        $value = $dom->getElementsByTagName($tagName)->item(0)->nodeValue;
+        
+        $msgError = "Feature description - '$value' is not a valid value for property '$tagName'.";
+        if ($required && empty($value)){
+            RestoLogUtil::httpError(400, $msgError);
+        }
         
         switch ($type) {
-            case 'NUMERIC':
-            case 'INTEGER':
-              $value = empty($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? NULL : $dom->getElementsByTagName($tagName)->item(0)->nodeValue;
-              break;  
+            case 'integer':
+            case 'float':
+                if ($required && !is_numeric($value)) {
+                    RestoLogUtil::httpError(400, $msgError);
+                }
+                $value = empty($value) ? NULL : $value;
+              break; 
+            case 'date':
+                if ($required && !RestoUtil::toISO8601($value)) {
+                    RestoLogUtil::httpError(400, $msgError);
+                }
+            case 'array':
             default:
-                $value = isset($dom->getElementsByTagName($tagName)->item(0)->nodeValue) ? $dom->getElementsByTagName($tagName)->item(0)->nodeValue : NULL;
+                $value = empty($value) ? NULL : $value;
         }
         return $value;
-        
     }
     
     /**

@@ -735,7 +735,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::FEATURE:
                 $featuresFunctions = new Functions_features($this);
-                return $featuresFunctions->updateFeature($params['collection'], $params['featureArray']);
+                return $featuresFunctions->updateFeature($params['feature'], $params['featureArray']);
 
             /*
              * Update NRT product (visibility on api search results and add new version link)

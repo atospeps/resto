@@ -133,8 +133,8 @@ class RestoRoutePUT extends RestoRoute {
          * collections/{collection}/{feature}
          */
         if (isset($feature)) {
-            $collection->updateFeature($feature, $data);
-            return RestoLogUtil::success('Feature ' . $feature->identifier . ' updated');
+            $result = $collection->updateFeature($feature, $data);
+            return RestoLogUtil::success(empty($result) ? 'Nothing to update for ' . $feature->identifier : 'Feature ' . $feature->identifier . ' updated');
         }
     }
 

@@ -48,24 +48,28 @@ class RestoModel_sentinel3 extends RestoModel {
 
     public $extendedProperties = array(
             'cycleNumber' => array(
-                    'name' => 'cyclenumber',
-                    'type' => 'INTEGER'
+                'name' => 'cyclenumber',
+                'type' => 'INTEGER'
             ),
             'approxSize' => array(
-                    'name' => 'approxSize',
-                    'type' => 'TEXT'
+                'name' => 'approxSize',
+                'type' => 'TEXT',
+                'required' => false
             ),
             'ecmwfType' => array(
-                    'name' => 'ecmwfType',
-                    'type' => 'TEXT'
+                'name' => 'ecmwfType',
+                'type' => 'TEXT',
+                'required' => false
             ),
             'processingName' => array(
-                    'name' => 'processingName',
-                    'type' => 'TEXT'
+                'name' => 'processingName',
+                'type' => 'TEXT',
+                'required' => false
             ),
             'onlineQualityCheck' => array(
-                    'name' => 'onlineQualityCheck',
-                    'type' => 'TEXT'
+                'name' => 'onlineQualityCheck',
+                'type' => 'TEXT',
+                'required' => false
             ),
     );
 
@@ -130,8 +134,8 @@ class RestoModel_sentinel3 extends RestoModel {
      * @param RestoCollection $collection
      *
      */
-    public function updateFeature($feature, $data, $obsolescence = true) {
-        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection), $obsolescence);
+    public function updateFeature($feature, $data) {
+        return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection, true));
     }
     
     /**
@@ -140,69 +144,110 @@ class RestoModel_sentinel3 extends RestoModel {
      * @param RestoCollection $collection
      * @return array GeoJson feature
      */
-    private function parse($xml, $collection){
-
+    private function parse($xml, $collection, $partiel = false){
+        
         $dom = new DOMDocument();
         if (!@$dom->loadXML(rawurldecode($xml))) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
         }
         
+        $props = array(
+            // Common properties
+            'productIdentifier' => $this->Filter('title'),
+            'title' => $this->Filter('title'),
+            'resourceSize' => $this->Filter('resourceSize'),
+            'resourceChecksum' => $this->Filter('checksum'),
+            'startDate' => $this->Filter('startTime'),
+            'completionDate' => $this->Filter('stopTime'),
+            'productType' => $this->Filter('productType'),
+            'processingLevel' => $this->Filter('processingLevel'),
+            'platform' =>  $this->Filter('missionId'),
+            'sensorMode' => $this->Filter('mode'),
+            'orbitNumber' => $this->Filter('absoluteOrbitNumber'),
+            'relativeOrbitNumber' => $this->Filter('relativeOrbitNumber'),
+            'orbitDirection' => $this->Filter('orbitDirection', 'strtolower'),
+            'instrument'=> $this->Filter('instrument'),
+            'cloudCover' => $this->Filter(null, function(){ return 0; }),
+            'isNrt' => $this->Filter('isNrt'),
+            'realtime' => $this->Filter('realtime'),
+            'dhusIngestDate' => $this->Filter('dhusIngestDate'),
+            'quicklook' => $this->Filter(null, '$this->getLocation', array($dom)),
+            'authority' => $this->Filter(null, function (){ return 'ESA'; }),
+            // Sentinel-3 specifities
+            'cycleNumber' => $this->Filter('cycle'),
+            'approxSize' => $this->Filter('approxSize'),
+            'ecmwfType' => $this->Filter('ecmwfType'),
+            'processingName' => $this->Filter('processingName'),
+            'onlineQualityCheck' => $this->Filter('onlineQualityCheck')
+            );
+        
         /*
-         * Retreives orbit direction
+         * Parses DOM Document.
          */
-        $orbitDirection = strtolower($this->getElementByName($dom, 'orbitDirection'));
-
-        // Simplify polygon
-        $polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $this->getElementByName($dom, 'footprint')));
-        $polygon = RestoGeometryUtil::wktPolygonToArray($polygon);
-
+        foreach($props as $modelKey => $filter) {
+            list($tagName, $callback, $params) = $filter;            
+            if ($dom->getElementsByTagName($tagName)->length || $partiel === false) {
+                $type = $this->getDbType($modelKey);
+                $required = $this->getDbValueRequired($modelKey);
+                if (isset($tagName)) {
+                    $params = array($this->getElementByName($dom, $tagName, $type, $required));
+                }
+                $props[$modelKey] = call_user_func_array($callback, $params);
+            }
+            else {
+                unset($props[$modelKey]);
+            }
+        }
+        
+        /*
+         * Footprint
+         */
+        $geometry = null;
+        if ($dom->getElementsByTagName('footprint')->length || $partiel === false) {
+            $footprint = $this->getElementByName($dom, 'footprint', null, true);
+            
+            // Simplify polygon
+            $polygon = $collection->context->dbDriver->execute(RestoDatabaseDriver::SIMPLIFY_GEOMETRY, array('wkt' => $footprint));
+            $polygon = RestoGeometryUtil::wktPolygonToArray($polygon);
+            $geometry = array( 'type' => 'Polygon', 'coordinates' => array($polygon) );
+        }
+        
         /*
          * Initialize feature
          */
-        $feature = array(
-                'type' => 'Feature',
-                'geometry' => array(
-                        'type' => 'Polygon',
-                        'coordinates' => array($polygon),
-                ),
-                'properties' => array(
-                    'productIdentifier' => $this->getElementByName($dom, 'title'),
-                    'title' => $this->getElementByName($dom, 'title'),
-                    'resourceSize' => $this->getElementByName($dom, 'resourceSize'),
-                    'resourceChecksum' => $this->getElementByName($dom, 'checksum'),
-                    'authority' => 'ESA',
-                    'startDate' => $this->getElementByName($dom, 'startTime'),
-                    'completionDate' => $this->getElementByName($dom, 'stopTime'),
-                    'productType' => $this->getElementByName($dom, 'productType'),
-                    'processingLevel' => $this->getElementByName($dom, 'processingLevel'),
-                    'platform' =>  $this->getElementByName($dom, 'missionId'),
-                    'sensorMode' => $this->getElementByName($dom, 'mode'),
-                    'orbitNumber' => $this->getElementByName($dom, 'absoluteOrbitNumber'),
-                    'relativeOrbitNumber' => $this->getElementByName($dom, 'relativeOrbitNumber'),
-                    'cycleNumber' => $this->getElementByName($dom, 'cycle'),
-                    'orbitDirection' => $orbitDirection,
-                    'instrument'=> $this->getElementByName($dom, 'instrument'),
-                    'quicklook'=> $this->getLocation($dom),
-                    'cloudCover' => 0,
-                    'isNrt' => $this->getElementByName($dom, 'isNrt'),
-                    'realtime' => $this->getElementByName($dom, 'realtime'),
-                    'dhusIngestDate' => $this->getElementByName($dom, 'dhusIngestDate'),
-                    'approxSize' => $this->getElementByName($dom, 'approxSize'),
-                    'ecmwfType' => $this->getElementByName($dom, 'ecmwfType'),
-                    'processingName' => $this->getElementByName($dom, 'processingName'),
-                    'onlineQualityCheck' => $this->getElementByName($dom, 'onlineQualityCheck')
-                )
-      );
-
-      return $feature;
+        return array(
+            'type' => 'Feature',
+            'geometry' => $geometry,
+            'properties' => $props
+        );
     }
 
+    /**
+     *
+     * @param string $tagName
+     * @param mixed $callback
+     * @param string|null $params
+     * @return array[]|string[]
+     */
+    function Filter($tagName, $callback = null, $params = array()) {
+        if (!function_exists('$callback')){
+            $params = array($tagName);
+            $callback = function($value){ return $value; };
+        }
+        return array($tagName, $callback, $params ? $params : array());
+    }    
+    
+    /**
+     * 
+     * @param unknown $dom
+     * @return string
+     */
     function getLocation($dom) {
-        $startTime = $dom->getElementsByTagName('startTime')->item(0)->nodeValue;
+        $startTime = $this->getElementByName($dom, 'startTime', null, true);
         $startTime = explode("T", $startTime);
-        $result = str_replace("-","/",$startTime[0]);
-        $missionId = $dom->getElementsByTagName('missionId')->item(0)->nodeValue;
-        $title= $dom->getElementsByTagName('title')->item(0)->nodeValue;
-        return $result."/".$missionId."/".$title;
+        $result = str_replace("-","/", $startTime[0]);
+        $missionId = $this->getElementByName($dom, 'missionId', null, true);
+        $title= $this->getElementByName($dom, 'title', null, true);
+        return $result. "/" . $missionId . "/".$title;
     }
 }

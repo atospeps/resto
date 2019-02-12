@@ -406,61 +406,107 @@ class Functions_features {
             RestoLogUtil::httpError(500, 'Feature ' . $featureArray['id'] . ' cannot be inserted in database');
         }
     }
-    
-    /**
-     * Update feature within collection
-     *
-     * @param RestoCollection $collection
-     * @param array $featureArray
-     * @throws Exception
-     */
-    public function updateFeature($collection, $featureArray) {
 
-        $featureId = $featureArray['id'];
+    /**
+     * Update feature properties.
+     * @param RestoFeature $feature
+     * @param array $featureArray
+     * @return boolean
+     */
+    public function updateFeature($feature, $data) {
 
         /*
-         * Get database columns array
+         * Get database columns and new values
          */
-        $columnsAndValues = $this->getColumnsAndValues($collection, $featureArray, false, $featureId);
-        
-        // Convert the array ion a format accepted for the "update" sql query
-        $values = implode(', ', array_map(function ($v, $k) {
-            return $k . '=' . $v;
-        }, $columnsAndValues, array_keys($columnsAndValues)));
-
-        try {
-            
-            /*
-             * First we delete the current facets
-             */                
-            $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
-            // Format correctly the keywords to be treated by the removeFeatureFacet function
-            $array = pg_fetch_row($result);
-            $keywords['properties']['keywords'] = json_decode($array[0], true);
-            $this->removeFeatureFacets($keywords, $collection->name);
-            
-            /*
-             * Start transaction
-             */
-            pg_query($this->dbh, 'BEGIN');
-            
-            /*
-             * Store feature
-             */
-            pg_query($this->dbh, "UPDATE " . pg_escape_string('_' . strtolower($collection->name)) . ".features SET " . $values . " WHERE identifier='" . $featureId  . "'");
-            
-            /*
-             * We insert the new facets
-             */
-            $this->storeKeywordsFacets($collection, json_decode(trim($columnsAndValues['keywords'], '\''), true));
-            
-            pg_query($this->dbh, 'COMMIT');
-        } catch (Exception $e) {
-            pg_query($this->dbh, 'ROLLBACK');
-            RestoLogUtil::httpError(500, 'Feature ' . $featureId . ' cannot be updated in database');
+        $properties = isset($data['properties']) ? $data['properties'] : array();
+        foreach($properties as $key => $value) {
+            if ($feature->get($key) == $value){
+                unset($properties[$key]);
+            }
         }
-    }
+        $data['properties'] = $properties;
+        
+        $count = count($properties);
+        $columns = ($count > 1 || ($count === 1 && !isset($properties['keywords']))) ? $this->getColumnsAndValues($feature->collection, $data, false, $feature->identifier) : array();
 
+        unset($columns['identifier'], $columns['productidentifier'], $columns['collection'], $columns['published']); // avoid publication date update
+        
+        /*
+         * Store new keywords
+         */
+        $keywords = array();
+        if (!empty($properties['keywords']) && is_array($properties['keywords'])) {
+            $keywords = $properties['keywords'];
+            $columns = array_merge($columns, $this->landuseColumns($keywords));
+            $columns['keywords'] = '\'' . pg_escape_string(json_encode($keywords)) . '\'';
+            $columns[$feature->collection->model->getDbKey('hashes')] = '\'{' . join(',', $this->getHashes($keywords)) . '}\'';
+        } else {
+            unset($columns['keywords'], $columns[$feature->collection->model->getDbKey('hashes')]);
+        }
+
+        /*
+         * check is something to set
+         */
+        if (count($columns) < 1) {
+            // Nothing to update
+            return 0;
+        }
+
+        /*
+         * Prepare SET clause
+         */
+        $toUpdate = array();
+        foreach ($columns as $columnName => $columnValue) {
+            array_push($toUpdate, $columnName . '=' . $columnValue);
+        }
+        
+        try {
+            /*
+             * Begin transaction
+             */
+            $this->dbDriver->query('BEGIN');
+            
+            /*
+             * Remove previous facets
+             */
+            $this->removeFeatureFacets($feature->toArray());
+
+            $schema = '_' . strtolower($feature->collection->name);
+            /*
+             * Update feature
+             */
+            $this->dbDriver->query('UPDATE ' . $schema . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
+            
+            /*
+             * Store new facets
+             */
+            $this->storeKeywordsFacets($feature->collection, $keywords, true);
+            
+            /*
+             * Commit
+             */
+            $this->dbDriver->query('COMMIT');
+        } catch (Exception $e) {
+            $this->dbDriver->query('ROLLBACK');
+            RestoLogUtil::httpError(500, 'Cannot update feature ' . $feature->identifier);
+        }
+        return count($columns);
+    }
+    
+    
+    /**
+     * Update feature keywords
+     *
+     * @param RestoFeature $feature
+     * @param array $keywords
+     * @throws Exception
+     */
+    public function updateFeatureKeywords($feature, $keywords) {
+        return $this->updateFeature($feature, array(
+            'properties' => array('keywords' => $keywords)
+        ));
+    }
+    
     /**
      * Remove feature from database
      * 
@@ -494,73 +540,6 @@ class Functions_features {
             pg_query($this->dbh, 'ROLLBACK'); 
             RestoLogUtil::httpError(500, 'Cannot delete feature ' . $feature->identifier);
         }
-    }
-
-    /**
-     * Update feature keywords
-     *
-     * @param RestoFeature $feature
-     * @param array $keywords
-     * @throws Exception
-     */
-    public function updateFeatureKeywords($feature, $keywords) {
-       
-        $featureId = $feature->identifier;
-        
-        $toUpdate = array();
-        $columns = array();
-        /*
-         * Store new keywords
-        */
-        if (is_array($keywords)) {
-            $columns[$feature->collection->model->getDbKey('keywords')] = '\'' . pg_escape_string(json_encode($keywords)) . '\'';
-            $columns[$feature->collection->model->getDbKey('hashes')] = '\'{' . join(',', $this->getHashes($keywords)) . '}\'';
-            foreach ($columns as $columnName => $columnValue) {
-                array_push($toUpdate, $columnName . '=' . $columnValue);
-            }
-        }
-        if (empty($toUpdate)) {
-            RestoLogUtil::httpError(400, 'Nothing to update for ' . $feature->identifier);
-        }
-        
-        
-        if (empty($toUpdate)) {
-            RestoLogUtil::httpError(400, 'Nothing to update for ' . $feature->identifier);
-        }
-        try {
-            
-            /*
-             * First we delete the current facets
-             */                
-            $result = pg_query($this->dbh, "SELECT keywords FROM " . pg_escape_string('_' . strtolower($feature->collection->name)) . ".features WHERE identifier='" . $featureId  . "'");
-            /* 
-             * Format correctly the keywords to be treated by the removeFeatureFacet function
-             */                 
-            $array = pg_fetch_row($result);
-            $_keywords['properties']['keywords'] = json_decode($array[0], true);
-            $this->removeFeatureFacets($_keywords, $feature->collection->name);
-            
-            /*
-             * Start transaction
-             */
-            pg_query($this->dbh, 'BEGIN');
-            
-            /*
-             * Update feature
-             */
-            pg_query($this->dbh, 'UPDATE ' .  (isset($feature->collection) ? '_' . strtolower($feature->collection->name): 'resto') . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
-            /*
-             * We insert the new facets
-             */
-            $this->storeKeywordsFacets($feature->collection, $keywords, true);
-            
-            pg_query($this->dbh, 'COMMIT');
-        } catch (Exception $e) {
-            pg_query($this->dbh, 'ROLLBACK');
-            RestoLogUtil::httpError(500, 'Cannot update feature ' . $featureId);
-        }
-
-        return true;
     }
 
     /**
@@ -638,29 +617,22 @@ class Functions_features {
      * @throws Exception
      */
     private function getColumnsAndValues($collection, $featureArray, $created, $featureIdentifier = null) {
-        if ($created) {
-            /*
-             * Initialize columns array
-             */
-            $columns = array_merge(array (
-                $collection->model->getDbKey('identifier') => '\'' . $featureArray['id'] . '\'',
-                $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
-                $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)',
-                'updated' => 'now()',
-                'published' => 'now()' 
-            ), $this->propertiesToColumns($collection, $featureArray['properties']));
-        } else {
-            /*
-             * Initialize update columns array
-             */
-            $columns = array_merge(array (
-                $collection->model->getDbKey('identifier') => '\'' . $featureIdentifier . '\'',
-                $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
-                $collection->model->getDbKey('geometry') => 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)',
-                'updated' => 'now()' 
-            ), $this->propertiesToColumns($collection, $featureArray['properties']));
+        
+        $featId = $created ? $featureArray['id'] : $featureIdentifier;
+        $featArray = array(
+            $collection->model->getDbKey('identifier') => '\'' . $featId . '\'',
+            $collection->model->getDbKey('collection') => '\'' . $collection->name . '\'',
+            'updated' => 'now()',
+        );
+        if ($created){
+            $featArray['published'] = 'now()';
         }
-        return $columns;
+
+        if (!empty($featureArray['geometry'])){
+            $featArray[$collection->model->getDbKey('geometry')] = 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)';
+        }
+        return array_merge($featArray, $this->propertiesToColumns($collection, $featureArray['properties']));
+        
     }
     
     /**

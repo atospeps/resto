@@ -230,6 +230,18 @@ class RestoFeature {
     }
     
     /**
+     * Return property value.
+     * @param string $property
+     * @return mixed
+     */
+    public function get($property) {
+        if (isset($this->featureArray['properties'][$property])) {
+            return $this->featureArray['properties'][$property];
+        }
+        return null;
+    }
+    
+    /**
      * Output product description as a GeoJSON Feature
      * 
      * @param boolean $pretty : true to return pretty print

@@ -125,24 +125,6 @@ class RestoModel_sentinel1 extends RestoModel {
      */
     public function updateFeature($feature, $data) {
         return parent::updateFeature($feature, $this->parse(join('',$data), $feature->collection, true));
-<<<<<<< HEAD
-=======
-    }
-
-    /**
-     * Create JSON feature from xml string
-     * 
-     * @param {String} $xml : $xml string
-     */
-    private function parse($xml, $collection, $partiel = false) {
-
-        $dom = new DOMDocument();
-        if (!@$dom->loadXML(rawurldecode($xml))) {
-            RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
-        }
-        
-        return $this->parse($dom, $collection, $partiel);
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
     }
 
     /**
@@ -171,12 +153,7 @@ class RestoModel_sentinel1 extends RestoModel {
      * @return array GeoJson feature
      * 
      */
-<<<<<<< HEAD
-    private function parse($xml, $collection, $partiel = false) {
-=======
-    private function parse($dom, $collection, $partiel = false) {
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
-        
+    private function parse($xml, $collection, $partiel = false) {        
         $dom = new DOMDocument();
         if (!@$dom->loadXML(rawurldecode($xml))) {
             RestoLogUtil::httpError(500, 'Invalid feature description - Resource file');
@@ -245,13 +222,8 @@ class RestoModel_sentinel1 extends RestoModel {
              * The datahub systematically performs an inversion of the Sentinel-1 quicklooks taking as input the quicklook images (.png) inside
              * the ZIP files (i.e. as produced by the S1 ground segment).
              */
-<<<<<<< HEAD
             $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $props['orbitDirection']));
             $geometry = array( 'type' => 'Polygon', 'coordinates' => $polygon );
-=======
-            $polygon = array(SentinelUtil::reorderSafeFootprintToDhus($polygon, $orbitDirection));
-            $geometry = array( 'type' => 'Polygon', 'coordinates' => array($polygon) );
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         }
         
         /*

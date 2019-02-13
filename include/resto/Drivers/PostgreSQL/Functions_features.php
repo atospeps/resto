@@ -413,7 +413,6 @@ class Functions_features {
      * @param array $featureArray
      * @return boolean
      */
-<<<<<<< HEAD
     public function updateFeature($feature, $data) {
 
         /*
@@ -492,78 +491,6 @@ class Functions_features {
             RestoLogUtil::httpError(500, 'Cannot update feature ' . $feature->identifier);
         }
         return count($columns);
-=======
-    public function updateFeature($feature, $featureArray) {
-        
-        /*
-         * Get database columns and new values
-         */
-        $properties = isset($featureArray['properties']) ? $featureArray['properties'] : array();
-        $columns = (count($properties) > 1 || !isset($properties['keywords'])) ? $this->getColumnsAndValues($feature->collection, $featureArray) : array();
-        unset($columns['identifier'], $columns['productidentifier'], $columns['collection'], $columns['published']); // avoid publication date update
-        
-        /*
-         * Store new keywords
-         */
-        $keywords = array();
-        if (isset($properties['keywords']) && is_array($properties['keywords'])) {
-            $keywords = $properties['keywords'];
-            $columns = array_merge($columns, $this->landuseColumns($keywords));
-            $columns['keywords'] = '\'' . pg_escape_string(json_encode($keywords)) . '\'';
-            $columns[$feature->collection->model->getDbKey('hashes')] = '\'{' . join(',', $this->getHashes($keywords)) . '}\'';
-        }
-        
-        /*
-         * check is something to set
-         */
-        if (count($columns) < 1) {
-            return RestoLogUtil::success('Nothing to update for ' . $feature->identifier);
-        }
-        
-        /*
-         * Prepare SET clause
-         */
-        $toUpdate = array();
-        foreach ($columns as $columnName => $columnValue) {
-            array_push($toUpdate, $columnName . '=' . $columnValue);
-        }
-        
-        try {
-            /*
-             * Begin transaction
-             */
-            $this->dbDriver->query('BEGIN');
-            
-            /*
-             * Remove previous facets
-             */
-            if ($feature->context->storeFacets) {
-                $this->removeFeatureFacets($feature->toArray());
-            }
-            
-            /*
-             * Update feature
-             */
-            $this->dbDriver->query('UPDATE ' . $this->dbDriver->schemaName . '.features SET ' . join(',', $toUpdate) . ' WHERE identifier = \'' . pg_escape_string($feature->identifier) . '\'');
-            
-            /*
-             * Store new facets
-             */
-            if ($feature->context->storeFacets) {
-                $this->storeKeywordsFacets($feature->collection, $keywords, true);
-            }
-            
-            /*
-             * Commit
-             */
-            $this->dbDriver->query('COMMIT');
-        } catch (Exception $e) {
-            $this->dbDriver->query('ROLLBACK');
-            RestoLogUtil::httpError(500, 'Cannot update feature ' . $feature->identifier);
-        }
-        
-        return true;
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
     }
     
     
@@ -700,11 +627,6 @@ class Functions_features {
         if ($created){
             $featArray['published'] = 'now()';
         }
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         if (!empty($featureArray['geometry'])){
             $featArray[$collection->model->getDbKey('geometry')] = 'ST_GeomFromText(\'' . RestoGeometryUtil::geoJSONGeometryToWKT($featureArray['geometry']) . '\', 4326)';
         }

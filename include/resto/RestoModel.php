@@ -905,7 +905,11 @@ abstract class RestoModel {
         /*
          * Updates feature
         */
+<<<<<<< HEAD
         $result = $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+=======
+        $feature->collection->context->dbDriver->update(RestoDatabaseDriver::FEATURE, array (
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
                 'feature' => $feature,
                 'featureArray' => array (
                         'type' => 'Feature',
@@ -920,7 +924,10 @@ abstract class RestoModel {
         ));
 
         $this->updateFeatureVersions($feature);
+<<<<<<< HEAD
         return $result;
+=======
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
     }
 
     /**

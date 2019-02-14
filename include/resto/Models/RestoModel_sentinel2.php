@@ -127,8 +127,8 @@ class RestoModel_sentinel2 extends RestoModel {
             'isNrt' => $this->Filter('isNrt'),
             'realtime' => $this->Filter('realtime'),
             'dhusIngestDate' => $this->Filter('dhusIngestDate'),
-            'quicklook' => $this->Filter(null, $this->getLocation, array($dom)),
-            'authority' => $this->Filter(null, function (){ return 'ESA'; }),
+            'quicklook' => $this->Filter(null, array($this, 'getLocation'), array($dom)),
+            'organisationName' => $this->Filter(null, function (){ return 'ESA'; }),
             // Sentinel-2 specifities
             's2TakeId' => $this->Filter('s2takeid'),
         );
@@ -139,7 +139,7 @@ class RestoModel_sentinel2 extends RestoModel {
         foreach($props as $modelKey => $filter) {
             list($tagName, $callback, $params) = $filter;
             
-            if ($dom->getElementsByTagName($tagName)->length || $partiel === false) {
+            if (!isset($tagName) || $dom->getElementsByTagName($tagName)->length || $partiel === false) {
                 $type = $this->getDbType($modelKey);
                 $required = $this->getDbValueRequired($modelKey);
                 if (isset($tagName)) {
@@ -173,22 +173,6 @@ class RestoModel_sentinel2 extends RestoModel {
             'geometry' => $geometry,
             'properties' => $props
         );    	
-    }
-
-    
-    /**
-     *
-     * @param string $tagName
-     * @param mixed $callback
-     * @param string|null $params
-     * @return array[]|string[]
-     */
-    function Filter($tagName, $callback = null, $params = array()) {
-        if (!function_exists('$callback')){
-            $params = array($tagName);
-            $callback = function($value){ return $value; };
-        }
-        return array($tagName, $callback, $params ? $params : array());
     }
 
     /**

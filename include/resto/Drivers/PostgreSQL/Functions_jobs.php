@@ -54,10 +54,57 @@ class Functions_jobs {
 
         // Query
         $query = 'SELECT j.*, SUBSTRING(value::text from \'product=([A-Z0-9_]+)]?\') as product FROM usermanagement.jobs j, json_each_text(data::json) WHERE ' . $oFilter . ' ORDER BY querytime DESC';
-
+        error_log(print_r($this->dbDriver->fetch($this->dbDriver->query($query)), true), 0);
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
-
+    
+    /**
+     * 
+     * @param unknown $userid
+     * @param array $filters
+     * @return array|unknown
+     */
+    public function getJobsId($filters= array()) {
+        $items = array();
+        
+        $filters[] = 'visible=TRUE';
+        $oFilter = implode(' AND ', $filters);
+        
+        // Query
+        $query = "SELECT substring(statuslocation from 'pywps-(.+)[.]xml') as jobid FROM usermanagement.jobs WHERE " . $oFilter . ' ORDER BY querytime DESC';
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+        
+        $results = $this->dbDriver->query($query, 500, 'Cannot get running jobs id');
+        while ($result = pg_fetch_assoc($results)) {
+            $items[] = $result['jobid'];
+        }
+        
+        return $items;
+    }
+    
+    /**
+     * 
+     * @return array users list to notify
+     */
+    public function getUsersToNotify() {
+        
+        /**
+         * TODO
+         *           AND acknowledge=FALSE
+         */
+        $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE status='ProcessSucceed' OR status='ProcessFailed' AND statuslocation IS NOT NULL AND visible=TRUE)";
+        $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid";
+        
+        $results = $this->dbDriver->fetch($this->dbDriver->query($query));
+        
+        $results = $this->dbDriver->query($query, 500, 'Cannot get users list to notify');
+        while ($result = pg_fetch_assoc($results)) {
+            $items[] = $result['email'];
+        }
+        
+        return $items;
+    }
+    
     /**
      * Returns the total of the completed jobs (succeeded + failed)
      * 
@@ -208,8 +255,8 @@ class Functions_jobs {
      * @param array $data
      * @return boolean
      */
-    public function update($userid, $data) {
-        if (!isset($userid) || !isset($data['gid'])) {
+    public function update($data) {
+        if (!isset($data['jobid'])) {
             return false;
         }
         try {
@@ -218,12 +265,13 @@ class Functions_jobs {
              */
             pg_query($this->dbh, 'BEGIN');
 
+            
             $status             = $this->dbDriver->quote2($data, 'status', 'NULL');
             $statusMessage      = $this->dbDriver->quote2($data, 'statusmessage', 'NULL');
             $statusTime         = $this->dbDriver->quote2($data, 'statusTime', 'NULL');
             $percentCompleted   = $this->dbDriver->quote2($data, 'percentcompleted', 0);
             $outputs            = isset($data['outputs']) ? $data['outputs'] :  array();
-            $gid                = $this->dbDriver->quote($data['gid']);
+            $wpsid              = $this->dbDriver->quote($data['jobid']);
             $nbResults          = count($outputs);
             $last_dispatch      = $this->dbDriver->quote2($data, 'last_dispatch', 'now()');
             $logs               = $this->dbDriver->quote2($data, 'logs', 'NULL');
@@ -237,23 +285,28 @@ class Functions_jobs {
                             . ', statustime=' . $statusTime
                             . ', nbresults=' . $nbResults 
                             . ', logs=' . $logs
-                    . ' WHERE gid=' . $gid;
+                            . ' WHERE substring(statuslocation from \'pywps-(.+)[.]xml\')=' . $wpsid
+                            . ' RETURNING gid, userid';
             
-            $this->dbDriver->query($query);
-
-            $query = 'DELETE FROM usermanagement.wps_results WHERE jobid=' . $gid . ' AND userid=' . $userid;
-            $this->dbDriver->query($query);
-
-            // Save result
-            foreach ($outputs as $output) 
-            {
-                $identifier = basename($output);
-                $type = 'application/octet-stream';
-                $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, type, value)'
-                        . " VALUES ($gid, $userid, '${identifier}', '${type}', '${output}')";
+            $result = $this->dbDriver->query($query);
+            if ($job = pg_fetch_assoc($result)) {
+                
+                $gid = $job['gid'];
+                $userid = $job['userid'];
+                $query = 'DELETE FROM usermanagement.wps_results WHERE jobid=' . $gid . ' AND userid=' . $userid;
                 $this->dbDriver->query($query);
+                
+                // Save result
+                foreach ($outputs as $output)
+                {
+                    $identifier = basename($output);
+                    $type = 'application/octet-stream';
+                    $query = 'INSERT INTO usermanagement.wps_results (jobid, userid, identifier, type, value)'
+                        . " VALUES ($gid, $userid, '${identifier}', '${type}', '${output}')";
+                        $this->dbDriver->query($query);
+                }
+                pg_query($this->dbh, 'COMMIT');
             }
-            pg_query($this->dbh, 'COMMIT');
         } 
         catch (Exception $e) {
             pg_query($this->dbh, 'ROLLBACK');

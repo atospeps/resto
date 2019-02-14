@@ -275,7 +275,7 @@ class Resto {
      * 
      */
     private function authenticate() {
-        
+        error_log('authen', 0);
         /*
          * Authentication through token in url
          */
@@ -288,6 +288,9 @@ class Resto {
          * ...or from headers
          */
         else {
+            
+            error_log(">>>>>>>>>>>>>>>>>>", 0);
+            
             $httpAuth = filter_input(INPUT_SERVER, 'HTTP_AUTHORIZATION', FILTER_SANITIZE_STRING);
             $rhttpAuth = filter_input(INPUT_SERVER, 'REDIRECT_HTTP_AUTHORIZATION', FILTER_SANITIZE_STRING);
             $authorization = !empty($httpAuth) ? $httpAuth : (!empty($rhttpAuth) ? $rhttpAuth : null);

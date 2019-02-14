@@ -110,6 +110,20 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
                 return $jobsFunctions->get($params['userid'], null, isset($params['filters']) ? $params['filters'] : array());
                 
             /*
+             * Get running jobs id
+             */
+            case parent::PROCESSING_RUNNING_JOBS_ID:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->getJobsId(isset($params['filters']) ? $params['filters'] : array());
+                
+            /*
+             * Get running jobs id
+             */
+            case parent::PROCESSING_USERS_TO_NOTIFY:
+                $jobsFunctions = new Functions_jobs($this);
+                return $jobsFunctions->getUsersToNotify();
+                
+            /*
              * Get processing items
              */
             case parent::PROCESSING_JOBS_STATS:
@@ -700,7 +714,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_JOBS_ITEM:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->update($params['userid'], $params['data']);
+                return $jobsFunctions->update($params['data']);
                 
              /*
              * Update rights

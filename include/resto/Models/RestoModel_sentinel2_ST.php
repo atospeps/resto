@@ -161,10 +161,10 @@ class RestoModel_sentinel2_ST extends RestoModel {
     	    'isNrt' => $this->Filter('isNrt'),
     	    'realtime' => $this->Filter('realtime'),
     	    'dhusIngestDate' => $this->Filter('dhusIngestDate'),
-    	    'quicklook' => $this->Filter(null, $this->getLocation, array($dom)),
-    	    'authority' => $this->Filter(null, function (){ return 'ESA'; }),
+    	    'quicklook' => $this->Filter(null, array($this, 'getLocation'), array($dom)),
+    	    'organisationName' => $this->Filter(null, function (){ return 'ESA'; }),
     	    // Sentinel-2 specifities
-    	    'mgrs' => $this->Filter('title', $this->getMGRSLocation),
+    	    'mgrs' => $this->Filter('title', array($this, 'getMGRSLocation')),
     	    's2TakeId' => $this->Filter('s2takeid'),
     	    'bareSoil' => $this->Filter('bareSoilPercentage'),
     	    'highProbaClouds' => $this->Filter('highProbaCloudsPercentage'),
@@ -178,22 +178,21 @@ class RestoModel_sentinel2_ST extends RestoModel {
     	/*
          * Parses DOM Document.
          */
-        foreach($props as $modelKey => $filter) {
-            list($tagName, $callback, $params) = $filter;
-            
-            if ($dom->getElementsByTagName($tagName)->length || $partiel === false) {
-                $type = $this->getDbType($modelKey);                
-                $required = $this->getDbValueRequired($modelKey);
-                if (isset($tagName)) {
-                    $params = array($this->getElementByName($dom, $tagName, $type, $required));
-                }                
-                $props[$modelKey] = call_user_func_array($callback, $params);
-            }
-            else {
-                unset($props[$modelKey]);
-            }
-        }
-    	
+    	foreach($props as $modelKey => $filter) {
+    	    list($tagName, $callback, $params) = $filter;
+    	    
+    	    if (!isset($tagName) || $dom->getElementsByTagName($tagName)->length || $partiel === false) {
+    	        $type = $this->getDbType($modelKey);
+    	        $required = $this->getDbValueRequired($modelKey);
+    	        if (isset($tagName)) {
+    	            $params = array($this->getElementByName($dom, $tagName, $type, $required));
+    	        }
+    	        $props[$modelKey] = call_user_func_array($callback, $params);
+    	    }
+    	    else {
+    	        unset($props[$modelKey]);
+    	    }
+    	}
     	/*
     	 * Footprint
     	 */
@@ -215,21 +214,6 @@ class RestoModel_sentinel2_ST extends RestoModel {
             'geometry' => $geometry,
             'properties' => $props
       );
-    }
-
-    /**
-     *
-     * @param string $tagName
-     * @param mixed $callback
-     * @param string|null $params
-     * @return array[]|string[]
-     */
-    function Filter($tagName, $callback = null, $params = array()) {
-        if (!function_exists('$callback')){
-            $params = array($tagName);
-            $callback = function($value){ return $value; };
-        }
-        return array($tagName, $callback, $params ? $params : array());
     }
 
     /**

@@ -273,6 +273,11 @@ class WPS extends RestoModule {
                 case 'processings':
                     return $this->GET_wps_processings($this->segments);
                 /*
+                 * HTTP/GET wps/jobs
+                 */
+                case 'jobs':
+                    return $this->GET_jobs($this->segments);
+                /*
                  * Unknown route
                  */
                 default:
@@ -432,7 +437,7 @@ class WPS extends RestoModule {
     {
         if (!isset($segments[1])) 
         {
-            RestoLogUtil::httpError(404);
+            return $this->GET_users_to_notify();
         }
         
         $userid = $segments[1];
@@ -531,7 +536,7 @@ class WPS extends RestoModule {
                     break;
             }
         }
-        return RestoLogUtil::httpError(404);
+        RestoLogUtil::httpError(404);
     }
 
     /**
@@ -565,7 +570,7 @@ class WPS extends RestoModule {
                 return $this->wpsRequestManager->download($result[0]['value'], null, $result[0]['identifier']);
             }
         }
-        return RestoLogUtil::httpError(404);
+        RestoLogUtil::httpError(404);
     }
     
     
@@ -624,7 +629,7 @@ class WPS extends RestoModule {
         if (isset($segments[2]) && $segments[2] === 'results' && !isset($segments[3]) ) {
             return $this->placeOrder($this->user->profile['email'], $data);
         }
-        return RestoLogUtil::httpError(404);
+        RestoLogUtil::httpError(404);
     }
     
     /**
@@ -638,6 +643,13 @@ class WPS extends RestoModule {
             if ($this->segments[0] === 'users') {
                 return $this->PUT_users($this->segments);
             }
+            
+            /*
+             * HTTP/PUT wps/jobs
+             */
+            if ($this->segments[0] === 'jobs' && !isset($this->segments[1])) {
+                return $this->PUT_jobs($data);
+            }
 
             /*
              * HTTP/PUT wps/status/{status}.
@@ -646,10 +658,91 @@ class WPS extends RestoModule {
                     && isset($this->segments[1])
                     && in_array($this->segments[1], array('SUCCESS', 'FAILURE'))) {
                 return $this->PUT_wps_status($this->segments[1]);
-            }
-                
+            }        
+        RestoLogUtil::httpError(404);
+    }
+    
+    /**
+     * 
+     * @param unknown $data
+     * @return NULL
+     */
+    private function PUT_jobs($data) {
+
+        $now = time();
+        $last_dispatch = date("Y-m-d\TH:i:s", $now);
         
-        return RestoLogUtil::httpError(404);
+        // Updating jobs...
+        foreach($data as $job) {
+            
+            $update['jobid'] = $this->toWpsStatus($job['job_id']);
+            $update['status'] = $this->toWpsStatus($job['job_status']);
+            $update['percentcompleted'] = $job['percentCompleted'];
+            $update['outputs'] = isset($job['results']) ? $job['results']: array();
+            $update['nbresults'] = count($update['outputs']);
+            $update['last_dispatch'] = $last_dispatch;
+            $update['logs'] = isset($job['logs'][0]) ? $job['logs'][0] : null;
+            $update['statusTime'] = isset($job['finishedTime']) ? $job['finishedTime'] : null;
+            
+            $this->context->dbDriver->update(RestoDatabaseDriver::PROCESSING_JOBS_ITEM, array('data' => $update));            
+        }        
+    }
+    
+    /**
+     * 
+     * @param array $segments
+     * @return mixed
+     */
+    private function GET_jobs($segments) {
+        
+        /*
+         * HTTP/GET wps/jobs/running
+         */
+        if (isset($segments[1]) 
+            && $segments[1] === 'running' 
+            && !isset($segments[2])) {
+            return $this->GET_jobs_running();
+        }
+        RestoLogUtil::httpError(404);                
+    }
+    
+    /**
+     * Returns running jobs id.
+     * @param array $filters filters array
+     * @return array running jobs id
+     */
+    private function GET_jobs_running($filters=array()) {
+        
+        if (!$this->user->isAdmin())
+        {
+            RestoLogUtil::httpError(403);
+        }
+
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0)
+        {
+            $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
+        
+        // Only asynchronous and running jobs
+        $filters[] = 'statuslocation IS NOT NULL';
+//         $filters[] = "status <> 'ProcessSucceeded'";
+        $filters[] = "status <> 'ProcessFailed'";
+        
+        return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_RUNNING_JOBS_ID, array( 'filters' => $filters) );        
+    }
+    
+    
+    /**
+     * Returns users list to notify
+     * @return array users list
+     */
+    private function GET_users_to_notify() {
+        if (!$this->user->isAdmin())
+        {
+            RestoLogUtil::httpError(403);
+        }
+        return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_USERS_TO_NOTIFY); 
     }
     
     /**
@@ -708,7 +801,7 @@ class WPS extends RestoModule {
                 return RestoLogUtil::success("WPS jobs for user {$userid}", array ('data' => $jobs));
             }
         }
-        return RestoLogUtil::httpError(404);
+        RestoLogUtil::httpError(404);
     }
     
     /**
@@ -727,7 +820,7 @@ class WPS extends RestoModule {
             $this->setJobsAcknowledges($this->segments[1]);
             return RestoLogUtil::success("WPS jobs acknowledges for user {$this->user->profile['userid']}", array ());
         }
-        return RestoLogUtil::httpError(404);
+        RestoLogUtil::httpError(404);
     }
     
     /**
@@ -931,19 +1024,17 @@ class WPS extends RestoModule {
             $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
         
-        $results = $this->context->dbDriver->get(
-                RestoDatabaseDriver::PROCESSING_JOBS_ITEMS,
-                array(
-                        'userid' => $userid,
-                        'filters' => $filters
-                ));
+        return $this->context->dbDriver->get(
+            RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
+            array( 'userid' => $userid, 'filters' => $filters)
+            );
         
         // Updates status's jobs.
-        if ($updateJobsStatus) {
-            $results = $this->updateStatusOfJobs($results);
-        }
+//         if ($updateJobsStatus) {
+//             $results = $this->updateStatusOfJobs($results);
+//         }
         
-        return $results;        
+//         return $results;        
     }
     
     /**

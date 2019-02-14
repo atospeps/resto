@@ -79,7 +79,8 @@ abstract class RestoDatabaseDriver {
     const WPS_GROUP_RIGHTS = 54;
     const WPS_GROUPS = 55;
     const GROUP = 56;
-    
+    const PROCESSING_RUNNING_JOBS_ID = 57;
+    const PROCESSING_USERS_TO_NOTIFY = 58;
     
     /*
      * Results per page

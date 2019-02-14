@@ -985,36 +985,34 @@ abstract class RestoModel {
      * @return NULL | string
      */
     protected function getElementByName($dom, $tagName, $type = NULL, $required = false) {
-        
         /*
          * Check if an element by tagName exists.
          */
-        if (!$dom->getElementsByTagName($tagName)->length){
-            RestoLogUtil::httpError(400, "Feature description - Property '$tagName' is missing.");
+        if (!$dom->getElementsByTagName($tagName)->length) {
+            if ($required){
+                RestoLogUtil::httpError(400, "Feature description - Property '$tagName' is missing.");
+            }
+            return NULL;
         }
         
         /*
          * Get the node value of the first <$tagName> element in the document $dom
          */
         $value = $dom->getElementsByTagName($tagName)->item(0)->nodeValue;
-        
         $msgError = "Feature description - '$value' is not a valid value for property '$tagName'.";
-        if ($required && empty($value)){
-            RestoLogUtil::httpError(400, $msgError);
-        }
         
         switch ($type) {
             case 'integer':
             case 'float':
-                if ($required && !is_numeric($value)) {
+                if (!is_numeric($value)) {
                     RestoLogUtil::httpError(400, $msgError);
                 }
-                $value = empty($value) ? NULL : $value;
               break; 
             case 'date':
-                if ($required && !RestoUtil::toISO8601($value)) {
+                if (!RestoUtil::toISO8601($value)) {
                     RestoLogUtil::httpError(400, $msgError);
                 }
+                break;
             case 'array':
             default:
                 $value = empty($value) ? NULL : $value;
@@ -1051,6 +1049,21 @@ abstract class RestoModel {
         return array_merge($keywords, $keywordsUtil->computeKeywords($properties, $geometry, $collection));
     }
 
+    /**
+     *
+     * @param string $tagName
+     * @param mixed $callback
+     * @param string|null $params
+     * @return array[]|string[]
+     */
+    protected function Filter($tagName, $callback = null, $params = array()) {
+        if (!is_callable($callback)){
+            $params = array($tagName);
+            $callback = function($value){ return $value; };
+        }
+        return array($tagName, $callback, $params ? $params : array());
+    }
+    
     /**
      * 
      * @param unknown $productIdentifier

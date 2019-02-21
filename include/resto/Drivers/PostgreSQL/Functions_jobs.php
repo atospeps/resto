@@ -86,13 +86,13 @@ class Functions_jobs {
      * 
      * @return array users list to notify
      */
-    public function getUsersToNotify() {
+    public function getUsersToNotify($filters = array()) {
+
         
-        /**
-         * TODO
-         *           AND acknowledge=FALSE
-         */
-        $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE status='ProcessSucceed' OR status='ProcessFailed' AND statuslocation IS NOT NULL AND visible=TRUE)";
+        $oFilter = implode(' AND ', $filters);
+        $oFilter = 'visible = TRUE';
+
+        $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE " . $oFilter . ")";
         $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid";
         
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));

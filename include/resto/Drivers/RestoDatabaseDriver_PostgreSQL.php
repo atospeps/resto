@@ -121,7 +121,7 @@ class RestoDatabaseDriver_PostgreSQL extends RestoDatabaseDriver {
              */
             case parent::PROCESSING_USERS_TO_NOTIFY:
                 $jobsFunctions = new Functions_jobs($this);
-                return $jobsFunctions->getUsersToNotify();
+                return $jobsFunctions->getUsersToNotify(isset($params['filters']) ? $params['filters'] : array());
                 
             /*
              * Get processing items

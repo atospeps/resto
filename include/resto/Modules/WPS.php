@@ -203,7 +203,7 @@ class WPS extends RestoModule {
              * HTTP/GET
              */
             case HttpRequestMethod::GET:
-                return $this->processGET();
+                return $this->processGET($data);
             /*
              * HTTP/POST 
              */
@@ -231,7 +231,7 @@ class WPS extends RestoModule {
      * Process on HTTP method GET on /jobs
      * HTTP/GET
      */
-    private function processGET() {
+    private function processGET($data = array()) {
         /*
          * HTTP/GET WPS 1.0 OGC services
          * wps?request=xxx&version=1.0.0&
@@ -276,7 +276,7 @@ class WPS extends RestoModule {
                  * HTTP/GET wps/jobs
                  */
                 case 'jobs':
-                    return $this->GET_jobs($this->segments);
+                    return $this->GET_jobs($this->segments, $data);
                 /*
                  * Unknown route
                  */
@@ -693,7 +693,7 @@ class WPS extends RestoModule {
      * @param array $segments
      * @return mixed
      */
-    private function GET_jobs($segments) {
+    private function GET_jobs($segments, $data = array()) {
         
         /*
          * HTTP/GET wps/jobs/running
@@ -701,7 +701,7 @@ class WPS extends RestoModule {
         if (isset($segments[1]) 
             && $segments[1] === 'running' 
             && !isset($segments[2])) {
-            return $this->GET_jobs_running();
+            return $this->GET_jobs_running($data);
         }
         RestoLogUtil::httpError(404);                
     }
@@ -724,9 +724,13 @@ class WPS extends RestoModule {
             $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
         }
         
+        if (isset($filters['expires']) && is_numeric($filters['expires'])){
+            $filters[] = 'last_dispatch < now() - (' . $filters['expires'] . ' || \' second\')::interval';
+        }
+        
         // Only asynchronous and running jobs
         $filters[] = 'statuslocation IS NOT NULL';
-//         $filters[] = "status <> 'ProcessSucceeded'";
+        $filters[] = "status <> 'ProcessSucceeded'";
         $filters[] = "status <> 'ProcessFailed'";
         
         return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_RUNNING_JOBS_ID, array( 'filters' => $filters) );        
@@ -742,7 +746,18 @@ class WPS extends RestoModule {
         {
             RestoLogUtil::httpError(403);
         }
-        return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_USERS_TO_NOTIFY); 
+        $filters = array();
+        // Processings life time
+        if ($this->timeLifeOfProcessings > 0)
+        {
+            $filters[] = 'querytime > now() - (' . $this->timeLifeOfProcessings . ' || \' day\')::interval';
+        }
+        
+         // TODO      $filters[] = "acknowledge = FALSE'     
+        
+        $filters[] = "status='ProcessSucceed' OR status='ProcessFailed'";
+        $filters[] = "statuslocation IS NOT NULL";
+        return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_USERS_TO_NOTIFY, array( 'filters' => $filters) ); 
     }
     
     /**

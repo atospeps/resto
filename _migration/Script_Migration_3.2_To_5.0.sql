@@ -29,8 +29,8 @@ $func$  LANGUAGE plpgsql;
 --
 -- ---------------------------------------------------------------------------------
 
-SELECT f_add_col('usermanagement.jobs', 'mailnotif', 'boolean');
-ALTER TABLE usermanagement.jobs ALTER COLUMN mailnotif SET DEFAULT FALSE;
+SELECT f_add_col('usermanagement.jobs', 'notifmail', 'boolean');
+ALTER TABLE usermanagement.jobs ALTER COLUMN notifmail SET DEFAULT FALSE;
 
 --
 -- Perfs

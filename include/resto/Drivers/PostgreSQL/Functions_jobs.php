@@ -88,9 +88,9 @@ class Functions_jobs {
      */
     public function getUsersToNotify($filters = array()) {
 
-        
+        $items = array();
+        $filters[] = 'visible=TRUE';
         $oFilter = implode(' AND ', $filters);
-        $oFilter = 'visible = TRUE';
 
         $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE " . $oFilter . ") ";
         $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid and u.activated=1";

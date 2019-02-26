@@ -83,6 +83,8 @@ class Functions_jobs {
         return (int)$row['count'];
     }
     
+    
+    
     /**
      * 
      * @param integer $userid
@@ -98,13 +100,14 @@ class Functions_jobs {
              * Start transaction
              */
             pg_query($this->dbh, 'BEGIN');
-            
+           // print_r ($data);
             // Inserting the job into database
             $userid             = $this->dbDriver->quote($userid);
             $querytime          = $this->dbDriver->quote($data['querytime'], date('Y-m-d H:i:s'));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
-            $title              = $this->dbDriver->quote($data['title'], 'NULL');
-            $status             = $this->dbDriver->quote($data['status'], 'NULL');
+            $title              = $this->dbDriver->quote($data['title'], 'NULL'); 
+            $notifmail        = $this->dbDriver->quote($data['notifmail'], false);
+            $status             = $this->dbDriver->quote($data['status'], 'NULL');            
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
             $statusTime         = $this->dbDriver->quote($data['statusTime'], 'NULL');
@@ -112,18 +115,21 @@ class Functions_jobs {
             $outputs            = (!empty($data['statusLocation']) && isset($data['outputs'])) ? $data['outputs'] :  array();
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
+           
+          
 
             $values = array (
                     $userid,
                     $querytime,
                     $method,
-                    $title,
+                    $title, 
+                $notifmail,
                     $data,
-                    $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
+                $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)  
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, notifmail, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $job = $this->dbDriver->fetch_assoc($this->dbDriver->query($query));
             

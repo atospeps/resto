@@ -334,12 +334,14 @@ class WPS extends RestoModule {
                             'querytime' => date("Y-m-d H:i:s"),
                             'method'    => $method,
                             'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
+                            'notifmail'   => $this->context->query['notifmail'],
                             'data'      => $query
                     ));
             
             // si requete synchrone verifier dans resultat si il y a un lien vers le rapport de statut
             $data['percentcompleted'] = (empty($data['statusLocation'])) ?  $data['percentcompleted'] : 0;
             $data['status'] = (empty($data['statusLocation'])) ? $data['status'] : 'ProcessAccepted';
+         
             // Store job into database
 
             $this->storeJob($this->user->profile['userid'], $data);
@@ -770,6 +772,48 @@ class WPS extends RestoModule {
                         'userid' => $userid,
                         'filters' => $filters
                 ));
+    }
+    
+    
+    
+    /***
+     *
+     * send mail when process is completed
+     */
+    
+    private function sendNotifMail($params){
+        
+        // Only admin users can notify users of the publication of new products
+        if (!$this->user->isAdmin()) {
+            RestoLogUtil::httpError(403);
+        }
+        
+       
+        $query = "SELECT  u.email, j.userid, j.status , j.acknowledge, j.notifmail"
+            . " FROM usermanagement.jobs j"
+                . " INNER JOIN usermanagement.users u"
+                    . " ON u.userid=j.userid WHERE u.activated=1 AND  j.notifmail = true AND j.acknowledge = FALSE AND (j.status = 'ProcessSucceeded' OR j.status = 'ProcessFailed' )" ;
+                    
+                    $jobsnotifs = pg_query($this->dbh, $query);
+                    if (!$jobsnotifs){
+                        throw new Exception("Jobs Drive - An unexpected error has occurred. $query", 500);
+                    } 
+                   
+                    while ($row = pg_fetch_assoc($jobsnotifs)) {
+                      
+                        $this->sendMail(array(
+                            'to' => $row['email'],
+                            'senderName' => $this->context->mail['senderName'],
+                            'senderEmail' => $this->context->mail['senderEmail'],
+                            'subject' => 'object mail',
+                            'message' => 'le corps du message'
+                        ));
+                     
+                                                
+                    }
+                  
+                    
+                    
     }
 
     /**

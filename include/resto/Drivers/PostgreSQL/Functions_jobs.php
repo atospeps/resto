@@ -151,7 +151,7 @@ class Functions_jobs {
             $querytime          = $this->dbDriver->quote($data['querytime'], date('Y-m-d H:i:s'));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
             $title              = $this->dbDriver->quote($data['title'], 'NULL');
-            $notifmail        	= $this->dbDriver->quote($data['notifmail'], false);
+            $notifmail        	= $this->dbDriver->quote($data['notifmail'], 'NULL');
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');

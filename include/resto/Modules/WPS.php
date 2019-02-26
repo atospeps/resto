@@ -339,6 +339,7 @@ class WPS extends RestoModule {
                             'querytime' => date("Y-m-d H:i:s"),
                             'method'    => $method,
                             'title'     => isset($this->context->query['title']) ? $this->context->query['title'] : null,
+                            'notifmail' => (isset($this->context->query['notifmail']) && strtoupper($this->context->query['notifmail'])=='TRUE') ? 'TRUE' : 'FALSE',
                             'data'      => $query
                     ));
             

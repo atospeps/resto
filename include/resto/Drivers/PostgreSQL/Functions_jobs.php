@@ -54,7 +54,7 @@ class Functions_jobs {
 
         // Query
         $query = 'SELECT j.*, SUBSTRING(value::text from \'product=([A-Z0-9_]+)]?\') as product FROM usermanagement.jobs j, json_each_text(data::json) WHERE ' . $oFilter . ' ORDER BY querytime DESC';
-        error_log(print_r($this->dbDriver->fetch($this->dbDriver->query($query)), true), 0);
+
         return $this->dbDriver->fetch($this->dbDriver->query($query));
     }
     
@@ -92,9 +92,9 @@ class Functions_jobs {
         $oFilter = implode(' AND ', $filters);
         $oFilter = 'visible = TRUE';
 
-        $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE " . $oFilter . ")";
-        $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid";
-        
+        $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE " . $oFilter . ") ";
+        $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid and u.activated=1";
+
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         $results = $this->dbDriver->query($query, 500, 'Cannot get users list to notify');
@@ -151,6 +151,7 @@ class Functions_jobs {
             $querytime          = $this->dbDriver->quote($data['querytime'], date('Y-m-d H:i:s'));
             $identifier         = $this->dbDriver->quote($data['identifier'], 'NULL');
             $title              = $this->dbDriver->quote($data['title'], 'NULL');
+            $notifmail        	= $this->dbDriver->quote($data['notifmail'], false);
             $status             = $this->dbDriver->quote($data['status'], 'NULL');
             $statusMessage      = $this->dbDriver->quote($data['statusMessage'], 'NULL');
             $statusLocation     = $this->dbDriver->quote($data['statusLocation'], 'NULL');
@@ -165,12 +166,13 @@ class Functions_jobs {
                     $querytime,
                     $method,
                     $title,
+	                $notifmail,
                     $data,
                     $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, notifmail, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $job = $this->dbDriver->fetch_assoc($this->dbDriver->query($query));
             

@@ -732,6 +732,7 @@ class WPS extends RestoModule {
         $filters[] = 'statuslocation IS NOT NULL';
         $filters[] = "status <> 'ProcessSucceeded'";
         $filters[] = "status <> 'ProcessFailed'";
+        $filters[] = 'notifmail IS TRUE';
         
         return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_RUNNING_JOBS_ID, array( 'filters' => $filters) );        
     }

@@ -93,13 +93,13 @@ class Functions_jobs {
         $oFilter = implode(' AND ', $filters);
 
         $query = "WITH tmp AS (select distinct userid FROM usermanagement.jobs WHERE " . $oFilter . ") ";
-        $query .= "SELECT u.email as email FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid and u.activated=1";
+        $query .= "SELECT u.email as email, u.country FROM tmp INNER JOIN usermanagement.users u ON u.userid = tmp.userid and u.activated=1";
 
         $results = $this->dbDriver->fetch($this->dbDriver->query($query));
         
         $results = $this->dbDriver->query($query, 500, 'Cannot get users list to notify');
         while ($result = pg_fetch_assoc($results)) {
-            $items[] = $result['email'];
+            $items[] = array('id' => $result['email'], 'lang' => strtolower($result['country']) === 'fr' ? 'fr' : 'en');
         }
         
         return $items;

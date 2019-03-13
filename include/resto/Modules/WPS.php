@@ -742,7 +742,7 @@ class WPS extends RestoModule {
      * Returns users list to notify
      * @return array users list
      */
-    private function GET_users_to_notify($data = array()) {
+    private function GET_users_to_notify() {
         if (!$this->user->isAdmin())
         {
             RestoLogUtil::httpError(403);
@@ -765,7 +765,7 @@ class WPS extends RestoModule {
         }
         
          // TODO Reflexion ?     $filters[] = "acknowledge = FALSE'     
-        $filters[] = "(status='ProcessSucceed' OR status='ProcessFailed')";
+        $filters[] = "(status='ProcessSucceeded' OR status='ProcessFailed')";
         $filters[] = "statuslocation IS NOT NULL";
         $filters[] = "notifmail IS TRUE";
         return $this->context->dbDriver->get( RestoDatabaseDriver::PROCESSING_USERS_TO_NOTIFY, array( 'filters' => $filters) ); 

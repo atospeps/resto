@@ -55,7 +55,24 @@ class Functions_jobs {
         // Query
         $query = 'SELECT j.*, SUBSTRING(value::text from \'product=([A-Z0-9_]+)]?\') as product FROM usermanagement.jobs j, json_each_text(data::json) WHERE ' . $oFilter . ' ORDER BY querytime DESC';
 
-        return $this->dbDriver->fetch($this->dbDriver->query($query));
+        $results = $this->dbDriver->query($query, 500, 'Cannot get user jobs');
+        while ($result = pg_fetch_assoc($results)) {
+            $result['gid'] = (int)$result['gid'];
+            $result['userid'] = (int)$result['userid'];
+            $result['nbresults'] = (int)$result['nbresults'];
+            $result['logs'] = !empty($result['logs']);
+            if (!empty($result['product']))
+            {
+                $product = $result['product'];
+                $result['input'] = array(
+                    'collection' => RestoUtil::collection($product),
+                    'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
+                );
+                unset($result['product']);
+            }
+            $items[] = $result;
+        }        
+        return $items;
     }
     
     /**

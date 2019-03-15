@@ -187,7 +187,7 @@ class RestoModel_sentinel3 extends RestoModel {
         foreach($props as $modelKey => $filter) {
             list($tagName, $callback, $params) = $filter;
 
-            if (!isset($tagName) || $dom->getElementsByTagName($tagName)->length || $partiel === false) {
+            if ($dom->getElementsByTagName($tagName)->length || $partiel === false) {
                 $type = $this->getDbType($modelKey);
                 $required = $this->getDbValueRequired($modelKey);
                 if (isset($tagName)) {

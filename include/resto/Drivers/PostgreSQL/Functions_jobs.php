@@ -70,6 +70,9 @@ class Functions_jobs {
                 );
                 unset($result['product']);
             }
+            if (empty($result['wms'])){
+                unset($result['wms']);
+            }
             $items[] = $result;
         }        
         return $items;

@@ -683,6 +683,7 @@ class WPS extends RestoModule {
             $update['nbresults'] = count($update['outputs']);
             $update['last_dispatch'] = $last_dispatch;
             $update['logs'] = isset($job['logs'][0]) ? $job['logs'][0] : null;
+            $update['wms'] = isset($job['wms'][0]) ? $job['wms'][0] : null;
             $update['statusTime'] = isset($job['finishedTime']) ? $job['finishedTime'] : null;
             
             $this->context->dbDriver->update(RestoDatabaseDriver::PROCESSING_JOBS_ITEM, array('data' => $update));            

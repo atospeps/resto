@@ -261,8 +261,8 @@ class RestoUser {
      * 
      * @param string $itemId
      */
-    public function removeFromCart($itemId) {
-        return $this->getCart()->remove($itemId);
+    public function removeFromCart($data) {
+        return $this->getCart()->remove($data);
     }
     
     /**

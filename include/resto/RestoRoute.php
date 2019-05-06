@@ -231,7 +231,7 @@ abstract class RestoRoute {
             }
             
             $credentials = ctype_digit($emailOrId) ? array('userid' => $userid) : array('email' => strtolower(base64_decode($emailOrId)));                       
-            return new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, $credentials, $this->context));
+            return new RestoUser($this->context->dbDriver->get(RestoDatabaseDriver::USER_PROFILE, $credentials, $this->context), $this->context);
         }
         
         return $this->user;

@@ -187,11 +187,20 @@ class Functions_cart{
      * @return boolean
      * @throws exception
      */
-    public function removeFromCart($identifier, $itemId) {
-        if (!isset($identifier) || !isset($itemId)) {
+    public function removeFromCart($identifier, $items) {
+
+        if (!isset($identifier) || empty($items)) {
             return false;
         }
-        $this->dbDriver->query('DELETE FROM usermanagement.cart WHERE itemid=\'' . pg_escape_string($itemId) . '\' AND email=\'' . pg_escape_string($identifier) . '\'', 500, 'Cannot remove ' . $itemId . ' from cart');
+        
+        $filter =  array();
+        for ($i = count($items); $i--;) {
+            $filter[] = 'itemid=\'' . pg_escape_string($items[$i]);
+        }
+        $whereClause = 'WHERE email=\'' . pg_escape_string($identifier) . '\' AND (' . implode(' OR ', $filter) . ')';
+        
+        $query = 'DELETE FROM usermanagement.cart ' . $whereClause;
+        $this->dbDriver->query($query, 500, 'Cannot remove items from cart');
         return true;
     }
     

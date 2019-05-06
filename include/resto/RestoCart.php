@@ -147,26 +147,32 @@ class RestoCart{
                 'itemId' => $itemId, 'item' => $item
         ));
     }
-    
+
     /**
-     * Remove item from cart
-     * 
-     * @param string $itemId
+     * Remove items from cart
+     * @param array $data
+     * @return boolean|unknown[]
      */
-    public function remove($itemId) {
+    public function remove($data) {
         
-        if (isset($itemId) === false) {
+        if (!is_array($data)) {
             return false;
         }
-        
-        $itemCartId = RestoUtil::encrypt($this->user->profile['email'] . $itemId);
-        if (isset($this->items[$itemCartId])) {
-            unset($this->items[$itemCartId]);
+        $items = array();
+        for ($i = count($data); $i--;) {
+
+            if (!isset($data[$i]['id'])) {
+                continue;
+            }
+            $itemId = RestoUtil::encrypt($this->user->profile['email'] . $data[$i]['id']);
+            if (isset($this->items[$itemId])) {
+                unset($this->items[$itemId]);
+                $items[] = $itemId;
+            }
         }
-        
         return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array(
-                'email' => $this->user->profile['email'], 
-                'itemId' => $itemCartId
+            'email' => $this->user->profile['email'],
+            'items' => $items
         ));
     }
     

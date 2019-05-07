@@ -195,11 +195,12 @@ class Functions_cart{
         
         $filter =  array();
         for ($i = count($items); $i--;) {
-            $filter[] = 'itemid=\'' . pg_escape_string($items[$i]);
+            $filter[] = 'itemid=\'' . pg_escape_string($items[$i]) . '\'';
         }
         $whereClause = 'WHERE email=\'' . pg_escape_string($identifier) . '\' AND (' . implode(' OR ', $filter) . ')';
         
         $query = 'DELETE FROM usermanagement.cart ' . $whereClause;
+        
         $this->dbDriver->query($query, 500, 'Cannot remove items from cart');
         return true;
     }

@@ -188,16 +188,28 @@ class Functions_cart{
      * @throws exception
      */
     public function removeFromCart($identifier, $items) {
+<<<<<<< HEAD
 
         if (!isset($identifier) || empty($items)) {
+=======
+        if (!isset($identifier) || !empty($items)) {
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
             return false;
         }
         
+<<<<<<< HEAD
         $filter =  array();
         for ($i = count($items); $i--;) {
             $filter[] = 'itemid=\'' . pg_escape_string($items[$i]);
         }
         $whereClause = 'WHERE email=\'' . pg_escape_string($identifier) . '\' AND (' . implode(' OR ', $filter) . ')';
+=======
+        $whereClause =  array();
+        for ($i = count($items); $i--;) {
+            $whereClause[] = 'itemid=\'' . pg_escape_string($items[$i]);
+        }
+        $whereClause = 'WHERE email=\'' . pg_escape_string($identifier) . '\' AND (' . explode(' OR ', $whereClause) . ')';
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         
         $query = 'DELETE FROM usermanagement.cart ' . $whereClause;
         $this->dbDriver->query($query, 500, 'Cannot remove items from cart');

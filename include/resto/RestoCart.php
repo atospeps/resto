@@ -153,17 +153,56 @@ class RestoCart{
      * @param array $data
      * @return boolean|unknown[]
      */
+<<<<<<< HEAD
     public function remove($data) {
+=======
+//     public function remove($itemId) {
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         
+<<<<<<< HEAD
+=======
+//         if (isset($itemId) === false) {
+//             return false;
+//         }
+        
+//         $itemCartId = RestoUtil::encrypt($this->user->profile['email'] . $itemId);
+//         if (isset($this->items[$itemCartId])) {
+//             unset($this->items[$itemCartId]);
+//         }
+        
+//         return $this->context->dbDriver->remove(RestoDatabaseDriver::CART_ITEM, array(
+//                 'email' => $this->user->profile['email'], 
+//                 'itemId' => $itemCartId
+//         ));
+//     }
+
+    /**
+     * Remove items from cart
+     * @param array $data
+     * @return boolean|unknown[]
+     */
+    public function remove($data) {
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         if (!is_array($data)) {
             return false;
         }
+<<<<<<< HEAD
         $items = array();
         for ($i = count($data); $i--;) {
 
             if (!isset($data[$i]['id'])) {
                 continue;
             }
+=======
+        
+        $items = array();
+        for ($i = count($data); $i--;) {
+            
+            if (!isset($data[$i]['id'])) {
+                continue;
+            }
+            
+>>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
             $itemId = RestoUtil::encrypt($this->user->profile['email'] . $data[$i]['id']);
             if (isset($this->items[$itemId])) {
                 unset($this->items[$itemId]);

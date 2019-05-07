@@ -189,11 +189,7 @@ class RestoRouteDELETE extends RestoRoute {
     private function DELETE_users($segments, $data) {
         
         if (isset($segments[2]) && $segments[2] === 'cart') {
-<<<<<<< HEAD
             return $this->DELETE_userCart($segments[1], isset($segments[3]) ? array(array('id' => $segments[3])) : $data);
-=======
-            return $this->DELETE_userCart($segments[1], isset($segments[3]) ? array($segments[3]) : $data);
->>>>>>> branch '5.0' of https://github.com/atospeps/resto.git
         }
         elseif (isset($segments[2]) && $segments[2] === 'processingcart') {
             return $this->DELETE_userProcessingCart($segments[1], isset($segments[3]) ? $segments[3] : null);

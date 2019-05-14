@@ -171,13 +171,22 @@ class RestoFeature {
             // http://pepsvfs:8081/hpss?file={hpss_path}
             $urlGetStorageInfo = $this->context->hpssRestApi['getStorageInfo'] . $hpssPath;
             $curl = curl_init();
-            curl_setopt_array($curl, array (
-                    CURLOPT_RETURNTRANSFER => 1,
-                    CURLOPT_URL => $urlGetStorageInfo,
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                    CURLOPT_TIMEOUT_MS => isset($this->context->hpssRestApi['timeout']) ? $this->context->hpssRestApi['timeout'] : 1000
-            ));
+            
+            $opts = array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_URL => $urlGetStorageInfo,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT_MS => isset($this->context->hpssRestApi['timeout']) ? $this->context->hpssRestApi['timeout'] : 1000
+            );
+            
+            // user curl options
+            if (!empty($this->context->hpssRestApi['curlOpts']) && is_array($this->context->hpssRestApi['curlOpts'])){
+                foreach ($this->context->hpssRestApi['curlOpts'] as $key => $value){
+                    $opts[$key] = $value;
+                }
+            }
+            curl_setopt_array($curl, $opts);
 
             // Perform request
             $response = curl_exec($curl);
@@ -559,15 +568,24 @@ class RestoFeature {
             $curl = curl_init($url);
             
             $headers = array();
-            curl_setopt_array($curl, array (
-                    CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_RETURNTRANSFER => 1,
-                    CURLOPT_POST => 1,
-                    CURLOPT_POSTFIELDS => '',
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                    CURLOPT_TIMEOUT => $timeout
-            ));
+            
+            $opts = array (
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_POST => 1,
+                CURLOPT_POSTFIELDS => '',
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT => $timeout
+            );
+            
+            // user curl options
+            if (!empty($this->context->hpssRestApi['curlOpts']) && is_array($this->context->hpssRestApi['curlOpts'])){
+                foreach ($this->context->hpssRestApi['curlOpts'] as $key => $value){
+                    $opts[$key] = $value;
+                }
+            }
+            curl_setopt_array($curl, $opts);
             
             curl_exec($curl);
             $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);

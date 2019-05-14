@@ -36,6 +36,15 @@ class RestoCart{
      */
     private static $_instance = null;
     
+    /*
+     * Storage mode constants
+     */
+    const STORAGE_MODE_DISK = 'disk';
+    const STORAGE_MODE_STAGING = 'staging';
+    const STORAGE_MODE_TAPE = 'tape';
+    const STORAGE_MODE_UNAIVALABLE = 'unaivalable';
+    const STORAGE_MODE_UNKNOWN = 'unknown';
+    
     /**
      * Constructor
      * 
@@ -48,14 +57,46 @@ class RestoCart{
         $this->items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array(
             'email' => $this->user->profile['email']
         ));
+        
         // get storage info
-        foreach ($this->items as $id => $item) {
+        /*foreach ($this->items as $id => $item) {
             $feature = new RestoFeature($context, $this->user, array (
                 'featureArray' => $item,
                 'overwriteStorageMode' => true
             ));
             $this->items[$id] = $feature->toArray();
+        }*/
+        
+        // get storage info
+        $storageInfos = array();
+        $postData = [];
+        foreach ($this->items as $id => $item) {
+            $feature = new RestoFeature($context, $this->user, array (
+                'featureArray' => $item,
+            ));
+            $this->items[$id] = $feature->toArray(true);
+
+            if ($feature->get('isNrt') == 1){
+                $storageInfos[$feature->get('title')] = array('storage' => self::STORAGE_MODE_DISK);
+                continue;
+            }
+            $hpssRes = $feature->get('hpssResource');
+            if (!empty($hpssRes)){
+                $postData[] = $hpssRes;
+            }
+            
         }
+        if (!empty($postData)) {
+            $postData = $this->getStorageInfo($postData);
+        }
+        $storageInfos = array_merge($storageInfos, $postData);
+        
+        foreach ($this->items as $id => &$item) {
+            $name = $item['properties']['title'];
+            $item['properties']['storage'] = array('mode' => isset($storageInfos[$name]['storage'])
+                ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN);
+        }
+        
     }
 
     /**
@@ -204,6 +245,57 @@ class RestoCart{
             $response['maxProducts'] = $this->context->cartMaxProducts;
         }
         return RestoUtil::json_format($response, $pretty);
+    }
+    
+    /**
+     * Return storage information of specified data
+     * @param array $data data
+     * @param number $timeout timeout
+     * @return array storage information of inputs data
+     */
+    private function getStorageInfo($data, $timeout=30) {
+        
+        $result = array();
+        /*
+         * Storage informations
+         */
+        if (isset($data) && !empty($this->context->hpssRestApi['getStorageInfo'])){
+            $curl = curl_init($this->context->hpssRestApi['getStorageInfo']);
+            $headers = array("Content-type: text/plain");
+            
+            // curl opts
+            $opts = array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_POST => 1,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => implode(' ', $data),
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT => $timeout,
+            );
+            
+            // user curl options
+            if (!empty($this->context->hpssRestApi['curlOpts']) && is_array($this->context->hpssRestApi['curlOpts'])){
+                foreach ($this->context->hpssRestApi['curlOpts'] as $key => $value){
+                    $opts[$key] = $value;
+                }
+            }
+            curl_setopt_array($curl, $opts);
+            
+            // Perform request
+            $response = curl_exec($curl);
+            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            if ($response && $httpcode === 200){
+                $result = json_decode($response, true);
+            }
+            
+            if(curl_errno($curl)){
+                $error = curl_error($curl);
+                error_log($error, 0);
+            }
+            curl_close($curl);
+        }
+        return $result;
     }
 
 }

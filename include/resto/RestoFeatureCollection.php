@@ -802,15 +802,25 @@ class RestoFeatureCollection {
         if (isset($data) && !empty($this->context->hpssRestApi['getStorageInfo'])){
             $curl = curl_init($this->context->hpssRestApi['getStorageInfo']);
             $headers = array("Content-type: text/plain");
-            curl_setopt_array($curl, array (
-                    CURLOPT_RETURNTRANSFER => 1,
-                    CURLOPT_POST => 1,
-                    CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_POSTFIELDS => implode(' ', $data),
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                    CURLOPT_TIMEOUT => $timeout
-            ));
+            
+            // curl opts
+            $opts = array (
+                CURLOPT_RETURNTRANSFER => 1,
+                CURLOPT_POST => 1,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => implode(' ', $data),
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => 0,
+                CURLOPT_TIMEOUT => $timeout,
+            );
+
+            // user curl options
+            if (!empty($this->context->hpssRestApi['curlOpts']) && is_array($this->context->hpssRestApi['curlOpts'])){
+                foreach ($this->context->hpssRestApi['curlOpts'] as $key => $value){
+                    $opts[$key] = $value;
+                }
+            }
+            curl_setopt_array($curl, $opts);
             
             // Perform request
             $response = curl_exec($curl);
@@ -825,7 +835,7 @@ class RestoFeatureCollection {
             }
             curl_close($curl);
         }
-        return $result;        
+        return $result;
     }
 }
 

@@ -46,13 +46,6 @@ class WPS extends RestoModule {
      */
     private $dbh;
     
-    /*
-     * Minimum period (seconds) between processings updates. 
-     * This option prevent user from abusing of manual refresh.
-     * Default value: 10
-     */ 
-    private $minPeriodBetweenProcessingsRefresh = 10;
-
     /* 
      * ? "Remove" also deletes processings from database
      * Default value: false
@@ -128,13 +121,6 @@ class WPS extends RestoModule {
         $this->replacements[$this->wpsRequestManager->getResponseServerAddress()] = $this->externalServerAddress;
         $this->replacements[$this->wpsRequestManager->getResponseOutputsUrl()] = $this->externalOutputsUrl;
         
-        // ? Minimum period between processing update (units: seconds)
-        if (isset($module['users']['minPeriodBetweenProcessingsRefresh']) 
-                && is_int($module['users']['minPeriodBetweenProcessingsRefresh']))
-        {
-            $this->minPeriodBetweenProcessingsRefresh = $module['users']['minPeriodBetweenProcessingsRefresh'];
-        }
-
         // ? "Remove" also deletes processings from database
         if (isset($module['users']['timeLifeOfProcessings']) && is_int($module['users']['timeLifeOfProcessings']))
         {

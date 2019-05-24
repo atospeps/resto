@@ -284,12 +284,6 @@ return array(
                                 )
                         ),
                         'users' => array(
-                                /*
-                                 * Minimum period (seconds) between processings updates. 
-                                 * This option prevent user from abusing of manual refresh.
-                                 * Default value: 10
-                                 */ 
-                                'minPeriodBetweenProcessingsRefresh' => 20,
                                 /* 
                                  * ? "Remove" also deletes processings from database
                                  * Default value: false

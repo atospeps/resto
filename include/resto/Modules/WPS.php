@@ -524,7 +524,7 @@ class WPS extends RestoModule {
                     break;
                 // wps/users/{userid}/jobs/{jobid}/logs
                 case 'logs':
-                    $job = $this->getJobs($userid, $jobid, array(), false);
+                    $job = $this->getJobs($userid, $jobid, array());
                     if (isset($job[0]['logs']))
                     {
                         $content = Curl::Get($job[0]['logs'], array(), $this->curlOpts);
@@ -579,7 +579,6 @@ class WPS extends RestoModule {
     /**
      * Process on HTTP method POST on /wps, /wps/execute and wps/clear
      * 
-     *      TODO    HTTP/POST wps
      *      HTTP/POST wps/users/{userid}/results/download
      *      $segments    [ {0} , {1}    , {2}   , {3}    ]
      */
@@ -670,6 +669,11 @@ class WPS extends RestoModule {
      */
     private function PUT_jobs($data) {
 
+        if (!$this->user->isAdmin())
+        {
+            RestoLogUtil::httpError(403);
+        }
+        
         $now = time();
         $last_dispatch = date("Y-m-d\TH:i:s", $now);
         
@@ -1029,7 +1033,7 @@ class WPS extends RestoModule {
      * @param bool $updateJobsStatus
      * @return multitype:|unknown
      */
-    private function getJobs($userid, $jobid=null, $filters=array(), $updateJobsStatus = true)
+    private function getJobs($userid, $jobid=null, $filters=array())
     {
         $items = array();
 
@@ -1054,14 +1058,7 @@ class WPS extends RestoModule {
         return $this->context->dbDriver->get(
             RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
             array( 'userid' => $userid, 'filters' => $filters)
-            );
-        
-        // Updates status's jobs.
-//         if ($updateJobsStatus) {
-//             $results = $this->updateStatusOfJobs($results);
-//         }
-        
-//         return $results;        
+            );        
     }
     
     /**
@@ -1082,110 +1079,6 @@ class WPS extends RestoModule {
         return $this->context->dbDriver->remove(
                 $removeType,
                 $options);
-    }
-    
-    /**
-     * We edit a job
-     *
-     * @throws Exception
-     */
-    private function updateJob($userid, $data) {
-        return $this->context->dbDriver->update(
-                RestoDatabaseDriver::PROCESSING_JOBS_ITEM,
-                array(
-                        'userid' => $userid,
-                        'data' => $data
-                ));
-    }
-
-    /**
-     * Updates status of jobs.
-     */
-    private function updateStatusOfJobs($jobs) {
-        
-        $now = time();
-        $jobs_to_update = array();
-        $curl_arr = array();
-        $master = curl_multi_init();
-        $count = 0;
-        
-        foreach ($jobs as &$job) {
-            $job['gid'] = (int)$job['gid'];
-            $job['logs'] = !empty($job['logs']);
-            
-            if (!empty($job['product'])) 
-            {
-                $product = $job['product'];
-                $job['input'] = array(
-                        'collection' => RestoUtil::collection($product),
-                        'id' => RestoUtil::UUIDv5(RestoUtil::collection($product) . ':' . $product)
-                );
-                unset($job['product']);
-            }
-            
-            if ($job['status'] !== 'ProcessSucceeded' && $job['status'] !== 'ProcessFailed')
-            {
-                if ($now < (strtotime($job['last_dispatch']) + $this->minPeriodBetweenProcessingsRefresh))
-                {
-                    continue;
-                }
-
-                preg_match('/(pywps|report)-(.*).(xml|json)/', $job['statuslocation'], $matches);
-                if (isset($matches[2]))
-                {
-                    $curl_arr[$count] = Curl::Init(
-                            $this->wpsRequestManager->getStatusUrl($matches[2]),
-                             $this->wpsRequestManager->getCurlOptions());
-                    curl_multi_add_handle($master, $curl_arr[$count]);
-                    
-                    $jobs_to_update[$count] = &$job;
-                    $count++;
-                }
-                continue;
-
-            }
-        }
-
-        // ? jobs to update
-        if ($count > 0){
-            do
-            {
-                set_time_limit(0);
-                curl_multi_select($master);
-                curl_multi_exec($master, $running);
-            }
-            while ($running > 0);
-            
-            // updates jobs
-            for($i = 0; $i < $count; $i++)
-            {
-                $res = $curl_arr[$i];
-                $data = curl_multi_getcontent  ( $res  );
-                curl_multi_remove_handle($master, $res);
-                $update = &$jobs_to_update[$i];
-                
-                if (($statusReport = $this->wpsRequestManager->parseStatusReport($data)) !== false
-                        && ($update['status'] != $statusReport['job_status'] || $update['percentcompleted'] != $statusReport['percentCompleted']) )
-                {
-                    $update['status'] = $this->toWpsStatus($statusReport['job_status']);                    
-                    $update['percentcompleted'] = $statusReport['percentCompleted'];
-                    $update['outputs'] = $statusReport['results'];
-                    $update['nbresults'] = count($update['outputs']);
-                    $update['last_dispatch'] = date("Y-m-d\TH:i:s", $now);
-                    $update['logs'] = isset($statusReport['logs'][0]) ? $statusReport['logs'][0] : null;
-                    $update['statusTime'] = isset($statusReport['finishedTime']) ? $statusReport['finishedTime'] : null;
-
-                    if ($this->updateJob($update['userid'], $update) === false){
-                        continue;
-                    }
-                }
-                $update['logs'] = !empty($update['logs']);
-            }
-        }
-        curl_multi_close($master);
-        
-//         error_log("Memory usage ; " . print_r(memory_get_usage(), true));
-        return $jobs;
     }
     
     /**

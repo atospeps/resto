@@ -196,8 +196,6 @@ class RestoOrder{
             // Perform request
             $response = curl_exec($curl);
             
-            error_log(print_r($response, true), 0);
-            
             $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
             if ($response && $httpcode === 200){
                 $result = json_decode($response, true);

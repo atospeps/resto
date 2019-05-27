@@ -180,6 +180,7 @@ class Functions_jobs {
             $outputs            = (!empty($data['statusLocation']) && isset($data['outputs'])) ? $data['outputs'] :  array();
             $method             = $this->dbDriver->quote($data['method'], 'NULL');
             $data               = $this->dbDriver->quote(json_encode($data['data']), 'NULL');
+            $wms                = $this->dbDriver->quote($data['wms'], 'NULL');
 
             $values = array (
                     $userid,
@@ -188,11 +189,11 @@ class Functions_jobs {
                     $title,
 	                $notifmail,
                     $data,
-                    $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs)
+                $identifier, $status, $statusMessage, $statusLocation, $statusTime, $percentCompleted, count($outputs), $wms
             );
 
             // Save job.
-            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, notifmail, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults) '
+            $query = 'INSERT INTO usermanagement.jobs (userid, querytime, method, title, notifmail, data, identifier, status, statusmessage, statusLocation, statustime, percentCompleted, nbresults, wms) '
                     . 'VALUES (' . join(',', $values) . ') RETURNING gid';
             $job = $this->dbDriver->fetch_assoc($this->dbDriver->query($query));
             

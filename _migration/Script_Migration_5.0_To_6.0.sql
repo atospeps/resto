@@ -32,3 +32,9 @@ CREATE INDEX _s2st_features_mgrs_idx ON _s2st.features (mgrs DESC);
 --
 SELECT f_add_col('usermanagement.jobs', 'wms', 'text');
 
+-- 
+-- PEPS-FT-785
+--
+UPDATE resto.osdescriptions set attribution='Distributed by CNES. Copernicus data following ESA 2014-2018 - TERMS AND CONDITIONS';
+
+

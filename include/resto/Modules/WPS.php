@@ -1043,7 +1043,9 @@ class WPS extends RestoModule {
         
         return $this->context->dbDriver->get(
             RestoDatabaseDriver::PROCESSING_JOBS_ITEMS, 
-            array( 'userid' => $userid, 'filters' => $filters)
+            array( 'userid' => $userid,
+                'jobid' => $jobid,
+                'filters' => $filters)
             );        
     }
     

@@ -60,7 +60,9 @@ class Functions_jobs {
             $result['gid'] = (int)$result['gid'];
             $result['userid'] = (int)$result['userid'];
             $result['nbresults'] = (int)$result['nbresults'];
-            $result['logs'] = !empty($result['logs']);
+            if (empty($jobid)){
+                $result['logs'] = !empty($result['logs']);
+            }
             if (!empty($result['product']))
             {
                 $product = $result['product'];

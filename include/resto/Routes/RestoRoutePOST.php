@@ -540,7 +540,7 @@ class RestoRoutePOST extends RestoRoute {
          * Check if the maximum products in cart is exceeded
          */
         if (isset($this->context->cartMaxProducts) && $this->context->cartMaxProducts > 0) {
-            $countCartItems = count($user->getCart()->getItems());
+            $countCartItems = count($user->getCart()->getItems(false));
             $countDataItems = count($data);
             if ($countCartItems + $countDataItems > $this->context->cartMaxProducts) {
                 return RestoLogUtil::httpError(1002, 'Cannot add item(s) in cart because the maximum of products is exceeded|'.$this->context->cartMaxProducts);

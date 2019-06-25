@@ -57,46 +57,6 @@ class RestoCart{
         $this->items = $this->context->dbDriver->get(RestoDatabaseDriver::CART_ITEMS, array(
             'email' => $this->user->profile['email']
         ));
-        
-        // get storage info
-        /*foreach ($this->items as $id => $item) {
-            $feature = new RestoFeature($context, $this->user, array (
-                'featureArray' => $item,
-                'overwriteStorageMode' => true
-            ));
-            $this->items[$id] = $feature->toArray();
-        }*/
-        
-        // get storage info
-        $storageInfos = array();
-        $postData = [];
-        foreach ($this->items as $id => $item) {
-            $feature = new RestoFeature($context, $this->user, array (
-                'featureArray' => $item,
-            ));
-            $this->items[$id] = $feature->toArray(true);
-
-            if ($feature->get('isNrt') == 1){
-                $storageInfos[$feature->get('title')] = array('storage' => self::STORAGE_MODE_DISK);
-                continue;
-            }
-            $hpssRes = $feature->get('hpssResource');
-            if (!empty($hpssRes)){
-                $postData[] = $hpssRes;
-            }
-            
-        }
-        if (!empty($postData)) {
-            $postData = $this->getStorageInfo($postData);
-        }
-        $storageInfos = array_merge($storageInfos, $postData);
-        
-        foreach ($this->items as $id => &$item) {
-            $name = $item['properties']['title'];
-            $item['properties']['storage'] = array('mode' => isset($storageInfos[$name]['storage'])
-                ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN);
-        }
-        
     }
 
     /**
@@ -230,7 +190,41 @@ class RestoCart{
     /**
      * Returns all items from cart
      */
-    public function getItems() {
+    public function getItems($storageInfo=true) {
+            
+        if ($storageInfo === true){
+            
+            // get storage info
+            $storageInfos = array();
+            $postData = [];
+            foreach ($this->items as $id => $item) {
+                $feature = new RestoFeature($this->context, $this->user, array (
+                    'featureArray' => $item,
+                ));
+                $this->items[$id] = $feature->toArray(true);
+                                
+                if ($feature->get('isNrt') == 1){
+                    $storageInfos[$feature->get('title')] = array('storage' => self::STORAGE_MODE_DISK);
+                    continue;
+                }
+                $hpssRes = $feature->get('hpssResource');
+                if (!empty($hpssRes)){
+                    $postData[] = $hpssRes;
+                }
+                
+            }
+            if (!empty($postData)) {
+                $postData = $this->getStorageInfo($postData);
+            }
+            $storageInfos = array_merge($storageInfos, $postData);
+            
+            foreach ($this->items as $id => &$item) {
+                $name = $item['properties']['title'];
+                $item['properties']['storage'] = array('mode' => isset($storageInfos[$name]['storage'])
+                    ? $storageInfos[$name]['storage'] : self::STORAGE_MODE_UNKNOWN);
+            }
+        }
+
         return $this->items;
     }
     
